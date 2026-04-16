@@ -2,9 +2,9 @@
 name = "SevenMD"
 version = "0.0.0"
 description = "A markdown reader for macOS"
-authors = ["Your Name"]
+authors = ["avinzhang <qwzhang01@users.noreply.github.com>"]
 license = "MIT"
-repository = "https://github.com/username/seven_md"
+repository = "https://github.com/qwzhang01/seven_md"
 default-run = "SevenMD"
 edition = "2021"
 rust-version = "1.70"

@@ -7,8 +7,8 @@
 **一个现代化的 Markdown 阅读器，专为 macOS 设计**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/username/seven_md.svg)](https://github.com/username/seven_md/releases)
-[![Build Status](https://github.com/username/seven_md/workflows/CI/badge.svg)](https://github.com/username/seven_md/actions)
+[![GitHub release](https://img.shields.io/github/release/qwzhang01/seven_md.svg)](https://github.com/qwzhang01/seven_md/releases)
+[![Build Status](https://github.com/qwzhang01/seven_md/workflows/CI/badge.svg)](https://github.com/qwzhang01/seven_md/actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [English](README.md) | 简体中文
@@ -53,7 +53,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/username/seven_md.git
+git clone https://github.com/qwzhang01/seven_md.git
 cd seven_md
 
 # 安装依赖
@@ -82,14 +82,14 @@ npm run tauri:build
 
 ## 🛠️ 技术栈
 
-| 技术 | 说明 |
-|------|------|
-| **Tauri v2** | Rust 后端，提供原生桌面能力 |
-| **React 19** | 现代化的前端框架 |
-| **TypeScript** | 类型安全 |
-| **Vite** | 快速的开发构建工具 |
-| **Tailwind CSS** | 实用优先的 CSS 框架 |
-| **ReactMarkdown** | Markdown 渲染引擎 |
+| 技术              | 说明                        |
+| ----------------- | --------------------------- |
+| **Tauri v2**      | Rust 后端，提供原生桌面能力 |
+| **React 19**      | 现代化的前端框架            |
+| **TypeScript**    | 类型安全                    |
+| **Vite**          | 快速的开发构建工具          |
+| **Tailwind CSS**  | 实用优先的 CSS 框架         |
+| **ReactMarkdown** | Markdown 渲染引擎           |
 
 ## 📁 项目结构
 
@@ -123,7 +123,7 @@ seven_md/
 
 感谢所有为这个项目做出贡献的人：
 
-<a href="https://github.com/username/seven_md/graphs/contributors">
+<a href="https://github.com/qwzhang01/seven_md/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=username/seven_md" />
 </a>
 
@@ -155,9 +155,9 @@ seven_md/
 
 ## 📮 联系方式
 
-- **Issues**: [GitHub Issues](https://github.com/username/seven_md/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/username/seven_md/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/qwzhang01/seven_md/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/qwzhang01/seven_md/discussions)
+- **Email**: qwzhang01@users.noreply.github.com
 
 ---
 
@@ -165,6 +165,6 @@ seven_md/
 
 如果这个项目对你有帮助，请给个 ⭐️ 支持一下！
 
-Made with ❤️ by [Your Name](https://github.com/username)
+Made with ❤️ by [avinzhang](https://github.com/qwzhang01)
 
 </div>

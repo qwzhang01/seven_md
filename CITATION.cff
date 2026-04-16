@@ -4,12 +4,12 @@ title: 'Seven MD - A Modern Markdown Reader for macOS'
 version: 0.1.0
 date-released: 2024-01-01
 authors:
-  - family-names: 'YourLastName'
-    given-names: 'YourFirstName'
+  - family-names: 'Zhang'
+    given-names: 'Avin'
     orcid: 'https://orcid.org/0000-0000-0000-0000'
-    affiliation: 'Your Organization'
-repository-code: 'https://github.com/username/seven_md'
-url: 'https://github.com/username/seven_md'
+    affiliation: 'Independent Developer'
+repository-code: 'https://github.com/qwzhang01/seven_md'
+url: 'https://github.com/qwzhang01/seven_md'
 abstract: 'Seven MD is a modern, open-source Markdown reader specifically designed for macOS. Built with Tauri v2, React 19, and TypeScript, it provides a native desktop experience with real-time preview, syntax highlighting, math formula support, and dark/light theme switching.'
 keywords:
   - 'markdown'

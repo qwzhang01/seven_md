@@ -2,17 +2,17 @@
   "name": "SevenMD",
   "version": "0.1.0",
   "description": "A modern Markdown reader for macOS built with Tauri v2 + React 19 + TypeScript",
-  "author": "Seven MD Contributors",
+  "author": "avinzhang <qwzhang01@users.noreply.github.com>",
   "license": "MIT",
   "private": false,
   "type": "module",
-  "homepage": "https://github.com/username/seven_md#readme",
+  "homepage": "https://github.com/qwzhang01/seven_md#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/username/seven_md.git"
+    "url": "git+https://github.com/qwzhang01/seven_md.git"
   },
   "bugs": {
-    "url": "https://github.com/username/seven_md/issues"
+    "url": "https://github.com/qwzhang01/seven_md/issues"
   },
   "keywords": [
     "markdown",

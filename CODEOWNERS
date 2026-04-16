@@ -1,39 +1,48 @@
 # This file defines who is responsible for code in the repository
+
 # Lines are of the format: <pattern> <owner1> <owner2> ...
 
 # Default owners for the entire repository
-* @username
+
+- @qwzhang01
 
 # Frontend code (React/TypeScript)
-/src/**/*.ts @username
-/src/**/*.tsx @username
-/src/**/*.css @username
+
+/src/**/\*.ts @qwzhang01
+/src/**/_.tsx @qwzhang01
+/src/\*\*/_.css @qwzhang01
 
 # Backend code (Rust)
-/src-tauri/**/*.rs @username
+
+/src-tauri/\*_/_.rs @qwzhang01
 
 # Configuration files
-package.json @username
-Cargo.toml @username
-tsconfig.json @username
-vite.config.ts @username
-tailwind.config.js @username
+
+package.json @qwzhang01
+Cargo.toml @qwzhang01
+tsconfig.json @qwzhang01
+vite.config.ts @qwzhang01
+tailwind.config.js @qwzhang01
 
 # Documentation
-README.md @username
-CONTRIBUTING.md @username
-CODE_OF_CONDUCT.md @username
-SECURITY.md @username
-CHANGELOG.md @username
-/docs/** @username
+
+README.md @qwzhang01
+CONTRIBUTING.md @qwzhang01
+CODE_OF_CONDUCT.md @qwzhang01
+SECURITY.md @qwzhang01
+CHANGELOG.md @qwzhang01
+/docs/\*\* @qwzhang01
 
 # GitHub workflows
-.github/** @username
+
+.github/\*\* @qwzhang01
 
 # Build and test configuration
-Makefile @username
-playwright.config.ts @username
-vitest.config.ts @username
+
+Makefile @qwzhang01
+playwright.config.ts @qwzhang01
+vitest.config.ts @qwzhang01
 
 # Note: Replace @username with actual GitHub usernames
-# Example: * @maintainer1 @maintainer2
+
+# Example: \* @maintainer1 @maintainer2
