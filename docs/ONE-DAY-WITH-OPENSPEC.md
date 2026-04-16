@@ -1,322 +1,234 @@
-# 我用 AI + OpenSpec，1天造了一个工业级 Markdown 阅读器
+# 用 Spec Driven 开发一个工业级 Markdown 阅读器，我是怎么做到的
 
-> 不是 demo，不是玩具，是真正能用的桌面应用。
+> GitHub：[https://github.com/qwzhang01/seven_md](https://github.com/qwzhang01/seven_md)
 
 ---
 
-## 先看结果
+关于 Spec Driven 开发方法论，我之前写过一篇专门的介绍：[《规范驱动开发（Spec-Driven Development）：AI 时代的软件工程新范式
+》](https://mp.weixin.qq.com/s/GuiIPGNkJ9lb_ug5xulLnw)
 
-一个叫 **Seven MD** 的 macOS Markdown 阅读器，功能清单如下：
+这篇文章不重复方法论，直接讲实战——**我是怎么用 Spec Driven 在 1 天内把一个 macOS Markdown 阅读器做到工业级水准的。**
 
-- 📁 文件夹浏览 + 文件树侧边栏
+---
+
+## 先看最终产物
+
+**Seven MD** —— 一个 macOS 原生 Markdown 阅读器：
+
+- 📁 文件夹浏览、多级文件树、可折叠布局
 - 📝 左右分栏实时预览（源码 + 渲染）
 - 🎨 GFM / KaTeX 数学公式 / Mermaid 图表 / 代码高亮
-- 🌙 暗黑 / 浅色主题切换
-- 🍎 macOS 原生菜单栏集成
+- 🌙 暗黑 / 浅色主题切换 + 状态持久化
+- 🍎 macOS 原生菜单栏 + 键盘快捷键
 - 🔒 纯本地运行，零网络依赖
 - ♿ 无障碍访问（ARIA + 键盘导航）
-- 🌐 中英文国际化
-- 📊 性能监控 + 结构化日志
-- 🧪 测试覆盖率 80%+
-- 🔐 CSP 安全策略 + 输入验证
+- 🌐 中英文国际化（react-i18next）
+- 📊 性能监控 + 结构化日志（前端 + Rust 双端）
+- 🧪 测试覆盖率 **80.87%**（Vitest 实测）
+- 🔐 CSP 安全策略 + 路径遍历防护 + 输入验证
 
 技术栈：**Tauri v2 + React 19 + TypeScript + Rust**
 
-这不是一个周末 side project 的水平，这是一个可以直接开源、可以给用户用的产品。
+---
 
-**而它只花了我 1 天。**
+## 这 1 天，实际完成了什么
+
+1 天里，我推进了 **4 个独立的 change**，每个 change 都有完整的 proposal → design → spec → tasks 文档链路：
+
+| Change                          | 核心内容                                                      | 状态    |
+| ------------------------------- | ------------------------------------------------------------- | ------- |
+| `add-folder-sidebar`            | 文件夹浏览、多级文件树、可折叠布局                            | ✅ 归档 |
+| `enhance-core-experience`       | 自定义标题栏、状态栏、面包屑导航、编辑器增强                  | ✅ 归档 |
+| `add-standard-menubar`          | macOS 原生菜单栏、键盘快捷键、最近文件                        | ✅ 归档 |
+| `industrial-grade-optimization` | 测试覆盖率 80%+、日志系统、性能监控、安全加固、国际化、无障碍 | ✅ 完成 |
+
+最后一个 change 的 `tasks.md` 有 **317 行**，涵盖 10 个大类、数十个子任务。
 
 ---
 
-## 这怎么可能？
+## 工程实战：Spec 是怎么写的
 
-在回答这个问题之前，我想先问你一个问题：
+### 一个真实的 Spec 长什么样
 
-**你有没有遇到过这种情况——**
-
-你打开 AI 对话框，输入"帮我写一个 Markdown 阅读器"，AI 给你生成了一大段代码，你粘贴进去，跑起来了，但是……
-
-- 代码结构乱成一锅粥
-- 没有错误处理
-- 没有测试
-- 下次想加个功能，完全不知道从哪里改
-- 和 AI 继续对话，它开始"忘记"之前做了什么
-
-这就是**"AI 生成代码"和"AI 辅助工程"的本质区别**。
-
-前者是让 AI 帮你打字，后者是让 AI 参与整个软件工程流程。
-
----
-
-## 什么是 OpenSpec？
-
-OpenSpec 是一套**规范驱动的 AI 开发工作流**。
-
-它的核心思想很简单：**在写代码之前，先把"要做什么"和"怎么做"用结构化文档描述清楚**，然后让 AI 按照这套规范来实现。
-
-整个流程分为四个阶段：
-
-```
-Propose（提案）→ Design（设计）→ Spec（规格）→ Tasks（任务）→ Implement（实现）
-```
-
-每个阶段都有对应的文档产出，存放在项目的 `openspec/changes/` 目录下：
-
-```
-openspec/
-└── changes/
-    ├── add-folder-sidebar/
-    │   ├── proposal.md      # 为什么要做，做什么
-    │   ├── design.md        # 怎么做，技术方案
-    │   ├── specs/           # 每个功能点的详细规格
-    │   │   ├── file-tree/spec.md
-    │   │   ├── collapsible-panes/spec.md
-    │   │   └── ...
-    │   └── tasks.md         # 可执行的任务清单
-    └── archive/             # 已完成的 change 归档
-```
-
-这套结构解决了 AI 开发最核心的问题：**上下文管理**。
-
----
-
-## Seven MD 的 1 天开发实录
-
-### 第一步：从一个想法开始（10 分钟）
-
-我只有一个模糊的需求：**我想要一个好用的 macOS Markdown 阅读器，能浏览文件夹，能实时预览。**
-
-我把这个想法告诉 AI，让它帮我生成第一个 `proposal.md`：
+以 `file-tree/spec.md` 为例，这是文件树组件的规格文档，格式是标准的 BDD（行为驱动）风格：
 
 ```markdown
-## Why
+### Requirement: File tree displays hierarchical structure
 
-当前 Seven MD 只能打开单个 Markdown 文件，用户在处理文档集合
-或项目文档时需要频繁切换文件，效率低下。
+The system SHALL display files and directories in a hierarchical tree structure.
 
-## What Changes
+#### Scenario: Display root level contents
 
-- 文件夹打开功能：支持打开文件夹，在左侧显示文件树目录结构
-- 可折叠侧边栏：左侧文件树侧边栏可折叠/展开
-- 多级目录树：支持显示嵌套文件夹结构
-- 编辑器/预览区折叠：右侧编辑区和预览区均可独立折叠
+- **WHEN** a folder is opened
+- **THEN** system displays all markdown files and directories at the root level
 
-## Capabilities
+#### Scenario: Display nested directory
 
-- folder-sidebar: 文件夹侧边栏功能
-- file-tree: 文件树组件
-- collapsible-panes: 可折叠面板功能
-- folder-persistence: 文件夹路径持久化
+- **WHEN** directory contains subdirectories
+- **THEN** system displays subdirectories with expand/collapse indicators
+- **AND** user can expand subdirectories to see their contents
+
+### Requirement: File tree filters content
+
+#### Scenario: Show only markdown files
+
+- **WHEN** file tree displays directory contents
+- **THEN** system shows only .md files and directories
+- **AND** system hides hidden files (starting with .)
+
+#### Scenario: Sort order
+
+- **WHEN** file tree displays contents
+- **THEN** system sorts directories first, then files
+- **AND** items are sorted alphabetically within each group
 ```
 
-这个文档不是给 AI 看的，**是给整个项目看的**。它定义了这次变更的边界、目标和影响范围。
+这不是注释，不是 README，**这是可执行的行为契约**。
 
-### 第二步：设计阶段（20 分钟）
+AI 拿到这份 spec，生成的代码会自动满足每一个 Scenario。测试也从这里来——每个 Scenario 对应一个测试用例。
 
-有了 proposal，AI 自动生成 `design.md`，包含：
+### 一个 Change 的完整文档结构
 
-- 组件架构图
-- 数据流设计
-- 状态管理方案
-- 与现有代码的集成点
-
-这一步最重要的价值是：**在写一行代码之前，把所有技术决策都想清楚**。
-
-### 第三步：规格拆解（30 分钟）
-
-Design 之后，AI 把每个功能点拆解成独立的 `spec.md`：
-
-- `file-tree/spec.md` - 文件树组件的完整规格
-- `collapsible-panes/spec.md` - 可折叠面板的行为规格
-- `folder-persistence/spec.md` - 持久化的数据格式和 API
+```
+openspec/changes/add-folder-sidebar/
+├── proposal.md          # 为什么做，做什么，Non-goals
+├── design.md            # 组件架构、数据流、状态管理方案
+├── specs/
+│   ├── file-tree/spec.md          # 文件树行为规格
+│   ├── collapsible-panes/spec.md  # 可折叠面板规格
+│   ├── file-operations/spec.md    # 文件操作规格
+│   └── folder-persistence/spec.md # 持久化规格
+└── tasks.md             # 原子级任务清单
+```
 
 每个 spec 都包含：接口定义、行为描述、边界条件、测试要求。
 
-### 第四步：任务清单（10 分钟）
+---
 
-最后，AI 把所有 spec 转化成可执行的 `tasks.md`，每个任务都是原子级别的：
+## 工程实战：Tasks 是怎么拆的
+
+`tasks.md` 是整个流程里最有价值的产出之一。以 `industrial-grade-optimization` 为例，任务拆解到了这个粒度：
 
 ```markdown
-- [x] 1.1 创建 Sidebar 组件骨架
-- [x] 1.2 实现文件夹打开对话框
-- [x] 1.3 创建 FileTree 组件
-- [x] 1.4 实现目录递归展开
-- [x] 1.5 添加文件点击事件
-- [x] 1.6 实现侧边栏折叠动画
-...
+## 2. P0 - 日志系统搭建
+
+### 2.1 前端日志
+
+- [x] 2.1.1 安装依赖：npm install loglevel @types/loglevel
+- [x] 2.1.2 创建 src/utils/logger.ts 日志配置文件
+- [x] 2.1.3 创建 src/utils/logger.test.ts 测试文件
+- [x] 2.1.4 创建 Tauri command 用于写入日志文件（Rust 端）
+- [x] 2.1.5 创建日志持久化插件 src/utils/loggerPersistence.ts
+- [x] 2.1.6 配置开发环境日志级别为 DEBUG
+- [x] 2.1.7 配置生产环境日志级别为 INFO
+- [x] 2.1.8 替换现有 console.log 为 logger.info/debug
+
+### 2.2 Rust 后端日志
+
+- [x] 2.2.1 在 src-tauri/Cargo.toml 添加依赖：log, env_logger, thiserror
+- [x] 2.2.2 配置 src-tauri/src/logger.rs 日志模块
+- [x] 2.2.3 实现日志文件写入功能
+- [x] 2.2.4 实现日志轮转（保留 7 天）
+- [x] 2.2.5 在 main.rs 初始化日志系统
 ```
 
-### 第五步：实现（剩余时间）
+注意几个细节：
 
-有了这套文档，实现阶段变得异常顺畅：
-
-- AI 每次只需要关注当前任务，不需要"记住"整个项目
-- 每个任务完成后打勾，进度一目了然
-- 遇到问题，直接引用对应的 spec 文档，AI 能精准理解上下文
-
----
-
-## 1 天做了什么？不止一个功能
-
-这 1 天里，我完成了 **4 个独立的 change**：
-
-| Change | 内容 | 状态 |
-|--------|------|------|
-| `add-folder-sidebar` | 文件夹浏览 + 文件树 + 可折叠布局 | ✅ 归档 |
-| `enhance-core-experience` | 自定义标题栏 + 状态栏 + 编辑器增强 | ✅ 归档 |
-| `add-standard-menubar` | macOS 原生菜单栏 + 键盘快捷键 + 最近文件 | ✅ 归档 |
-| `industrial-grade-optimization` | 测试覆盖率 80%+ + 日志系统 + 性能监控 + 安全加固 + 国际化 + 无障碍 | 🔄 进行中 |
-
-最后一个 change 的任务清单有 **317 行**，涵盖 10 个大类、数十个子任务。
-
-这不是"1 天写了个 demo"，这是**1 天完成了一个完整产品的核心功能，并且正在向工业级标准迈进**。
+1. **任务有优先级**（P0/P1/P2），AI 按优先级顺序执行
+2. **任务有具体路径**，不是"实现日志"，而是"创建 `src/utils/logger.ts`"
+3. **前后端都覆盖**，Rust 端和 TypeScript 端的任务在同一个清单里
+4. **测试任务和功能任务并列**，不是事后补，是同步写
 
 ---
 
-## OpenSpec 解决了什么问题？
+## 工程实战：三个让我印象深刻的细节
 
-### 问题一：AI 的"失忆症"
+### 细节一：三层错误边界
 
-传统 AI 对话开发的最大痛点：**对话越长，AI 越容易忘记之前的决策**。
+在 `error-boundary/spec.md` 里，我只写了"需要错误边界，侧边栏和主内容区要隔离"。
 
-OpenSpec 的解法：**把所有决策外化为文档**。AI 不需要记住，它只需要读文档。
-
-每次新的对话，只需要把相关的 spec 文档贴进去，AI 立刻能理解完整上下文。
-
-### 问题二：代码质量无法保证
-
-让 AI 直接写代码，质量参差不齐。
-
-OpenSpec 的解法：**在 spec 阶段就定义质量标准**。
-
-比如在 `test-coverage/spec.md` 里明确写：
-- 覆盖率目标：≥80%
-- 必须测试的场景：边界条件、错误状态、异步操作
-- 禁止的测试反模式：测试实现细节
-
-AI 在实现时会自动遵守这些约束。
-
-### 问题三：功能蔓延（Scope Creep）
-
-AI 有时候会"好心"帮你多做一些东西，导致代码难以维护。
-
-OpenSpec 的解法：**proposal 明确定义 Non-goals（不做什么）**。
-
-每个 change 都有清晰的边界，AI 不会越界。
-
-### 问题四：无法协作
-
-AI 生成的代码往往只有生成者自己能看懂（有时候连自己都看不懂）。
-
-OpenSpec 的解法：**文档即代码**。
-
-所有的设计决策、技术选型、接口定义都在文档里，任何人（包括未来的你）都能快速理解项目。
-
----
-
-## 技术栈选择的思考
-
-为什么选 **Tauri + React + Rust**？
-
-这个组合在 2026 年是 macOS 桌面应用的最优解：
-
-- **Tauri v2**：比 Electron 小 10 倍，内存占用低，原生性能
-- **React 19**：最新的并发特性，Server Components 思想影响下的更好的状态管理
-- **TypeScript**：类型安全，AI 生成代码时错误率更低
-- **Rust**：零成本抽象，内存安全，文件系统操作的最佳选择
-
-这个技术栈还有一个隐藏优势：**对 AI 非常友好**。
-
-TypeScript 的类型系统让 AI 能更准确地理解接口契约；Rust 的所有权系统让 AI 生成的代码天然避免内存问题。
-
----
-
-## 最让我惊喜的部分
-
-### 惊喜一：工业级的错误处理
-
-AI 在实现 `error-boundary` 时，自动实现了三层错误边界：
+AI 推导出了这个架构：
 
 ```
-全局 ErrorBoundary
+全局 ErrorBoundary（App 层）
 ├── Sidebar ErrorBoundary（侧边栏崩溃不影响主内容）
 └── MainContent ErrorBoundary（编辑器崩溃不影响文件树）
 ```
 
-这是有经验的工程师才会想到的设计，AI 从 spec 文档里推导出来了。
+这是有经验的工程师才会想到的设计——**局部故障不应该导致全局崩溃**。
 
-### 惊喜二：完整的安全体系
+### 细节二：安全加固的完整性
 
-`security-hardening` 这个 change 里，AI 实现了：
+`security-hardening/spec.md` 里定义了安全要求，最终实现包含：
 
-- 路径遍历攻击防护（`../` 注入）
-- 空字节注入防护
-- HTML 内容清理
-- CSP 策略配置
-- 输入验证工具库
+- `src/utils/pathValidator.ts` — 路径遍历攻击防护（`../` 注入、空字节注入）
+- `src/utils/inputSanitizer.ts` — HTML 内容清理
+- `tauri.conf.json5` — CSP 策略配置 + 权限最小化
+- `npm audit` + `cargo audit` — 依赖安全审计集成到 CI
 
-这些安全措施在传统开发中往往是"以后再说"，但在 OpenSpec 流程里，它们和功能开发是平等的任务。
+这些在传统开发里往往是"以后再说"的事，在 Spec Driven 流程里，它们和功能开发是**平等的任务**，有 spec，有 tasks，有验收标准。
 
-### 惊喜三：测试覆盖率 80.87%
+### 细节三：测试覆盖率 80.87% 是怎么来的
 
-这个数字不是吹出来的，是 Vitest 跑出来的真实数据。
+`test-coverage/spec.md` 里明确写了：
 
-AI 为每个组件、每个 hook、每个 reducer 都写了对应的测试文件，覆盖了正常路径、错误路径和边界条件。
+- 覆盖率目标：≥80%
+- 必须测试的场景：边界条件、错误状态、异步操作
+- 禁止的测试反模式：测试实现细节
 
----
+对应的 tasks 拆解到了每一个测试文件：
 
-## 这套方法论的局限性
+```markdown
+### 3.1 核心组件测试
 
-诚实地说，OpenSpec 也不是万能的：
+- [x] 3.1.1 创建 src/App.test.tsx
+- [x] 3.1.2 创建 src/components/Sidebar/Sidebar.test.tsx
+- [x] 3.1.3 创建 src/components/EditorPane/EditorPane.test.tsx
+- [x] 3.1.4 创建 src/components/PreviewPane/PreviewPane.test.tsx
+- [x] 3.1.5 创建 src/components/FileTree/FileTree.test.tsx
 
-1. **前期投入更高**：写 proposal、design、spec 需要时间，对于真正的小 demo 可能过于繁重
-2. **需要一定的工程经验**：你需要知道什么是好的 spec，才能写出好的 spec
-3. **AI 仍然会犯错**：spec 写得再好，AI 也可能生成有 bug 的代码，需要人工 review
-4. **不适合探索性开发**：如果你完全不知道要做什么，先探索再 spec
+### 3.2 Reducer 测试
 
-但对于**有明确目标的产品开发**，OpenSpec 是目前我见过的最高效的 AI 辅助开发方法。
+- [x] 3.2.1 创建 src/context/reducer.test.ts
+- [x] 3.2.2 测试所有 action 类型的状态转换
+- [x] 3.2.3 测试边界情况（undefined state, invalid action）
 
----
+### 3.4 Rust 后端测试
 
-## 给想尝试的你
-
-如果你想用 OpenSpec 方式开发自己的项目，可以参考这个目录结构：
-
-```
-your-project/
-└── openspec/
-    ├── config.yaml          # 项目上下文（技术栈、规范等）
-    └── changes/
-        ├── your-feature/
-        │   ├── proposal.md  # 为什么做，做什么
-        │   ├── design.md    # 怎么做
-        │   ├── specs/       # 详细规格
-        │   └── tasks.md     # 任务清单
-        └── archive/         # 已完成的 change
+- [x] 3.4.1 创建 src-tauri/src/commands.rs 测试模块
+- [x] 3.4.2 为文件读取命令添加测试
+- [x] 3.4.3 为文件写入命令添加测试
 ```
 
-核心原则只有一条：**先想清楚，再动手**。
-
-AI 是一个执行力极强的工程师，但它需要你给出清晰的方向。
+80.87% 不是估算，是 Vitest 跑出来的真实数字。
 
 ---
 
-## 结语
+## 工程能力体现在哪里
 
-我们正处在一个奇特的时代：
+用 Spec Driven 开发，工程能力体现在**你能写出什么质量的 spec**。
 
-AI 可以写代码，但大多数人还在用"聊天"的方式使用它。
+一个好的 spec 需要：
 
-**聊天生成代码**和**工程化 AI 开发**之间，有一道巨大的鸿沟。
+- **明确的边界**：proposal 里写清楚 Non-goals，AI 不会越界
+- **可测试的行为**：每个 Scenario 都能直接转化为测试用例
+- **优先级排序**：P0/P1/P2 决定了 AI 的执行顺序
+- **完整的约束**：性能阈值、安全要求、覆盖率目标都要写进 spec
 
-OpenSpec 是我目前找到的跨越这道鸿沟的最佳路径。
+这套文档体系还有一个隐藏价值：**任何人（包括未来的你）都能快速理解项目**。
 
-1 天，1 个工业级 Markdown 阅读器，这不是终点，这是一种新的开发范式的起点。
+所有的设计决策、技术选型、接口定义都在文档里，不在某个人的脑子里。
 
 ---
 
-*Seven MD 项目基于 MIT 协议开源。如果你对 OpenSpec 工作流感兴趣，欢迎交流。*
+## 项目地址
+
+**Seven MD** 基于 MIT 协议开源：
+
+👉 [https://github.com/qwzhang01/seven_md](https://github.com/qwzhang01/seven_md)
+
+`openspec/` 目录下保留了所有的 proposal、design、spec、tasks 文档，可以直接参考这套文档结构用在自己的项目里。
 
 ---
 
-**关注我，持续分享 AI 工程化实践。**
+_如果你对 Spec Driven 方法论感兴趣，可以看这篇：[《规范驱动开发（Spec-Driven Development）：AI 时代的软件工程新范式》](https://mp.weixin.qq.com/s/GuiIPGNkJ9lb_ug5xulLnw)_
