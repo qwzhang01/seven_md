@@ -22,6 +22,9 @@ export const Menu: React.FC<MenuProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { closeMenu } = useMenuState();
   const [position, setPosition] = useState<'bottom' | 'top'>('bottom');
+  
+  // Detect platform for styling
+  const isWindows = navigator.platform.toLowerCase().includes('win');
 
   // Smart positioning - detect viewport boundaries
   useEffect(() => {
@@ -105,6 +108,7 @@ export const Menu: React.FC<MenuProps> = ({
         className={`
           px-3 py-1 text-sm font-medium rounded
           transition-colors duration-150
+          ${isWindows ? 'font-sans' : 'font-system-ui'}
           ${isOpen 
             ? 'bg-accent/10 text-accent' 
             : 'text-[--text-primary] hover:bg-[--bg-tertiary]'
@@ -124,6 +128,7 @@ export const Menu: React.FC<MenuProps> = ({
           className={`
             absolute min-w-[200px] py-1 rounded-lg shadow-lg 
             border border-[--border-color] bg-[--bg-primary] z-50
+            ${isWindows ? 'font-sans text-sm' : 'font-system-ui'}
             ${position === 'bottom' ? 'top-full mt-1' : 'bottom-full mb-1'}
             left-0
           `}

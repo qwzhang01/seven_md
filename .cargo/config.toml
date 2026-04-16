@@ -1,0 +1,18 @@
+[build]
+# Set default target for Windows builds
+target = "x86_64-pc-windows-gnu"
+
+# Configure linker for Windows GNU target
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+ar = "x86_64-w64-mingw32-ar"
+
+# Build configuration
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true

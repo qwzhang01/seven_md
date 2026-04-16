@@ -30,12 +30,16 @@ export const MenuItem: React.FC<MenuItemProps> = ({
     }
   };
 
+  // Detect platform for styling
+  const isWindows = navigator.platform.toLowerCase().includes('win');
+
   return (
     <button
       className={`
         w-full px-3 py-2 flex items-center justify-between
         text-sm text-left transition-colors duration-150
         focus:outline-none focus:bg-accent/10 focus:text-accent
+        ${isWindows ? 'font-sans' : 'font-system-ui'}
         ${disabled 
           ? 'text-[--text-tertiary] cursor-not-allowed' 
           : 'text-[--text-primary] hover:bg-accent/10 hover:text-accent'

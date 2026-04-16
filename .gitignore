@@ -355,3 +355,9 @@ pids/
 
 # Snapcraft
 *.snap
+
+# Beads local SQLite cache (not needed in git)
+.beads-cache/
+
+# claude-mem local session data
+.claude-mem/

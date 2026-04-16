@@ -1,0 +1,97 @@
+name: Windows Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'Cargo.toml'
+      - '.github/workflows/windows-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'src-tauri/**'
+      - 'package.json'
+      - 'Cargo.toml'
+      - '.github/workflows/windows-build.yml'
+
+jobs:
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install Node.js dependencies
+      run: npm ci
+      
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: x86_64-pc-windows-msvc
+        override: true
+        
+    - name: Install Rust dependencies
+      run: cargo fetch
+      
+    - name: Build frontend
+      run: npm run build
+      
+    - name: Build Tauri for Windows
+      run: npm run tauri build -- --target x86_64-pc-windows-msvc
+      env:
+        TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+        TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-build
+        path: |
+          src-tauri/target/release/bundle/
+          src-tauri/target/x86_64-pc-windows-msvc/release/
+        retention-days: 7
+        
+    - name: Package Windows installer
+      if: success()
+      run: |
+        # Create a zip package for Windows installer
+        cd src-tauri/target/release/bundle
+        if [ -d "nsis" ]; then
+          cd nsis
+          zip -r ../../../../SevenMD-Windows-Installer.zip ./*.exe
+        fi
+        if [ -d "msi" ]; then
+          cd msi
+          zip -r ../../../../SevenMD-Windows-MSI.zip ./*.msi
+        fi
+        
+    - name: Upload Windows installer packages
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-installers
+        path: |
+          SevenMD-Windows-Installer.zip
+          SevenMD-Windows-MSI.zip
+        retention-days: 30
+        
+    - name: Run tests
+      run: npm run test:run
+      
+    - name: Run E2E tests on Windows
+      run: npm run test:e2e
+      env:
+        CI: true

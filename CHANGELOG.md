@@ -8,16 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Windows Support**: Full Windows platform support with native UI/UX adaptations
+  - Windows-specific menu bar styling and window controls
+  - DPI scaling support for high-resolution displays
+  - Dark/light theme compatibility on Windows
+  - Cross-platform file system operations with Windows path support
+  - Windows installer packaging and distribution
 
-- Initial project setup with Tauri v2 + React 19 + TypeScript
-- Markdown file reader with split-pane view
-- GFM (GitHub Flavored Markdown) support
-- Code syntax highlighting
-- KaTeX math formula support
-- Mermaid diagram support
-- Dark/Light theme toggle
-- macOS native menu integration
-- Drag and drop file support
+### Changed
+- Updated Tauri configuration for multi-platform support
+- Enhanced build system with Windows cross-compilation support
+- Improved file path handling to support both Windows (\\) and Unix (/) separators
+- Added Windows-specific CI/CD pipeline with GitHub Actions
+
+### Technical Details
+- Added Windows Rust toolchain (x86_64-pc-windows-msvc)
+- Created comprehensive Windows testing suite
+- Implemented platform detection utilities
+- Updated documentation with Windows installation guide
 
 ## [0.1.0] - 2024-XX-XX
 

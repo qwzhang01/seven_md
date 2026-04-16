@@ -1,14 +1,15 @@
-# Seven MD - macOS Markdown 阅读器
+# Seven MD - 跨平台 Markdown 阅读器
 
 <div align="center">
 
 ![Seven MD Logo](docs/logo.png)
 
-**一个现代化的 Markdown 阅读器，专为 macOS 设计**
+**一个现代化的 Markdown 阅读器，支持 macOS 和 Windows**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/qwzhang01/seven_md.svg)](https://github.com/qwzhang01/seven_md/releases)
+[![GitHub release](https://img.shields.io/badge/GitHub-release-blue.svg)](https://github.com/qwzhang01/seven_md/releases)
 [![Build Status](https://github.com/qwzhang01/seven_md/workflows/CI/badge.svg)](https://github.com/qwzhang01/seven_md/actions)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows-green.svg)](https://github.com/qwzhang01/seven_md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [English](README.md) | 简体中文
@@ -31,8 +32,11 @@
   - ✅ 表格、任务列表、脚注
 - 🌙 **主题切换** - 支持暗黑/浅色主题
 - 💾 **状态持久化** - 自动记住上次打开的文件夹和布局设置
-- 🍎 **原生集成** - Mac 原生菜单集成
+- 🖥️ **跨平台支持** - 原生支持 macOS 和 Windows
+- 🪟 **原生集成** - 平台原生菜单和窗口控制
 - 🔒 **本地运行** - 纯本地应用，无网络依赖，保护隐私
+- 📦 **多种安装方式** - 支持 NSIS 和 MSI 安装包 (Windows)
+- 🎯 **DPI 适配** - 自动适配不同屏幕分辨率和缩放比例
 
 ## 📸 截图
 
@@ -47,9 +51,13 @@
 
 - **Node.js** 18+
 - **Rust** 1.70+
-- **macOS** 10.15+
+- **操作系统**
+  - **macOS** 10.15+
+  - **Windows** 10+ (64位)
 
 ### 安装
+
+#### 开发环境
 
 ```bash
 # 克隆仓库
@@ -63,6 +71,23 @@ npm install
 npm run tauri:dev
 ```
 
+#### Windows 特定设置
+
+在 Windows 上开发需要安装额外的工具链：
+
+1. **安装 Rust for Windows**:
+   ```powershell
+   winget install Rustlang.Rust.MSVC
+   ```
+
+2. **安装 Microsoft Visual C++ Build Tools**
+
+3. **重启终端**后验证安装：
+   ```bash
+   rustc --version
+   cargo --version
+   ```
+
 ### 构建
 
 ```bash
@@ -70,7 +95,9 @@ npm run tauri:dev
 npm run tauri:build
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/` 目录。
+构建产物位于 `src-tauri/target/release/bundle/` 目录：
+- **macOS**: `.app` 应用包和 `.dmg` 安装镜像
+- **Windows**: `.exe` (NSIS) 和 `.msi` (MSI) 安装包
 
 ## 📖 使用说明
 
@@ -90,6 +117,9 @@ npm run tauri:build
 | **Vite**          | 快速的开发构建工具          |
 | **Tailwind CSS**  | 实用优先的 CSS 框架         |
 | **ReactMarkdown** | Markdown 渲染引擎           |
+| **NSIS**          | Windows 安装包制作工具      |
+| **WiX Toolset**   | Windows MSI 安装包制作      |
+| **Windows API**   | Windows 原生功能集成        |
 
 ## 📁 项目结构
 
@@ -134,13 +164,14 @@ seven_md/
 - [x] 数学公式支持
 - [x] Mermaid 图表支持
 - [x] 暗黑/浅色主题
+- [x] Windows 平台支持
 - [ ] 文件历史记录
 - [ ] 自定义主题
 - [ ] 导出 PDF
 - [ ] 多标签页支持
 - [ ] 插件系统
 
-查看 [Issues](https://github.com/username/seven_md/issues) 了解更多计划功能。
+查看 [Issues](https://github.com/qwzhang01/seven_md/issues) 了解更多计划功能。
 
 ## 📄 许可证
 
@@ -152,6 +183,9 @@ seven_md/
 - [React](https://react.dev/) - 用于构建用户界面的 JavaScript 库
 - [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
 - [ReactMarkdown](https://github.com/remarkjs/react-markdown) - Markdown 渲染组件
+- [NSIS](https://nsis.sourceforge.io/) - Windows 安装包制作工具
+- [WiX Toolset](https://wixtoolset.org/) - Windows MSI 安装包制作框架
+- [Windows API](https://docs.microsoft.com/en-us/windows/win32/apiindex/windows-api-list) - Windows 原生功能集成
 
 ## 📮 联系方式
 

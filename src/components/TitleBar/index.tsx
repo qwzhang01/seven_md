@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useAppState } from '../../context/AppContext'
 import { Breadcrumb } from './Breadcrumb'
 import { LanguageSelector } from '../LanguageSelector'
+import { MenuBar } from '../MenuBar'
+import { useDPIScaling } from '../../utils/dpiScaling'
 
 interface TitleBarProps {
   onToggleTheme?: () => void
@@ -27,18 +29,35 @@ export function TitleBar({
 }: TitleBarProps) {
   const { state } = useAppState()
   const { t } = useTranslation()
+  const { getDPIAwareSpacing, getDPIClasses } = useDPIScaling()
+  
+  // Detect platform for window controls
+  const isWindows = navigator.platform.toLowerCase().includes('win')
+  const isMacOS = navigator.platform.toLowerCase().includes('mac')
+  
+  // Apply DPI-aware spacing
+  const titleBarHeight = getDPIAwareSpacing(48) // Base height 48px
+  const buttonPadding = getDPIAwareSpacing(8) // Base padding 8px
+  const dpiClasses = getDPIClasses()
 
   return (
     <div 
-      className="h-12 flex items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 select-none"
+      className={`h-${titleBarHeight} flex items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 select-none ${Object.values(dpiClasses).join(' ')}`}
       data-tauri-drag-region
+      style={{ height: `${titleBarHeight}px` }}
     >
-      {/* Spacer for native window controls */}
-      <div className="w-20 shrink-0" data-tauri-drag-region></div>
+      {/* Spacer for native window controls (macOS only) */}
+      {isMacOS && <div className="w-20 shrink-0" data-tauri-drag-region></div>}
 
-      {/* App name - draggable */}
-      <div className="text-sm font-medium text-blue-500 dark:text-blue-400 shrink-0" data-tauri-drag-region>
-        {t('common.appName')}
+      {/* Menu Bar (Windows) or App name (macOS) */}
+      <div className="flex items-center h-full" data-tauri-drag-region>
+        {isWindows ? (
+          <MenuBar />
+        ) : (
+          <div className="text-sm font-medium text-blue-500 dark:text-blue-400 shrink-0" data-tauri-drag-region>
+            {t('common.appName')}
+          </div>
+        )}
       </div>
 
       {/* Breadcrumb - draggable, fills remaining space */}
@@ -50,7 +69,7 @@ export function TitleBar({
       <div className="flex items-center gap-1 mr-2" role="toolbar" aria-label={t('common.viewControls')}>
         <button
           onClick={onToggleSidebar}
-          className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${
+          className={`flex items-center gap-1.5 px-${buttonPadding} py-1 text-xs rounded transition-colors ${
             sidebarCollapsed 
               ? 'text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800' 
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -64,7 +83,7 @@ export function TitleBar({
         
         <button
           onClick={onToggleEditor}
-          className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${
+          className={`flex items-center gap-1.5 px-${buttonPadding} py-1 text-xs rounded transition-colors ${
             editorCollapsed 
               ? 'text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800' 
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -78,7 +97,7 @@ export function TitleBar({
         
         <button
           onClick={onTogglePreview}
-          className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors ${
+          className={`flex items-center gap-1.5 px-${buttonPadding} py-1 text-xs rounded transition-colors ${
             previewCollapsed 
               ? 'text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800' 
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -93,7 +112,7 @@ export function TitleBar({
         {/* Theme toggle */}
         <button
           onClick={onToggleTheme}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+          className={`flex items-center gap-1.5 px-${buttonPadding} py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors`}
           aria-label={theme === 'light' ? t('theme.switchToDark') : t('theme.switchToLight')}
           title={t('theme.toggle')}
         >
