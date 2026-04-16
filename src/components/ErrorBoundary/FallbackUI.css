@@ -1,0 +1,199 @@
+/* FallbackUI Container */
+.fallback-ui {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  padding: 24px;
+  background: var(--bg-primary, #1e1e1e);
+  color: var(--text-primary, #e0e0e0);
+}
+
+.fallback-ui__content {
+  max-width: 600px;
+  text-align: center;
+}
+
+/* Error Icon */
+.fallback-ui__icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+/* Error Title */
+.fallback-ui__title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: var(--text-primary, #e0e0e0);
+}
+
+/* Error Message */
+.fallback-ui__message {
+  font-size: 16px;
+  color: var(--text-secondary, #a0a0a0);
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+/* Boundary Info */
+.fallback-ui__boundary {
+  font-size: 14px;
+  color: var(--text-tertiary, #808080);
+  margin: 0 0 24px 0;
+}
+
+.fallback-ui__boundary code {
+  padding: 2px 8px;
+  background: var(--bg-secondary, #2d2d2d);
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 13px;
+}
+
+/* Action Buttons */
+.fallback-ui__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.fallback-ui__button {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.fallback-ui__button:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(59, 130, 246, 0.5));
+}
+
+.fallback-ui__button--primary {
+  background: var(--accent-primary, #3b82f6);
+  color: white;
+}
+
+.fallback-ui__button--primary:hover {
+  background: var(--accent-primary-hover, #2563eb);
+}
+
+.fallback-ui__button--secondary {
+  background: var(--bg-secondary, #2d2d2d);
+  color: var(--text-primary, #e0e0e0);
+  border: 1px solid var(--border-color, #3d3d3d);
+}
+
+.fallback-ui__button--secondary:hover {
+  background: var(--bg-tertiary, #3d3d3d);
+}
+
+/* Error Details (Development Only) */
+.fallback-ui__details {
+  text-align: left;
+  margin-top: 24px;
+}
+
+.fallback-ui__summary {
+  padding: 8px 12px;
+  background: var(--bg-secondary, #2d2d2d);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #e0e0e0);
+  outline: none;
+}
+
+.fallback-ui__summary:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(59, 130, 246, 0.5));
+}
+
+.fallback-ui__summary:hover {
+  background: var(--bg-tertiary, #3d3d3d);
+}
+
+.fallback-ui__error-info {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--bg-secondary, #2d2d2d);
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #3d3d3d);
+}
+
+.fallback-ui__error-section {
+  margin-bottom: 16px;
+}
+
+.fallback-ui__error-section:last-child {
+  margin-bottom: 0;
+}
+
+.fallback-ui__error-heading {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-primary, #e0e0e0);
+}
+
+.fallback-ui__error-text {
+  margin: 0;
+  padding: 12px;
+  background: var(--bg-tertiary, #1e1e1e);
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #a0a0a0);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .fallback-ui {
+    padding: 16px;
+  }
+
+  .fallback-ui__title {
+    font-size: 20px;
+  }
+
+  .fallback-ui__message {
+    font-size: 14px;
+  }
+
+  .fallback-ui__actions {
+    flex-direction: column;
+  }
+
+  .fallback-ui__button {
+    width: 100%;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .fallback-ui__icon {
+    animation: none;
+  }
+
+  .fallback-ui__button {
+    transition: none;
+  }
+}

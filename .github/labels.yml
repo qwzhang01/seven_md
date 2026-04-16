@@ -1,0 +1,116 @@
+# Issue and Pull Request Labels
+
+labels:
+  # Type labels
+  - name: "bug 🐛"
+    color: "d73a4a"
+    description: "Something isn't working"
+  
+  - name: "enhancement ✨"
+    color: "a2eeef"
+    description: "New feature or request"
+  
+  - name: "documentation 📝"
+    color: "0075ca"
+    description: "Improvements or additions to documentation"
+  
+  - name: "refactor ♻️"
+    color: "1d76db"
+    description: "Code refactoring"
+  
+  - name: "performance ⚡"
+    color: "fbca04"
+    description: "Performance improvements"
+  
+  - name: "test ✅"
+    color: "cfd3d7"
+    description: "Testing related changes"
+  
+  - name: "chore 🔧"
+    color: "7057ff"
+    description: "Build, CI, dependencies, etc."
+  
+  # Priority labels
+  - name: "priority: critical 🔴"
+    color: "b60205"
+    description: "Critical priority - needs immediate attention"
+  
+  - name: "priority: high 🟠"
+    color: "ff7f00"
+    description: "High priority"
+  
+  - name: "priority: medium 🟡"
+    color: "ffcc00"
+    description: "Medium priority"
+  
+  - name: "priority: low 🟢"
+    color: "69d858"
+    description: "Low priority"
+  
+  # Status labels
+  - name: "status: blocked 🚫"
+    color: "b60205"
+    description: "Blocked by something else"
+  
+  - name: "status: in progress 🚧"
+    color: "fbca04"
+    description: "Currently being worked on"
+  
+  - name: "status: needs review 👀"
+    color: "fbca04"
+    description: "Needs code review"
+  
+  - name: "status: ready to merge ✅"
+    color: "69d858"
+    description: "Ready to be merged"
+  
+  - name: "status: wontfix 💔"
+    color: "ffffff"
+    description: "This will not be worked on"
+  
+  # Topic labels
+  - name: "topic: frontend 🎨"
+    color: "1d76db"
+    description: "Frontend related changes"
+  
+  - name: "topic: backend ⚙️"
+    color: "1d76db"
+    description: "Backend/Tauri related changes"
+  
+  - name: "topic: ui/ux 🎯"
+    color: "c5def5"
+    description: "UI/UX improvements"
+  
+  - name: "topic: security 🔒"
+    color: "d73a4a"
+    description: "Security related changes"
+  
+  - name: "topic: dependencies 📦"
+    color: "0366d6"
+    description: "Dependency updates"
+  
+  - name: "topic: ci/cd 🔄"
+    color: "0366d6"
+    description: "CI/CD related changes"
+  
+  # Experience level
+  - name: "good first issue 👋"
+    color: "7057ff"
+    description: "Good for newcomers"
+  
+  - name: "help wanted 🆘"
+    color: "008672"
+    description: "Extra attention is needed"
+  
+  # Platform
+  - name: "platform: macOS 🍎"
+    color: "a2eeef"
+    description: "macOS specific"
+  
+  - name: "platform: windows 🪟"
+    color: "a2eeef"
+    description: "Windows specific"
+  
+  - name: "platform: linux 🐧"
+    color: "a2eeef"
+    description: "Linux specific"

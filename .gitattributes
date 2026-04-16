@@ -1,0 +1,145 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Text files
+*.md text
+*.txt text
+*.html text
+*.css text
+*.js text
+*.ts text
+*.tsx text
+*.json text
+*.yml text
+*.yaml text
+*.xml text
+*.svg text
+*.toml text
+*.rs text
+*.lock text
+*.log text
+*.sh text
+*.bat text
+*.cmd text
+*.ps1 text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.tiff binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.mp4 binary
+*.webm binary
+*.mov binary
+*.avi binary
+*.wmv binary
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.rar binary
+*.7z binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Force LF line endings for cross-platform compatibility
+*.sh eol=lf
+*.bat eol=crlf
+*.cmd eol=crlf
+*.ps1 eol=lf
+
+# Declare files that will always have CRLF line endings on checkout
+*.sln text eol=crlf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.tiff binary
+*.pdf binary
+
+# Rust specific
+*.rs text
+Cargo.lock text
+
+# JavaScript/TypeScript specific
+package-lock.json text
+pnpm-lock.yaml text
+yarn.lock text
+
+# Markdown
+*.md text
+
+# Documentation
+*.md text
+*.txt text
+*.rst text
+
+# Config files
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.cfg text
+*.conf text
+
+# Source code
+*.c text
+*.h text
+*.cpp text
+*.hpp text
+*.java text
+*.py text
+*.rb text
+*.go text
+*.php text
+*.pl text
+*.pm text
+*.sql text
+
+# Web files
+*.html text
+*.css text
+*.js text
+*.ts text
+*.tsx text
+*.jsx text
+*.vue text
+*.svelte text
+*.scss text
+*.less text
+*.styl text
+
+# Force Unix line endings for shell scripts
+*.sh text eol=lf
+
+# Force Windows line endings for batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell scripts use LF
+*.ps1 text eol=lf

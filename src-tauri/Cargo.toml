@@ -1,0 +1,28 @@
+[package]
+name = "SevenMD"
+version = "0.0.0"
+description = "A markdown reader for macOS"
+authors = ["Your Name"]
+license = "MIT"
+repository = "https://github.com/username/seven_md"
+default-run = "SevenMD"
+edition = "2021"
+rust-version = "1.70"
+
+[build-dependencies]
+tauri-build = { version = "2.5.6", features = ["config-json5"] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2.10.1", features = ["config-json5"] }
+tauri-plugin-dialog = "2.7.0"
+tauri-plugin-fs = "2.5.0"
+chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.4"
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[features]
+default = [ "tauri/default" ]

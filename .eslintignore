@@ -1,0 +1,134 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Tauri
+src-tauri/target/
+
+# Coverage
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Database
+*.db
+*.sqlite
+
+# Binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.bmp
+*.tiff
+*.pdf
+
+# Package lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Rust files
+*.rs
+Cargo.lock
+
+# Test results and reports
+[Ll]og
+[Rr]eports/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Git
+.git/
+
+# Documentation images
+docs/logo.png
+docs/screenshots/
+
+# Playwright test results
+playwright-report/
+test-results/
+
+# Vite cache
+.cache/
+
+# Parcel cache
+.parcel-cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js
+.next/
+
+# Nuxt.js
+.nuxt/
+
+# Gatsby
+.cache/
+public/
+
+# Vuepress
+.vuepress/dist/
+
+# Serverless
+.serverless/
+
+# FuseBox
+.fusebox/
+
+# DynamoDB
+.dynamodb/
+
+# TernJS
+.tern-port
+
+# VSCode test
+.vscode-test/
+
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

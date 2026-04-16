@@ -1,0 +1,54 @@
+/**
+ * Reduced motion styles for accessibility
+ * These styles are applied when the user prefers reduced motion
+ * according to the prefers-reduced-motion media query
+ */
+
+/* Disable all animations and transitions for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Specifically disable transform animations */
+  * {
+    transform: none !important;
+  }
+
+  /* Disable hover transitions */
+  button:hover,
+  a:hover,
+  .hover-effect:hover {
+    transition: none !important;
+  }
+
+  /* Disable loading spinners animation */
+  .loading-spinner,
+  .spinner,
+  [role="status"] .spinner {
+    animation: none !important;
+  }
+
+  /* Disable fade-in/out effects */
+  .fade-in,
+  .fade-out {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  /* Keep essential transitions for accessibility feedback */
+  button:focus,
+  a:focus,
+  input:focus,
+  select:focus,
+  textarea:focus,
+  [tabindex]:focus {
+    outline: 2px solid currentColor !important;
+    outline-offset: 2px !important;
+  }
+}

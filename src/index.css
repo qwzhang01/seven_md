@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+  }
+}
+
+@layer components {
+  .markdown-body {
+    @apply prose prose-slate max-w-none dark:prose-invert;
+    @apply prose-headings:font-semibold;
+    @apply prose-code:before:content-none prose-code:after:content-none;
+  }
+
+  /* Ensure headings are visible in dark mode */
+  .dark .markdown-body h1,
+  .dark .markdown-body h2,
+  .dark .markdown-body h3,
+  .dark .markdown-body h4,
+  .dark .markdown-body h5,
+  .dark .markdown-body h6 {
+    color: #e2e8f0 !important;
+  }
+  
+  .markdown-body pre {
+    @apply bg-gray-100 dark:bg-gray-800 rounded-md p-4 overflow-x-auto;
+  }
+  
+  .markdown-body code {
+    @apply text-sm;
+  }
+}
+
+/* ============================================================
+   Print styles — used when exporting to PDF via the OS print dialog
+   ============================================================ */
+@media print {
+  /* Force light theme for print output */
+  body {
+    background: #fff !important;
+    color: #1a1a1a !important;
+  }
+
+  /* Hide all UI chrome — only the preview content should print */
+  [data-tauri-drag-region],
+  nav,
+  aside,
+  .sidebar,
+  [class*="TitleBar"],
+  [class*="StatusBar"],
+  [class*="TabBar"],
+  [class*="Toolbar"],
+  [class*="EditorPane"],
+  [class*="MenuBar"],
+  [class*="CollapsiblePane"]:not(:has(.markdown-body)) {
+    display: none !important;
+  }
+
+  /* Ensure preview pane fills the page */
+  .markdown-body {
+    max-width: 100% !important;
+    padding: 0 !important;
+    color: #1a1a1a !important;
+    background: #fff !important;
+  }
+
+  /* Prevent code blocks from breaking across pages mid-line */
+  pre,
+  pre code {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Keep headings with their following content */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Ensure tables don't break awkwardly */
+  table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* KaTeX math — ensure it renders in print */
+  .katex-display {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* highlight.js code blocks — force light theme colors */
+  .hljs {
+    background: #f6f8fa !important;
+    color: #24292e !important;
+  }
+}

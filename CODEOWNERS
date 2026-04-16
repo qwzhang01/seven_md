@@ -1,0 +1,39 @@
+# This file defines who is responsible for code in the repository
+# Lines are of the format: <pattern> <owner1> <owner2> ...
+
+# Default owners for the entire repository
+* @username
+
+# Frontend code (React/TypeScript)
+/src/**/*.ts @username
+/src/**/*.tsx @username
+/src/**/*.css @username
+
+# Backend code (Rust)
+/src-tauri/**/*.rs @username
+
+# Configuration files
+package.json @username
+Cargo.toml @username
+tsconfig.json @username
+vite.config.ts @username
+tailwind.config.js @username
+
+# Documentation
+README.md @username
+CONTRIBUTING.md @username
+CODE_OF_CONDUCT.md @username
+SECURITY.md @username
+CHANGELOG.md @username
+/docs/** @username
+
+# GitHub workflows
+.github/** @username
+
+# Build and test configuration
+Makefile @username
+playwright.config.ts @username
+vitest.config.ts @username
+
+# Note: Replace @username with actual GitHub usernames
+# Example: * @maintainer1 @maintainer2

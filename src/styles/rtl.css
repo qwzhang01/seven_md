@@ -1,0 +1,120 @@
+/**
+ * RTL (Right-to-Left) Language Support Styles
+ * 
+ * These styles are applied when the app is displayed in RTL languages
+ * such as Arabic, Hebrew, Persian, etc.
+ * 
+ * Usage: Add `dir="rtl"` to the root HTML element when RTL language is active
+ */
+
+/* Root RTL Direction */
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Mirror flexbox layouts */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Mirror margins and paddings */
+[dir="rtl"] .ml-auto {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Mirror icons and arrows */
+[dir="rtl"] .icon-arrow-right {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .icon-arrow-left {
+  transform: scaleX(-1);
+}
+
+/* Mirror sidebar position */
+[dir="rtl"] .sidebar-left {
+  left: auto;
+  right: 0;
+  border-left: none;
+  border-right: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Mirror text alignment in tables */
+[dir="rtl"] table th,
+[dir="rtl"] table td {
+  text-align: right;
+}
+
+/* Mirror list markers */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  padding-left: 0;
+  padding-right: 2em;
+}
+
+/* Mirror breadcrumbs */
+[dir="rtl"] .breadcrumb-separator {
+  transform: scaleX(-1);
+}
+
+/* Mirror progress bars */
+[dir="rtl"] .progress-bar {
+  transform: scaleX(-1);
+}
+
+/* Mirror sliders */
+[dir="rtl"] input[type="range"] {
+  direction: ltr;
+}
+
+/* Mirror checkboxes and radio buttons */
+[dir="rtl"] input[type="checkbox"],
+[dir="rtl"] input[type="radio"] {
+  margin-left: 0.5em;
+  margin-right: 0;
+}
+
+/* Mirror dropdown menus */
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+/* Mirror modal close buttons */
+[dir="rtl"] .modal-close {
+  right: auto;
+  left: 1rem;
+}
+
+/* Mirror toast notifications */
+[dir="rtl"] .toast-container {
+  left: 1rem;
+  right: auto;
+}
+
+/* Mirror tab indicators */
+[dir="rtl"] .tab-indicator {
+  left: auto;
+  right: 0;
+}
+
+/* Fix code blocks (keep LTR for code) */
+[dir="rtl"] pre,
+[dir="rtl"] code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Fix URL display (keep LTR for URLs) */
+[dir="rtl"] a[href^="http"] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: embed;
+}

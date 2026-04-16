@@ -1,0 +1,357 @@
+# Dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+build/
+
+# Tauri
+src-tauri/target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# OS
+Thumbs.db
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test/
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Rust
+/target/
+**/*.rs.bk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Database
+*.db
+*.sqlite
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Unit test results
+[Ll]og
+[Rr]eports/
+
+# Snapcraft
+*.snap
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# Sublime Text
+*.sublime-*
+
+# Maven
+target/
+
+# Gradle
+.gradle/
+build/
+
+# SBT
+project/project/
+project/target/
+target/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nox/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# R
+.Rhistory
+.RData
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+.history/
+
+# Visual Studio
+.vs/
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# NetBeans
+nbproject/
+
+# IntelliJ
+out/
+
+# Maven
+target/
+
+# Gradle
+.gradle/
+build/
+
+# SBT
+project/project/
+project/target/
+target/
+
+# Play Framework
+dist/
+
+# SBT
+lib_managed/
+src_managed/
+
+# Scala-IDE specific
+.scala_dependencies/
+.worksheet
+
+# ENSIME
+.ensime
+.ensime_cache/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Database
+*.db
+*.sqlite
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Unit test results
+[Ll]og
+[Rr]eports/
+
+# Snapcraft
+*.snap
