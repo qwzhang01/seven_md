@@ -1,188 +1,216 @@
-# E2E Testing Guide
+# E2E 测试指南
 
-## Overview
+本文档说明 Seven MD 的端到端（E2E）测试体系。
 
-Seven MD uses [Playwright](https://playwright.dev/) for end-to-end testing. This guide covers everything you need to know to run, write, and maintain E2E tests.
+---
 
-## Quick Start
+## 概述
 
-### Prerequisites
+Seven MD 使用 [Playwright](https://playwright.dev/) 进行 E2E 测试，验证用户完整操作流程。
 
-- Node.js >= 18
-- npm >= 9
+---
 
-### Installation
+## 快速开始
+
+### 前置依赖
+
+- Node.js ≥ 18
+- npm ≥ 9
+
+### 安装
 
 ```bash
-# Install dependencies (includes Playwright)
+# 安装依赖（包含 Playwright）
 npm install
 
-# Install Playwright browsers
+# 安装 Playwright 浏览器
 npx playwright install chromium
 ```
 
-### Running Tests
+### 运行测试
 
 ```bash
-# Run all E2E tests
+# 运行全部 E2E 测试
 npm run test:e2e
 
-# Run tests with UI mode (interactive)
+# 交互式 UI 模式
 npm run test:e2e:ui
 
-# Run tests in headed mode (see the browser)
+# 有头浏览器模式（可视化）
 npm run test:e2e:headed
 
-# Run a specific test file
+# 运行指定文件
 npx playwright test e2e/tests/editor/editor.spec.ts
 
-# Run tests matching a pattern
-npx playwright test --grep "bold formatting"
+# 按名称匹配运行
+npx playwright test --grep "加粗格式"
 
-# Run tests in debug mode
-npx playwright test --debug
+# 调试模式
+npm run test:e2e:debug
+
+# 录制测试脚本
+npm run test:e2e:codegen
 ```
 
-## Directory Structure
+---
+
+## 目录结构
 
 ```
 e2e/
-├── tests/              # Test files
-│   ├── editor/         # Editor-related tests
-│   ├── file/           # File operation tests
-│   ├── preview/        # Preview pane tests
-│   └── settings/       # Settings tests
-├── fixtures/           # Test fixtures and shared data
-│   └── index.ts        # Main fixtures file
-├── helpers/            # Utility functions
-│   ├── test-helpers.ts # Common test helpers
-│   ├── test-data.ts    # Test data management
-│   └── health-check.ts # Environment health checks
-├── pages/              # Page Object Model
-│   ├── BasePage.ts     # Base page object
-│   ├── EditorPage.ts   # Editor interactions
-│   ├── PreviewPage.ts  # Preview pane interactions
-│   ├── MenuBarPage.ts  # Menu bar interactions
-│   ├── SettingsPage.ts # Settings dialog interactions
-│   ├── FileDialogPage.ts # File dialog interactions
-│   └── PageObjectFactory.ts # Factory for page objects
-└── setup/              # Test environment setup
-    ├── global-setup.ts  # Runs before all tests
-    └── global-teardown.ts # Runs after all tests
+├── tests/                  # 测试用例
+│   ├── editor/            # 编辑器相关测试
+│   ├── file/              # 文件操作测试
+│   ├── preview/           # 预览面板测试
+│   └── settings/          # 设置相关测试
+├── pages/                  # Page Object Model
+│   ├── BasePage.ts        # 基础页面对象
+│   ├── EditorPage.ts      # 编辑器交互
+│   ├── PreviewPage.ts     # 预览面板交互
+│   ├── MenuBarPage.ts     # 菜单栏交互
+│   ├── SettingsPage.ts    # 设置交互
+│   ├── FileDialogPage.ts  # 文件对话框交互
+│   └── PageObjectFactory.ts # 页面对象工厂
+├── fixtures/               # 测试夹具
+│   └── index.ts           # 主夹具文件（扩展 Playwright test）
+├── helpers/                # 辅助工具
+│   ├── test-helpers.ts    # 通用测试辅助函数
+│   ├── test-data.ts       # 测试数据管理
+│   └── health-check.ts    # 环境健康检查
+└── setup/                  # 测试环境设置
+    ├── global-setup.ts    # 全部测试前执行
+    └── global-teardown.ts # 全部测试后清理
 ```
 
-## Writing Tests
+---
 
-### Basic Test Structure
+## 编写测试
+
+### 基本结构
 
 ```typescript
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../fixtures'
 
-test.describe('Feature Name', () => {
-  test('should do something', async ({ editorPage, previewPage }) => {
-    // Arrange
-    await editorPage.waitForEditor();
+test.describe('功能名称', () => {
+  test('应能完成某操作', async ({ editorPage, previewPage }) => {
+    // Arrange - 准备
+    await editorPage.waitForEditor()
     
-    // Act
-    await editorPage.typeInEditor('# Hello World');
+    // Act - 执行
+    await editorPage.typeInEditor('# Hello World')
     
-    // Assert
-    await previewPage.waitForUpdate();
-    await previewPage.assertHeading(1, 'Hello World');
-  });
-});
+    // Assert - 验证
+    await previewPage.waitForUpdate()
+    await previewPage.assertHeading(1, 'Hello World')
+  })
+})
 ```
 
-### Using Page Objects
+### 使用 Page Object
+
+项目采用 **Page Object Model (POM)** 模式，将页面交互封装到独立的 Page 类中：
 
 ```typescript
-import { test } from '../../fixtures';
+import { test } from '../../fixtures'
 
-test('editor test', async ({ editorPage }) => {
-  await editorPage.waitForEditor();
-  await editorPage.typeInEditor('Some text');
-  await editorPage.assertContains('Some text');
-});
+test('编辑器测试', async ({ editorPage }) => {
+  await editorPage.waitForEditor()
+  await editorPage.typeInEditor('Some text')
+  await editorPage.assertContains('Some text')
+})
 ```
 
-### Using the Page Factory
+### 使用 Page Object Factory
 
 ```typescript
-import { test } from '@playwright/test';
-import { PageObjectFactory } from '../../pages/PageObjectFactory';
+import { test } from '@playwright/test'
+import { PageObjectFactory } from '../../pages/PageObjectFactory'
 
-test('using factory', async ({ page }) => {
-  await page.goto('/');
-  const { editor, preview } = PageObjectFactory.create(page);
+test('工厂模式', async ({ page }) => {
+  await page.goto('/')
+  const { editor, preview } = PageObjectFactory.create(page)
   
-  await editor.typeInEditor('# Test');
-  await preview.assertHeading(1, 'Test');
-});
+  await editor.typeInEditor('# 测试')
+  await preview.assertHeading(1, '测试')
+})
 ```
 
-## Test Data Management
+---
 
-Use the test data utilities for managing test files:
+## 测试数据管理
+
+使用辅助工具管理临时测试文件：
 
 ```typescript
-import { createTempMarkdownFile, deleteTempFile } from '../../helpers/test-data';
+import { createTempMarkdownFile, deleteTempFile } from '../../helpers/test-data'
 
-test('file test', async ({ editorPage }) => {
-  const filePath = createTempMarkdownFile('# Test Content', 'test.md');
+test('文件测试', async ({ editorPage }) => {
+  const filePath = createTempMarkdownFile('# 测试内容', 'test.md')
   
   try {
-    // Use the file in your test
+    // 使用临时文件进行测试
   } finally {
-    deleteTempFile(filePath); // Always clean up
+    deleteTempFile(filePath) // 务必清理
   }
-});
+})
 ```
 
-## Debugging
+---
 
-### View Test Reports
+## 调试 E2E 测试
+
+### 查看测试报告
 
 ```bash
-# Open the HTML report
+# 打开 HTML 报告
+npm run test:e2e:report
+# 或
 npx playwright show-report
-
-# Open a specific report
-npx playwright show-report playwright-report
 ```
 
 ### Trace Viewer
 
 ```bash
-# View a trace file
+# 查看 trace 文件
 npx playwright show-trace test-results/trace.zip
 ```
 
-### Screenshots
+### 截图
 
-Screenshots are automatically captured on test failure and saved to `test-results/screenshots/`.
+测试失败时自动截图，保存至 `test-results/screenshots/`。
 
-## CI/CD
+---
 
-Tests run automatically on:
-- Every push to `main` or `develop`
-- Every pull request
+## CI/CD 集成
 
-Test results are uploaded as artifacts and posted as PR comments.
+E2E 测试在以下场景自动运行：
 
-## Troubleshooting
+- 每次推送到 `main` 或 `develop` 分支
+- 每个 Pull Request
 
-### Tests are flaky
+测试结果和报告作为 CI Artifact 上传。
 
-1. Add explicit waits: `await page.waitForTimeout(500)`
-2. Use `waitForVisible` instead of direct assertions
-3. Check for race conditions in async operations
+---
 
-### Browser not found
+## 常见问题
+
+### 测试不稳定（Flaky）
+
+1. 添加显式等待：`await page.waitForSelector('.element')`
+2. 使用 `waitForVisible` 而非直接断言
+3. 检查异步操作是否有竞态条件
+
+### 浏览器未找到
 
 ```bash
 npx playwright install --with-deps
 ```
 
-### Port already in use
+### 端口被占用
 
-Change the port in `playwright.config.ts` or set `E2E_BASE_URL` environment variable.
+修改 `playwright.config.ts` 中的端口号，或设置环境变量 `E2E_BASE_URL`。
+
+### 截图对比失败
+
+1. 确认是否有视觉变更（可能是预期的）
+2. 使用 `npx playwright test --update-snapshots` 更新快照

@@ -1,150 +1,167 @@
-# Contributing Code
+# 代码贡献指南
 
-Thank you for your interest in contributing to Seven MD! This guide will help you get started.
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Project Structure](#project-structure)
-- [Coding Standards](#coding-standards)
-- [Commit Guidelines](#commit-guidelines)
-- [Pull Request Process](#pull-request-process)
-- [Testing Requirements](#testing-requirements)
+感谢您对 Seven MD 项目的关注！本指南将帮助您快速上手参与开发。
 
 ---
 
-## Code of Conduct
+## 目录
 
-- Be respectful and inclusive
-- Focus on constructive feedback
-- Help others learn and grow
-- Follow GitHub's community guidelines
+- [行为准则](#行为准则)
+- [开发环境搭建](#开发环境搭建)
+- [项目结构](#项目结构)
+- [编码规范](#编码规范)
+- [提交规范](#提交规范)
+- [Pull Request 流程](#pull-request-流程)
+- [测试要求](#测试要求)
 
 ---
 
-## Getting Started
+## 行为准则
 
-### Prerequisites
+- 尊重每一位参与者
+- 提供建设性反馈
+- 帮助他人学习成长
+- 遵循 [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)
 
-- **Node.js** 18+ and npm 9+
-- **Rust** 1.70+ (stable channel)
-- **macOS** 10.15+ (for development)
-- **Git** for version control
+---
 
-### Fork and Clone
+## 开发环境搭建
+
+### 前置依赖
+
+- **Node.js** 18+ 及 npm 9+
+- **Rust** 1.70+（stable channel）
+- **Git** 版本控制
+- **macOS** 10.15+ 或 **Windows** 10+
+
+### Fork 和克隆
 
 ```bash
-# Fork the repository on GitHub, then:
+# Fork 后克隆
 git clone https://github.com/YOUR_USERNAME/seven_md.git
 cd seven_md
 
-# Add upstream remote
-git remote add upstream https://github.com/original/seven_md.git
+# 添加上游远程仓库
+git remote add upstream https://github.com/qwzhang01/seven_md.git
 ```
 
----
-
-## Development Setup
-
-### Install Dependencies
+### 安装依赖
 
 ```bash
-# Install frontend dependencies
+# 前端依赖
 npm install
 
-# Rust dependencies are installed automatically
+# Rust 依赖（首次构建自动安装）
 cd src-tauri && cargo build
 ```
 
-### Run Development Server
+### 启动开发模式
 
 ```bash
-# Start development mode with hot reload
-npm run tauri dev
+# Tauri 开发模式（带热重载）
+npm run tauri:dev
+
+# 仅前端开发（无 Rust 后端）
+npm run dev
 ```
 
-### Verify Setup
+### 验证环境
 
 ```bash
-# Run tests
-npm run test
+# 运行测试
+npm run test:run
 
-# Run linting
+# 代码检查
 npm run lint
 
-# Run type check
-npm run typecheck
+# 类型检查
+npm run type-check
 ```
 
 ---
 
-## Project Structure
+## 项目结构
 
 ```
 seven_md/
-├── src/                    # Frontend source code
-│   ├── components/         # React components
-│   ├── hooks/              # Custom React hooks
-│   ├── utils/              # Utility functions
-│   ├── context/            # React context providers
-│   ├── reducers/           # State reducers
-│   ├── types/              # TypeScript types
-│   ├── locales/            # i18n translations
-│   ├── i18n/               # i18n configuration
-│   └── tests/              # Integration tests
-│
-├── src-tauri/              # Backend (Rust) source code
+├── src/                        # 前端源代码
+│   ├── components/             # React 组件
+│   │   ├── titlebar-v2/       # 标题栏（TrafficLights + TabBar + TitleBarActions）
+│   │   ├── menubar-v2/        # 菜单栏（MenuBar + MenuDropdown + 7 个子菜单）
+│   │   ├── toolbar-v2/        # 工具栏（Toolbar + ToolbarButton + ToolbarGroup）
+│   │   ├── activitybar-v2/    # 活动栏
+│   │   ├── sidebar-v2/        # 侧边栏（Explorer/Search/Outline/Snippets 4 面板）
+│   │   ├── editor-v2/         # 编辑器（EditorPaneV2 + PreviewPaneV2 + Gutter + 右键菜单 + 查找替换）
+│   │   ├── ai-panel/          # AI 助手（AIPanel + Chat/Rewrite/Translate/Explain 4 模式）
+│   │   ├── cmd-palette/       # 命令面板
+│   │   ├── notification-v2/   # 通知系统
+│   │   ├── modal-v2/          # 模态对话框（Modal + ConfirmDialog + DirtyTabModal）
+│   │   ├── statusbar-v2/      # 状态栏
+│   │   └── ErrorBoundary/     # 错误边界
+│   ├── stores/                 # Zustand 状态管理（8 个 store）
+│   ├── commands/               # 命令注册与执行
+│   ├── hooks/                  # 自定义 Hooks
+│   ├── utils/                  # 工具函数
+│   ├── styles/                 # 全局样式
+│   ├── themes/                 # 主题定义
+│   ├── types/                  # TypeScript 类型
+│   ├── i18n/                   # 国际化
+│   ├── test/                   # 测试文件
+│   ├── AppV2.tsx               # 主应用组件
+│   └── main.tsx                # 入口
+├── src-tauri/                  # Rust 后端
 │   ├── src/
-│   │   ├── main.rs         # Application entry
-│   │   ├── lib.rs          # Library exports
-│   │   ├── commands.rs     # Tauri commands
-│   │   ├── logger.rs       # Logging module
-│   │   └── menu.rs         # Menu setup
-│   └── Cargo.toml          # Rust dependencies
-│
-├── docs/                   # Documentation
-├── .github/                # GitHub workflows
-└── coverage/               # Coverage reports
+│   │   ├── main.rs             # 应用入口
+│   │   ├── lib.rs              # 库导出
+│   │   ├── commands.rs         # Tauri IPC 命令
+│   │   ├── logger.rs           # 日志模块
+│   │   └── menu.rs             # 原生菜单
+│   └── Cargo.toml
+├── e2e/                        # Playwright E2E 测试
+├── docs/                       # 文档
+└── openspec/                   # 设计规范
 ```
 
 ---
 
-## Coding Standards
+## 编码规范
 
-### TypeScript/React
+### TypeScript / React
 
-#### File Naming
+#### 文件命名
 
-- Components: `ComponentName.tsx`
-- Hooks: `useHookName.ts`
-- Utilities: `utilName.ts`
-- Tests: `fileName.test.ts` or `ComponentName.test.tsx`
+| 类型 | 命名规则 | 示例 |
+|------|---------|------|
+| 组件 | PascalCase | `EditorPaneV2.tsx` |
+| Hooks | camelCase（use 前缀） | `useFileOperations.ts` |
+| Store | camelCase（use 前缀） | `useEditorStore.ts` |
+| 工具函数 | camelCase | `pathValidator.ts` |
+| 测试 | 与源文件同名 + `.test` | `EditorPaneV2.test.tsx` |
 
-#### Component Structure
+#### 组件结构
 
 ```tsx
-// 1. Imports
-import { useState } from 'react'
-import { createLogger } from '../utils/logger'
+// 1. 导入
+import { useState, useEffect } from 'react'
+import { useEditorStore } from '../../stores'
+import { createLogger } from '../../utils/logger'
 
-// 2. Types
+// 2. 类型定义
 interface MyComponentProps {
   title: string
-  onClick?: () => void
+  onAction?: () => void
 }
 
-// 3. Logger
+// 3. Logger 实例
 const logger = createLogger('MyComponent')
 
-// 4. Component
-export function MyComponent({ title, onClick }: MyComponentProps) {
-  // 4a. State
+// 4. 组件
+export function MyComponent({ title, onAction }: MyComponentProps) {
+  // 4a. 状态
   const [isOpen, setIsOpen] = useState(false)
   
-  // 4b. Hooks
-  const { metrics } = usePerformanceMonitor('MyComponent')
+  // 4b. Store
+  const { content } = useEditorStore()
   
   // 4c. Effects
   useEffect(() => {
@@ -152,118 +169,103 @@ export function MyComponent({ title, onClick }: MyComponentProps) {
     return () => logger.debug('Component unmounted')
   }, [])
   
-  // 4d. Handlers
+  // 4d. 事件处理
   const handleClick = () => {
     logger.info('Button clicked')
-    onClick?.()
+    onAction?.()
   }
   
-  // 4e. Render
+  // 4e. 渲染
   return (
-    <div className="my-component">
+    <div className="bg-white dark:bg-gray-900">
       <h1>{title}</h1>
-      <button onClick={handleClick}>Click me</button>
+      <button onClick={handleClick}>操作</button>
     </div>
   )
 }
 ```
 
-#### Styling Guidelines
-
-- Use Tailwind CSS classes
-- Follow existing color palette
-- Ensure responsive design
-- Support both light and dark themes
-
-```tsx
-// Good: Tailwind classes with theme support
-<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
-```
-
-#### Import Order
+#### 导入顺序
 
 ```tsx
 // 1. React
 import { useState, useEffect } from 'react'
 
-// 2. External libraries
+// 2. 第三方库
 import { invoke } from '@tauri-apps/api/core'
 
-// 3. Internal modules (by path depth)
-import { useAppState } from '../context/AppContext'
-import { createLogger } from '../utils/logger'
+// 3. 内部模块（按路径深度排序）
+import { useEditorStore } from '../../stores'
+import { createLogger } from '../../utils/logger'
 import { Button } from './Button'
 
-// 4. Types
-import type { FileTreeNode } from '../types'
+// 4. 类型导入
+import type { FileTreeNode } from '../../types'
 ```
 
-### Rust
+#### 样式规范
 
-#### Naming Conventions
+- 使用 **Tailwind CSS** 工具类
+- 支持亮色/暗色主题：`bg-white dark:bg-gray-900`
+- 遵循已有的 CSS 变量体系（`var(--bg-primary)` 等）
+- 确保响应式设计
 
-- Functions: `snake_case`
-- Types: `PascalCase`
-- Constants: `SCREAMING_SNAKE_CASE`
-- Modules: `snake_case`
+### Zustand Store 规范
 
-#### Code Organization
+```ts
+import { create } from 'zustand'
+
+interface MyState {
+  value: string
+  setValue: (v: string) => void
+  reset: () => void
+}
+
+export const useMyStore = create<MyState>((set) => ({
+  value: '',
+  setValue: (v) => set({ value: v }),
+  reset: () => set({ value: '' }),
+}))
+```
+
+### Rust 规范
+
+| 类型 | 命名规则 |
+|------|---------|
+| 函数 | `snake_case` |
+| 类型/结构体 | `PascalCase` |
+| 常量 | `SCREAMING_SNAKE_CASE` |
+| 模块 | `snake_case` |
 
 ```rust
-// 1. Imports
 use std::path::Path;
 use log::{debug, error};
 
-// 2. Constants
 const MAX_FILE_SIZE: usize = 10 * 1024 * 1024;
 
-// 3. Types
-pub struct FileInfo {
-    pub path: String,
-    pub content: String,
-}
-
-// 4. Implementations
-impl FileInfo {
-    pub fn new(path: String, content: String) -> Self {
-        Self { path, content }
-    }
-}
-
-// 5. Functions
-pub fn read_file(path: &str) -> Result<String, String> {
+#[tauri::command]
+async fn read_file(path: String) -> Result<String, String> {
     debug!("Reading file: {}", path);
-    // ...
+    // 实现逻辑
+    Ok(content)
 }
 
-// 6. Tests
 #[cfg(test)]
 mod tests {
     use super::*;
     
     #[test]
     fn test_read_file() {
-        // ...
+        // 测试代码
     }
-}
-```
-
-#### Error Handling
-
-```rust
-// Use Result with descriptive error messages
-pub fn my_function() -> Result<String, String> {
-    let result = some_operation()
-        .map_err(|e| format!("Failed to perform operation: {}", e))?;
-    Ok(result)
 }
 ```
 
 ---
 
-## Commit Guidelines
+## 提交规范
 
-### Commit Message Format
+### Commit Message 格式
 
 ```
 <type>(<scope>): <subject>
@@ -273,182 +275,125 @@ pub fn my_function() -> Result<String, String> {
 <footer>
 ```
 
-### Types
+### 类型说明
 
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation |
-| `style` | Code style (formatting, etc.) |
-| `refactor` | Code refactoring |
-| `test` | Adding/updating tests |
-| `chore` | Build/config changes |
-| `perf` | Performance improvement |
+| 类型 | 描述 |
+|------|------|
+| `feat` | 新功能 |
+| `fix` | Bug 修复 |
+| `docs` | 文档更新 |
+| `style` | 代码风格调整（不影响功能） |
+| `refactor` | 代码重构 |
+| `test` | 新增/更新测试 |
+| `chore` | 构建/配置变更 |
+| `perf` | 性能优化 |
 
-### Examples
+### 示例
 
 ```
-feat(editor): add syntax highlighting for code blocks
+feat(editor): 支持代码块语法高亮
 
-Add syntax highlighting support for JavaScript, Python, and Rust
-code blocks in the preview pane.
+为预览区的 JavaScript、Python、Rust 代码块添加语法高亮。
 
 Closes #123
 ```
 
 ```
-fix(file-ops): handle file permission errors gracefully
+fix(file-ops): 优雅处理文件权限错误
 
-Show user-friendly error message when file read fails
-due to permission issues instead of crashing.
+当文件读取因权限问题失败时，显示友好的错误提示而非崩溃。
 
 Fixes #456
 ```
 
-### Commit Best Practices
+### 最佳实践
 
-- Write clear, descriptive messages
-- Keep commits focused (one logical change per commit)
-- Reference issues when applicable
-- Use imperative mood ("add feature" not "added feature")
+- 使用祈使语态（"add feature" 而非 "added feature"）
+- 每次提交聚焦一个逻辑变更
+- 关联相关 Issue
 
 ---
 
-## Pull Request Process
+## Pull Request 流程
 
-### Before Submitting
+### 提交前检查
 
-1. **Sync with upstream**
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
+```bash
+# 1. 同步上游
+git fetch upstream
+git rebase upstream/main
 
-2. **Run all checks**
-   ```bash
-   npm run lint
-   npm run typecheck
-   npm run test
-   cd src-tauri && cargo test && cargo clippy
-   ```
+# 2. 运行全部检查
+npm run lint
+npm run type-check
+npm run test:run
+cd src-tauri && cargo test && cargo clippy
 
-3. **Update documentation** if needed
-
-4. **Add/update tests** for your changes
-
-### PR Title
-
-Use the same format as commit messages:
-
-```
-feat(component): add new feature
+# 3. 按需更新文档和测试
 ```
 
-### PR Description Template
+### PR 标题
+
+使用与 Commit 相同的格式：`feat(editor): 新增功能描述`
+
+### PR 描述模板
 
 ```markdown
-## Description
-Brief description of the changes.
+## 变更描述
+简要说明改动内容。
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
+## 变更类型
+- [ ] Bug 修复
+- [ ] 新功能
+- [ ] 破坏性变更
+- [ ] 文档更新
 
-## Testing
-Describe how you tested these changes.
+## 测试说明
+描述如何测试这些变更。
 
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Tests pass locally
-- [ ] New tests added for new functionality
-- [ ] Documentation updated
+## 检查清单
+- [ ] 代码符合编码规范
+- [ ] 本地测试通过
+- [ ] 新功能已补充测试
+- [ ] 文档已更新
 ```
 
-### Review Process
+### 审查流程
 
-1. All PRs require at least one review
-2. CI checks must pass
-3. Address all review comments
-4. Squash commits before merge (if requested)
+1. 所有 PR 需至少一位审查者批准
+2. CI 检查必须全部通过
+3. 回复所有审查意见
+4. 如需要，合并前 squash commits
 
 ---
 
-## Testing Requirements
+## 测试要求
 
-### Test Coverage
+### 覆盖率要求
 
-- New features must include tests
-- Bug fixes should include regression tests
-- Maintain minimum 80% coverage
+- **整体** ≥ 80%
+- **核心组件** ≥ 90%
+- **工具函数** ≥ 85%
+- **Hooks** ≥ 80%
 
-### What to Test
+### 必须测试的内容
 
-#### Components
+- **新功能** 必须包含对应测试
+- **Bug 修复** 必须包含回归测试
+- **组件**：渲染、交互、边界情况
+- **Store**：状态变更、action 行为
+- **工具函数**：多输入组合测试
 
-```tsx
-describe('MyComponent', () => {
-  it('should render correctly', () => {
-    render(<MyComponent title="Test" />)
-    expect(screen.getByText('Test')).toBeInTheDocument()
-  })
+### 详细说明
 
-  it('should handle user interactions', async () => {
-    const onClick = vi.fn()
-    render(<MyComponent onClick={onClick} />)
-    await user.click(screen.getByRole('button'))
-    expect(onClick).toHaveBeenCalled()
-  })
-
-  it('should handle edge cases', () => {
-    render(<MyComponent title="" />)
-    // Test empty state
-  })
-})
-```
-
-#### Hooks
-
-```tsx
-describe('useMyHook', () => {
-  it('should return expected values', () => {
-    const { result } = renderHook(() => useMyHook())
-    expect(result.current.value).toBeDefined()
-  })
-
-  it('should update state correctly', () => {
-    const { result } = renderHook(() => useMyHook())
-    act(() => {
-      result.current.setValue('new')
-    })
-    expect(result.current.value).toBe('new')
-  })
-})
-```
-
-#### Utilities
-
-```ts
-describe('myUtil', () => {
-  it.each([
-    ['input1', 'expected1'],
-    ['input2', 'expected2'],
-  ])('should handle %s', (input, expected) => {
-    expect(myUtil(input)).toBe(expected)
-  })
-})
-```
+请参阅 [TESTING.md](./TESTING.md) 获取完整的测试指南。
 
 ---
 
-## Questions?
+## 有问题？
 
-If you have questions:
+1. 查看现有文档
+2. 搜索 GitHub Issues
+3. 创建新 Issue 并打上 `question` 标签
 
-1. Check existing documentation
-2. Search existing issues
-3. Create a new issue with the "question" label
-
-Thank you for contributing to Seven MD! 🎉
+感谢您为 Seven MD 做出贡献！
