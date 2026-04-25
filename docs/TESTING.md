@@ -19,10 +19,9 @@ Seven MD uses the following testing frameworks:
 
 | Layer | Framework | Purpose |
 |-------|-----------|---------|
-| Frontend Unit | Vitest + React Testing Library | Component and hook tests |
-| Frontend Integration | Vitest | Integration tests |
+| Frontend Unit | Vitest + React Testing Library | Component and store tests |
+| E2E | Playwright | User flow validation |
 | Backend Unit | Rust built-in | Rust command tests |
-| E2E | Manual testing | User flow validation |
 
 ## Running Tests
 

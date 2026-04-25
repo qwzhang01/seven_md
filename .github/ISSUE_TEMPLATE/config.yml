@@ -1,8 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: 📖 Documentation
-    url: https://github.com/username/md-reader#readme
-    about: Please check the documentation before asking a question.
-  - name: 💬 Discussions
-    url: https://github.com/username/md-reader/discussions
-    about: Join the community discussions for general questions and ideas.

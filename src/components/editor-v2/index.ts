@@ -1,0 +1,5 @@
+export { Gutter } from './Gutter'
+export { EditorPaneV2 } from './EditorPaneV2'
+export { EditorContextMenu } from './EditorContextMenu'
+export { FindReplaceBar } from './FindReplaceBar'
+export { PreviewPaneV2 } from './PreviewPaneV2'

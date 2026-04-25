@@ -16,9 +16,7 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "decorations": true,
-        "titleBarStyle": "platformDefault",
-        "hiddenTitle": false
+        "decorations": true
       }
     ],
     "withGlobalTauri": false,
@@ -43,33 +41,7 @@
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": "",
-      "wix": {
-        "language": "en-US",
-        "template": "src-tauri/wix/template.xml",
-        "fragmentPaths": ["src-tauri/wix/fragments"],
-        "componentGroupRefs": [],
-        "componentRefs": [],
-        "featureGroupRefs": [],
-        "featureRefs": [],
-        "mergeRefs": [],
-        "skipWebviewInstall": false,
-        "license": null,
-        "enableElevatedUpdateTask": false,
-        "bannerPath": null,
-        "dialogImagePath": null
-      },
-      "nsis": {
-        "license": "src-tauri/nsis/license.txt",
-        "headerImage": "src-tauri/nsis/header.bmp",
-        "sidebarImage": "src-tauri/nsis/sidebar.bmp",
-        "installerIcon": "icons/icon.ico",
-        "installMode": "currentUser",
-        "languages": ["English"],
-        "displayLanguageSelector": false,
-        "compression": "zlib",
-        "oneClick": true
-      }
+      "timestampUrl": ""
     }  },
   "plugins": {
     "shell": {

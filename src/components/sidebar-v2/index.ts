@@ -1,0 +1,5 @@
+export { Sidebar } from './Sidebar'
+export { ExplorerPanel } from './ExplorerPanel'
+export { SearchPanel } from './SearchPanel'
+export { OutlinePanel } from './OutlinePanel'
+export { SnippetsPanel } from './SnippetsPanel'

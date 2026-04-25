@@ -1,0 +1,97 @@
+import { ToolbarGroup } from './ToolbarGroup'
+import { ToolbarButton } from './ToolbarButton'
+import {
+  Undo2, Redo2,
+  Heading1, Heading2, Heading3,
+  Bold, Italic, Strikethrough,
+  Code, FileCode,
+  Link, Image,
+  List, ListOrdered, ListChecks,
+  Quote, Table, Minus,
+  Bot,
+} from 'lucide-react'
+import { useUIStore } from '../../stores'
+
+function insertAtCursor(text: string) {
+  window.dispatchEvent(new CustomEvent('editor:insert', { detail: text }))
+}
+
+export function Toolbar() {
+  const ui = useUIStore()
+
+  return (
+    <div
+      className="flex items-center gap-0 px-2 bg-[var(--bg-secondary)] border-b border-[var(--border-default)] select-none"
+      style={{ height: 'var(--toolbar-height, 40px)' }}
+      role="toolbar"
+      aria-label="编辑工具栏"
+      data-component="toolbar"
+    >
+      {/* Undo/Redo */}
+      <ToolbarGroup>
+        <ToolbarButton
+          icon={<Undo2 size={14} />}
+          tooltip="撤销"
+          shortcut="Ctrl+Z"
+          onClick={() => window.dispatchEvent(new CustomEvent('editor:undo'))}
+        />
+        <ToolbarButton
+          icon={<Redo2 size={14} />}
+          tooltip="重做"
+          shortcut="Ctrl+Shift+Z"
+          onClick={() => window.dispatchEvent(new CustomEvent('editor:redo'))}
+        />
+      </ToolbarGroup>
+
+      {/* Headings */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<Heading1 size={14} />} tooltip="标题 1" onClick={() => insertAtCursor('# ')} />
+        <ToolbarButton icon={<Heading2 size={14} />} tooltip="标题 2" onClick={() => insertAtCursor('## ')} />
+        <ToolbarButton icon={<Heading3 size={14} />} tooltip="标题 3" onClick={() => insertAtCursor('### ')} />
+      </ToolbarGroup>
+
+      {/* Text Format */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<Bold size={14} />} tooltip="加粗" shortcut="Ctrl+B" onClick={() => insertAtCursor('**加粗**')} />
+        <ToolbarButton icon={<Italic size={14} />} tooltip="斜体" shortcut="Ctrl+I" onClick={() => insertAtCursor('*斜体*')} />
+        <ToolbarButton icon={<Strikethrough size={14} />} tooltip="删除线" onClick={() => insertAtCursor('~~删除~~')} />
+      </ToolbarGroup>
+
+      {/* Code */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<Code size={14} />} tooltip="行内代码" onClick={() => insertAtCursor('`代码`')} />
+        <ToolbarButton icon={<FileCode size={14} />} tooltip="代码块" onClick={() => insertAtCursor('```language\n\n```')} />
+      </ToolbarGroup>
+
+      {/* Link/Image */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<Link size={14} />} tooltip="链接" shortcut="Ctrl+K" onClick={() => insertAtCursor('[文本](url)')} />
+        <ToolbarButton icon={<Image size={14} />} tooltip="图片" onClick={() => insertAtCursor('![描述](url)')} />
+      </ToolbarGroup>
+
+      {/* Lists */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<List size={14} />} tooltip="无序列表" onClick={() => insertAtCursor('- ')} />
+        <ToolbarButton icon={<ListOrdered size={14} />} tooltip="有序列表" onClick={() => insertAtCursor('1. ')} />
+        <ToolbarButton icon={<ListChecks size={14} />} tooltip="任务列表" onClick={() => insertAtCursor('- [ ] ')} />
+      </ToolbarGroup>
+
+      {/* Other */}
+      <ToolbarGroup>
+        <ToolbarButton icon={<Quote size={14} />} tooltip="引用" onClick={() => insertAtCursor('> ')} />
+        <ToolbarButton icon={<Table size={14} />} tooltip="表格" onClick={() => insertAtCursor('| 列1 | 列2 |\n|------|------|\n| | |')} />
+        <ToolbarButton icon={<Minus size={14} />} tooltip="水平线" onClick={() => insertAtCursor('\n---\n')} />
+      </ToolbarGroup>
+
+      {/* AI */}
+      <ToolbarGroup>
+        <ToolbarButton
+          icon={<Bot size={14} />}
+          tooltip="AI 助手"
+          onClick={() => ui.setAIPanelOpen(true)}
+          accent
+        />
+      </ToolbarGroup>
+    </div>
+  )
+}
