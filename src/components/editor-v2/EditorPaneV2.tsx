@@ -14,7 +14,7 @@ import { history } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { syntaxHighlighting, HighlightStyle, bracketMatching } from '@codemirror/language'
-import { search } from '@codemirror/search'
+import { search, SearchQuery, findNext, findPrevious, setSearchQuery, replaceAll } from '@codemirror/search'
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { tags } from '@lezer/highlight'
 import { useEditorStore, useUIStore, useThemeStore, useAIStore } from '../../stores'
@@ -154,9 +154,13 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         highlightActiveLineGutter(),
         markdown({ base: markdownLanguage, codeLanguages: languages }),
         syntaxHighlighting(highlightStyle),
-        search({ top: true }),
+        // D1: 禁用 search 扩展的内置 UI，只使用自定义的 FindReplaceBar
+        search({ top: false }),
         bracketMatching(),
-        closeBrackets(),
+        // D4: 增强自动配对配置，添加反引号
+        closeBrackets({
+          brackets: ['(', '[', '{', '"', "'", '`'],
+        }),
         history(),
         keymap.of([
           ...closeBracketsKeymap,
@@ -288,6 +292,115 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     }
   }, [])
 
+  // D1: 监听查找事件并统计匹配数量
+  useEffect(() => {
+    const handleFindQuery = (e: Event) => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const detail = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail
+      const { query, caseSensitive, wholeWord, useRegex } = detail
+
+      if (!query) {
+        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: 0, current: 0 } }))
+        return
+      }
+
+      try {
+        const docText = view.state.doc.toString()
+        const sel = view.state.selection.main
+
+        // 转义正则特殊字符
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+        let pattern: RegExp
+        if (useRegex) {
+          pattern = new RegExp(query, caseSensitive ? 'g' : 'gi')
+        } else {
+          const escaped = escapeRegex(query)
+          const flags = caseSensitive ? 'g' : 'gi'
+          pattern = wholeWord ? new RegExp(`\\b${escaped}\\b`, flags) : new RegExp(escaped, flags)
+        }
+
+        let matchCount = 0
+        let currentMatch = 0
+        let match: RegExpExecArray | null
+
+        // 使用 lastIndex 来遍历所有匹配
+        while ((match = pattern.exec(docText)) !== null) {
+          matchCount++
+          // 检查当前光标位置是否在此匹配范围内
+          if (match.index <= sel.head && match.index + match[0].length >= sel.head) {
+            currentMatch = matchCount
+          }
+          // 防止无限循环（零长度匹配）
+          if (match.index === pattern.lastIndex) {
+            pattern.lastIndex++
+          }
+        }
+
+        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: matchCount, current: currentMatch } }))
+      } catch {
+        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: 0, current: 0 } }))
+      }
+    }
+
+    window.addEventListener('editor:find-query', handleFindQuery)
+    return () => window.removeEventListener('editor:find-query', handleFindQuery)
+  }, [])
+
+  // D1: 处理查找下一个/上一个事件
+  useEffect(() => {
+    const handleFindNext = () => {
+      if (!viewRef.current) return
+      findNext(viewRef.current)
+    }
+    const handleFindPrev = () => {
+      if (!viewRef.current) return
+      findPrevious(viewRef.current)
+    }
+
+    window.addEventListener('editor:find-next', handleFindNext)
+    window.addEventListener('editor:find-prev', handleFindPrev)
+    return () => {
+      window.removeEventListener('editor:find-next', handleFindNext)
+      window.removeEventListener('editor:find-prev', handleFindPrev)
+    }
+  }, [])
+
+  // D1: 处理替换事件
+  useEffect(() => {
+    const handleReplaceOne = (e: Event) => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const replaceText = (e as CustomEvent<string>).detail
+      const sel = view.state.selection.main
+      if (sel.empty) return
+      view.dispatch({
+        changes: { from: sel.from, to: sel.to, insert: replaceText },
+        selection: { anchor: sel.from + replaceText.length },
+      })
+    }
+    const handleReplaceAll = (e: Event) => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const replaceText = (e as CustomEvent<string>).detail
+      const state = view.state
+      const sel = state.selection.main
+      if (sel.empty) return
+      const selectedText = state.sliceDoc(sel.from, sel.to)
+      const query = new SearchQuery({ search: selectedText })
+      setSearchQuery(view, query)
+      replaceAll(view, replaceText)
+    }
+
+    window.addEventListener('editor:replace-one', handleReplaceOne)
+    window.addEventListener('editor:replace-all', handleReplaceAll)
+    return () => {
+      window.removeEventListener('editor:replace-one', handleReplaceOne)
+      window.removeEventListener('editor:replace-all', handleReplaceAll)
+    }
+  }, [])
+
   // Listen to editor:format — Markdown 格式化
   useEffect(() => {
     const handler = () => {
@@ -347,6 +460,28 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     }
     window.addEventListener('editor:replace-selection', handler)
     return () => window.removeEventListener('editor:replace-selection', handler)
+  }, [])
+
+  // 编辑器焦点跟踪 — 更新全局状态供快捷键上下文判断
+  useEffect(() => {
+    const setEditorFocused = useUIStore.getState().setEditorFocused
+    const view = viewRef.current
+    if (!view) return
+
+    // CodeMirror 的 focus/blur 事件
+    view.dom.addEventListener('focus', () => setEditorFocused(true))
+    view.dom.addEventListener('blur', () => setEditorFocused(false))
+
+    // 初始检查
+    if (view.hasFocus) {
+      setEditorFocused(true)
+    }
+
+    return () => {
+      view.dom.removeEventListener('focus', () => setEditorFocused(true))
+      view.dom.removeEventListener('blur', () => setEditorFocused(false))
+      setEditorFocused(false)
+    }
   }, [])
 
   // Right-click context menu

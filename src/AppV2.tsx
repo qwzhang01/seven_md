@@ -197,9 +197,11 @@ function AppV2() {
         window.dispatchEvent(new CustomEvent('editor:select-all'))
       }))
       unlisteners.push(await listen('menu-find', () => {
+        useUIStore.getState().setFindReplaceOpen(true)
         useUIStore.getState().setFindReplaceMode('find')
       }))
       unlisteners.push(await listen('menu-replace', () => {
+        useUIStore.getState().setFindReplaceOpen(true)
         useUIStore.getState().setFindReplaceMode('replace')
       }))
       unlisteners.push(await listen('menu-find-next', () => {
@@ -422,16 +424,64 @@ function AppV2() {
 
   // Keyboard shortcuts — 使用统一 hook 替代内联 keydown 处理
   const shortcuts: ShortcutConfig[] = useMemo(() => [
+    // === 文件操作 ===
     { key: 's', ctrlKey: true, action: () => handleSaveFile(), description: '保存文件' },
     { key: 'o', ctrlKey: true, action: () => handleOpenFile(), description: '打开文件' },
     { key: 'n', ctrlKey: true, action: () => openTab(null, ''), description: '新建文件' },
+    { key: 'w', ctrlKey: true, action: () => { const tab = getActiveTab(); if (tab) handleCloseTab(tab.id) }, description: '关闭标签' },
+
+    // === 面板切换 ===
     { key: 'P', ctrlKey: true, shiftKey: true, action: () => ui.toggleCommandPalette(), description: '命令面板' },
-    { key: 'b', ctrlKey: true, action: () => ui.toggleSidebar(), description: '切换侧边栏' },
+    { key: 'e', ctrlKey: true, shiftKey: true, action: () => ui.setActiveSidebarPanel('explorer'), description: '资源管理器' },
+    { key: 'f', ctrlKey: true, shiftKey: true, action: () => ui.setActiveSidebarPanel('search'), description: '搜索面板' },
+    { key: 'o', ctrlKey: true, shiftKey: true, action: () => ui.setActiveSidebarPanel('outline'), description: '大纲面板' },
+
+    // === Ctrl+B 上下文判断：编辑器焦点时加粗，否则切换侧边栏 ===
+    {
+      key: 'b', ctrlKey: true,
+      action: () => {
+        if (ui.editorFocused) {
+          // 编辑器焦点时：触发加粗
+          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '**' }))
+        } else {
+          // 非编辑器焦点时：切换侧边栏
+          ui.toggleSidebar()
+        }
+      },
+      description: '加粗/侧边栏',
+    },
+
+    // === 编辑器格式快捷键（编辑器焦点时生效）===
+    {
+      key: 'i', ctrlKey: true,
+      action: () => {
+        if (ui.editorFocused) {
+          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '*' }))
+        }
+      },
+      description: '斜体',
+    },
+    {
+      key: 'k', ctrlKey: true,
+      action: () => {
+        if (ui.editorFocused) {
+          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '[](url)' }))
+        }
+      },
+      description: '链接',
+    },
+
+    // === 查找替换 ===
     { key: 'f', ctrlKey: true, action: () => ui.setFindReplaceMode('find'), description: '查找' },
+    { key: 'h', ctrlKey: true, action: () => ui.setFindReplaceMode('replace'), description: '查找+替换' },
+
+    // === 缩放 ===
     { key: '=', ctrlKey: true, action: () => ui.zoomIn(), description: '放大' },
     { key: '+', ctrlKey: true, action: () => ui.zoomIn(), description: '放大（+号）' },
     { key: '-', ctrlKey: true, action: () => ui.zoomOut(), description: '缩小' },
     { key: '0', ctrlKey: true, action: () => ui.setZoomLevel(14), description: '重置缩放' },
+
+    // === 关闭面板 ===
     {
       key: 'Escape',
       action: () => {
@@ -442,7 +492,7 @@ function AppV2() {
       description: '关闭面板',
       preventDefault: false,
     },
-  ], [handleSaveFile, handleOpenFile, openTab, ui])
+  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab])
 
   useKeyboardShortcuts(shortcuts)
 

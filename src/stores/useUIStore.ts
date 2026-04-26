@@ -13,6 +13,7 @@ interface UIState {
   findReplaceMode: 'find' | 'replace'
   zoomLevel: number
   dialogType: DialogType
+  editorFocused: boolean // 编辑器是否获得焦点
 
   // Actions
   toggleSidebar: () => void
@@ -29,6 +30,7 @@ interface UIState {
   zoomIn: () => void
   zoomOut: () => void
   setDialogType: (type: DialogType) => void
+  setEditorFocused: (focused: boolean) => void
 }
 
 const MIN_ZOOM = 10
@@ -48,6 +50,7 @@ export const useUIStore = create<UIState>()((set) => ({
   findReplaceMode: 'find',
   zoomLevel: 14,
   dialogType: null,
+  editorFocused: false,
 
   toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
   setSidebarVisible: (visible) => set({ sidebarVisible: visible }),
@@ -69,4 +72,5 @@ export const useUIStore = create<UIState>()((set) => ({
   zoomIn: () => set((s) => ({ zoomLevel: Math.min(s.zoomLevel + ZOOM_STEP, MAX_ZOOM) })),
   zoomOut: () => set((s) => ({ zoomLevel: Math.max(s.zoomLevel - ZOOM_STEP, MIN_ZOOM) })),
   setDialogType: (type) => set({ dialogType: type }),
+  setEditorFocused: (focused) => set({ editorFocused: focused }),
 }))

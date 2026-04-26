@@ -22,7 +22,7 @@ export function registerAllCommands() {
     { id: 'edit.redo', category: 'edit' as const, title: '重做', shortcut: 'Ctrl+Shift+Z', icon: 'Redo2', execute: () => { window.dispatchEvent(new CustomEvent('editor:redo')) } },
     { id: 'edit.find', category: 'edit' as const, title: '查找', shortcut: 'Ctrl+F', icon: 'Search', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('find') } },
     { id: 'edit.replace', category: 'edit' as const, title: '替换', shortcut: 'Ctrl+H', icon: 'Replace', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('replace') } },
-    { id: 'edit.format', category: 'edit' as const, title: '格式化文档', shortcut: 'Ctrl+Shift+F', icon: 'AlignLeft', execute: () => { window.dispatchEvent(new CustomEvent('editor:format')) } },
+    { id: 'edit.format', category: 'edit' as const, title: '格式化文档', icon: 'AlignLeft', execute: () => { window.dispatchEvent(new CustomEvent('editor:format')) } },
 
     // ===== 视图命令 =====
     { id: 'view.split', category: 'view' as const, title: '分栏视图', icon: 'Columns2', execute: () => { useUIStore.getState().setViewMode('split') } },
@@ -33,7 +33,7 @@ export function registerAllCommands() {
     { id: 'view.zoomOut', category: 'view' as const, title: '缩小', shortcut: 'Ctrl+-', icon: 'ZoomOut', execute: () => { useUIStore.getState().zoomOut() } },
     { id: 'view.zoomReset', category: 'view' as const, title: '重置缩放', shortcut: 'Ctrl+0', icon: 'Maximize', execute: () => { useUIStore.getState().setZoomLevel(14) } },
     { id: 'view.commandPalette', category: 'view' as const, title: '命令面板', shortcut: 'Ctrl+Shift+P', icon: 'Terminal', execute: () => { useUIStore.getState().toggleCommandPalette() } },
-    { id: 'view.outline', category: 'view' as const, title: '切换大纲面板', icon: 'List', execute: () => { useUIStore.getState().setActiveSidebarPanel('outline') } },
+    { id: 'view.outline', category: 'view' as const, title: '切换大纲面板', shortcut: 'Ctrl+Shift+O', icon: 'List', execute: () => { useUIStore.getState().setActiveSidebarPanel('outline') } },
 
     // ===== 插入命令 =====
     { id: 'insert.table', category: 'insert' as const, title: '表格', icon: 'Table', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '| 列1 | 列2 |\n|------|------|\n| | |' })) } },
