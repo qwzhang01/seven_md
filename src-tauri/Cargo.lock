@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "SevenMD"
+name = "SevenMarkdown"
 version = "0.0.0"
 dependencies = [
  "chrono",

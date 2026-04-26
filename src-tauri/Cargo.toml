@@ -1,11 +1,11 @@
 [package]
-name = "SevenMD"
+name = "SevenMarkdown"
 version = "0.0.0"
 description = "A cross-platform markdown reader for macOS and Windows"
 authors = ["avinzhang <qwzhang01@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/qwzhang01/seven_md"
-default-run = "SevenMD"
+default-run = "SevenMarkdown"
 edition = "2021"
 rust-version = "1.70"
 

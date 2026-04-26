@@ -52,7 +52,7 @@ Add these secrets to your GitHub repository:
 ## Manual Signing (Alternative)
 If automatic signing fails, use `signtool` manually:
 ```bash
-signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com SevenMD.exe
+signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com SevenMarkdown.exe
 ```
 
 ## Troubleshooting

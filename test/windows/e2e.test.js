@@ -165,7 +165,7 @@ describe('Windows Installation Tests', () => {
   test('NSIS installer functionality', async () => {
     // This would test the actual installer
     // For now, verify installer file exists
-    const installerPath = path.join(__dirname, '../../src-tauri/target/release/bundle/nsis/SevenMD_0.0.0_x64-setup.exe');
+    const installerPath = path.join(__dirname, '../../src-tauri/target/release/bundle/nsis/SevenMarkdown_0.0.0_x64-setup.exe');
     const installerExists = fs.existsSync(installerPath);
     
     // In CI environment, installer might not exist yet
@@ -179,7 +179,7 @@ describe('Windows Installation Tests', () => {
 
   test('MSI installer functionality', async () => {
     // Verify MSI installer file
-    const msiPath = path.join(__dirname, '../../src-tauri/target/release/bundle/msi/SevenMD_0.0.0_x64.msi');
+    const msiPath = path.join(__dirname, '../../src-tauri/target/release/bundle/msi/SevenMarkdown_0.0.0_x64.msi');
     const msiExists = fs.existsSync(msiPath);
     
     if (process.env.CI) {

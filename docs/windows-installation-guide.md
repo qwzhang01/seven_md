@@ -17,7 +17,7 @@
 
 ### 方法一：NSIS 安装包（推荐）
 
-1. 从 [GitHub Releases](https://github.com/qwzhang01/seven_md/releases) 下载 `SevenMD_版本号_x64-setup.exe`
+1. 从 [GitHub Releases](https://github.com/qwzhang01/seven_md/releases) 下载 `SevenMarkdown_版本号_x64-setup.exe`
 2. 双击运行安装程序
 3. 按向导操作：选择语言 → 接受协议 → 选择目录（默认 `C:\Program Files\Seven MD`） → 安装
 4. 安装完成后启动应用
@@ -26,12 +26,12 @@
 
 ```cmd
 # 下载 .msi 文件后，双击安装或使用命令行：
-msiexec /i "SevenMD_版本号_x64.msi" /qn
+msiexec /i "SevenMarkdown_版本号_x64.msi" /qn
 ```
 
 ### 方法三：便携版（免安装）
 
-1. 下载 `SevenMD_版本号_x64-portable.zip`
+1. 下载 `SevenMarkdown_版本号_x64-portable.zip`
 2. 解压到任意目录
 3. 运行 `Seven MD.exe`
 

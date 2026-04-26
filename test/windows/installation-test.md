@@ -21,7 +21,7 @@ This document outlines the testing procedures for Windows installation and unins
 #### 1.1 Basic Installation
 - **Description**: Install using MSI package with default settings
 - **Steps**:
-  1. Double-click `SevenMD-1.0.0-x64.msi`
+  1. Double-click `SevenMarkdown-1.0.0-x64.msi`
   2. Follow installation wizard
   3. Accept license agreement
   4. Choose installation directory
@@ -36,7 +36,7 @@ This document outlines the testing procedures for Windows installation and unins
 - **Description**: Install using command line silently
 - **Steps**:
   ```cmd
-  msiexec /i SevenMD-1.0.0-x64.msi /qn
+  msiexec /i SevenMarkdown-1.0.0-x64.msi /qn
   ```
 - **Expected Results**:
   - Installation completes without user interaction
@@ -57,7 +57,7 @@ This document outlines the testing procedures for Windows installation and unins
 #### 2.1 Standard Installation
 - **Description**: Install using NSIS installer
 - **Steps**:
-  1. Run `SevenMD-Setup-1.0.0.exe`
+  1. Run `SevenMarkdown-Setup-1.0.0.exe`
   2. Follow installation wizard
   3. Choose components
   4. Complete installation
@@ -136,7 +136,7 @@ if ($InstallType -eq "msi") {
 }
 
 # Verify installation
-$installed = Test-Path "C:\Program Files\Seven MD\SevenMD.exe"
+$installed = Test-Path "C:\Program Files\Seven MD\SevenMarkdown.exe"
 Write-Host "Installation successful: $installed"
 ```
 

@@ -1,6 +1,6 @@
 ## Context
 
-MD Mate（SevenMD）是一个基于 **Tauri v2 + React 19 + TypeScript + CodeMirror 6** 构建的 macOS 原生 Markdown 编辑器。当前版本功能较为基础，主要作为 Markdown 阅读器使用。
+Seven Markdown 是一个基于 **Tauri v2 + React 19 + TypeScript + CodeMirror 6** 构建的 macOS 原生 Markdown 编辑器。当前版本功能较为基础，主要作为 Markdown 阅读器使用。
 
 **当前技术栈**:
 - 前端: React 19 + TypeScript + Vite 5 + Tailwind CSS 3 + CodeMirror 6

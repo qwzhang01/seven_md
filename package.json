@@ -1,5 +1,5 @@
 {
-  "name": "SevenMD",
+  "name": "SevenMarkdown",
   "version": "0.1.0",
   "description": "A modern Markdown reader for macOS built with Tauri v2 + React 19 + TypeScript",
   "author": "avinzhang <qwzhang01@users.noreply.github.com>",

@@ -17,7 +17,7 @@ class WindowsInstallTest {
   async testNSISInstaller() {
     console.log('Testing NSIS installer...');
     
-    const nsisInstaller = path.join(this.installerDir, 'nsis', 'SevenMD_0.0.0_x64-setup.exe');
+    const nsisInstaller = path.join(this.installerDir, 'nsis', 'SevenMarkdown_0.0.0_x64-setup.exe');
     
     if (!fs.existsSync(nsisInstaller)) {
       console.log('NSIS installer not found, skipping test');
@@ -59,7 +59,7 @@ class WindowsInstallTest {
   async testMSIInstaller() {
     console.log('Testing MSI installer...');
     
-    const msiInstaller = path.join(this.installerDir, 'msi', 'SevenMD_0.0.0_x64.msi');
+    const msiInstaller = path.join(this.installerDir, 'msi', 'SevenMarkdown_0.0.0_x64.msi');
     
     if (!fs.existsSync(msiInstaller)) {
       console.log('MSI installer not found, skipping test');

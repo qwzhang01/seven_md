@@ -30,8 +30,8 @@
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="ApplicationFiles">
-        <File Id="ApplicationExecutable" Source="$(var.SevenMD.TargetDir)SevenMD.exe" KeyPath="yes" />
-        <File Id="ApplicationResources" Source="$(var.SevenMD.TargetDir)*" />
+        <File Id="ApplicationExecutable" Source="$(var.SevenMarkdown.TargetDir)SevenMarkdown.exe" KeyPath="yes" />
+        <File Id="ApplicationResources" Source="$(var.SevenMarkdown.TargetDir)*" />
       </Component>
     </ComponentGroup>
   </Fragment>
