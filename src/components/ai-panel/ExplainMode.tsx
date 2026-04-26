@@ -14,7 +14,7 @@ export function ExplainMode() {
       return
     }
     if (!isAIConfigured()) {
-      addNotification({ type: 'error', message: '请先在 AI 聊天模式中配置 API Key', autoClose: true, duration: 4000 })
+      addNotification({ type: 'error', message: '请先在 AI 聊天模式中配置 API Key', autoClose: true, duration: 5000 })
       return
     }
 

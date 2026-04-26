@@ -71,7 +71,7 @@ function AppV2() {
         openTab(selected as string, content)
       }
     } catch (e) {
-      addNotification({ type: 'error', message: `打开文件失败: ${e}`, autoClose: true, duration: 4000 })
+      addNotification({ type: 'error', message: `打开文件失败: ${e}`, autoClose: true, duration: 5000 })
     }
   }, [openTab, addNotification])
 
