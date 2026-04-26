@@ -43,15 +43,36 @@ The system SHALL display an "关于 Seven Markdown" modal dialog when the user c
 
 ## ADDED Requirements
 
-### Requirement: Help menu placeholder items show notification
-The system SHALL show a notification for unimplemented Help menu items.
+### Requirement: Help menu opens Welcome dialog
+The system SHALL display a "欢迎使用 Seven Markdown" modal dialog when the user clicks the corresponding Help menu item.
 
-#### Scenario: Welcome page placeholder
+#### Scenario: Open Welcome dialog from Help menu
 - **WHEN** user clicks "欢迎页" in the Help menu
-- **THEN** the system SHALL display an info notification with message "欢迎页功能开发中"
-- **AND** the notification SHALL auto-close after 3 seconds
+- **THEN** a modal dialog SHALL appear with title "欢迎使用 Seven Markdown"
+- **AND** the dialog SHALL display: application name, slogan "Write Markdown Like Code", ME Logo icon (blue-purple gradient)
 
-#### Scenario: Check for updates placeholder
+#### Scenario: Welcome dialog shows quick actions
+- **WHEN** the Welcome dialog is displayed
+- **THEN** the dialog SHALL display three quick action buttons: "新建文件", "打开文件", "打开文件夹"
+- **AND** clicking each button SHALL trigger the corresponding file/folder operation
+
+#### Scenario: Welcome dialog shows recent documents
+- **WHEN** the Welcome dialog is displayed
+- **THEN** the dialog SHALL display up to 5 recent documents from localStorage
+- **AND** each entry SHALL show: file name, file path (truncated), last opened time
+- **AND** clicking a recent document SHALL open it
+
+#### Scenario: Close Welcome dialog
+- **WHEN** the Welcome dialog is open
+- **AND** user presses Escape or clicks the overlay backdrop or clicks the close button
+- **THEN** the dialog SHALL close
+
+### Requirement: Help menu check for updates
+The system SHALL display version information when the user clicks the "检查更新" menu item.
+
+#### Scenario: Check for updates
 - **WHEN** user clicks "检查更新" in the Help menu
-- **THEN** the system SHALL display an info notification with message "检查更新功能开发中"
-- **AND** the notification SHALL auto-close after 3 seconds
+- **THEN** the system SHALL display an info notification with message "正在检查更新..."
+- **AND** the system SHALL compare current version with latest available version
+- **AND** the system SHALL display a success notification showing the current version
+- **OR** the system SHALL display an error notification if the check fails

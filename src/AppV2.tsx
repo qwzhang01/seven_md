@@ -84,9 +84,12 @@ function AppV2() {
         console.log('新窗口已创建:', label)
       })
       
-      webview.once('tauri://error', (e) => {
+      webview.once('tauri://error', (e: unknown) => {
         console.error('创建窗口失败', e)
-        addNotification({ type: 'error', message: `创建窗口失败: ${e}`, autoClose: true, duration: 5000 })
+        const errorMsg = typeof e === 'object' && e !== null && 'message' in e 
+          ? String((e as { message: unknown }).message) 
+          : String(e)
+        addNotification({ type: 'error', message: `创建窗口失败: ${errorMsg}`, autoClose: true, duration: 5000 })
       })
     } catch (e) {
       console.error('创建新窗口异常:', e)
