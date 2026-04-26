@@ -48,6 +48,18 @@ The system SHALL automatically close notifications after a configurable duration
 - **WHEN** the mouse hovers over a notification before auto-close
 - **THEN** the auto-close countdown SHALL pause
 - **AND** the countdown SHALL resume when the mouse leaves the notification
+- **AND** the countdown SHALL resume from the **remaining time** (not restart from full duration)
+
+#### Scenario: Precise remaining time tracking
+- **WHEN** a notification's timer is paused via hover
+- **THEN** the system SHALL calculate elapsed time as `Date.now() - startTime`
+- **AND** the remaining time SHALL be `duration - elapsed` (clamped to ≥ 0)
+- **AND** the countdown SHALL resume from that remaining time when the mouse leaves
+
+#### Scenario: Multiple notifications with independent timers
+- **WHEN** multiple notifications are visible simultaneously
+- **THEN** each notification SHALL have its own independent timer
+- **AND** hovering over one notification SHALL NOT affect the timers of other notifications
 
 ### Requirement: Multiple notifications stack vertically
 The system SHALL handle multiple simultaneous notifications by stacking them.
