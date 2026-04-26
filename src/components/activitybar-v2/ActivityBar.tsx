@@ -16,7 +16,7 @@ const ITEMS: ActivityItem[] = [
 ]
 
 export function ActivityBar() {
-  const { activeSidebarPanel, sidebarVisible, setActiveSidebarPanel } = useUIStore()
+  const { activeSidebarPanel, sidebarVisible, setActiveSidebarPanel, setSidebarVisible } = useUIStore()
 
   return (
     <div
@@ -41,7 +41,13 @@ export function ActivityBar() {
               background: isActive ? 'var(--bg-active)' : 'transparent',
               borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
             }}
-            onClick={() => setActiveSidebarPanel(item.id)}
+            onClick={() => {
+              if (activeSidebarPanel === item.id && sidebarVisible) {
+                setSidebarVisible(false)
+              } else {
+                setActiveSidebarPanel(item.id)
+              }
+            }}
             title={item.tooltip}
             aria-label={item.tooltip}
             aria-pressed={isActive}

@@ -75,12 +75,23 @@ export function Sidebar({ content }: SidebarProps) {
         {renderPanel()}
       </div>
 
-      {/* Resize handle */}
+      {/* Resize handle - 4px 拖拽区域，带悬停高亮 */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-[var(--accent)] transition-colors"
-        style={{ zIndex: 10 }}
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:w-1 hover:bg-[var(--accent)]/30 transition-all"
+        style={{
+          zIndex: 10,
+          background: 'transparent',
+        }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--accent)'
+          e.currentTarget.style.width = '2px'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.width = '1px'
+        }}
       />
     </div>
   )
