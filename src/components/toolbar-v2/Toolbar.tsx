@@ -29,6 +29,7 @@ export function Toolbar() {
       role="toolbar"
       aria-label="编辑工具栏"
       data-component="toolbar"
+      data-tauri-drag-region
     >
       {/* Undo/Redo */}
       <ToolbarGroup>

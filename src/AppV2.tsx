@@ -14,6 +14,7 @@ import { useIsMobile } from './hooks/useMediaQuery'
 
 // V2 Components
 import { TitleBar } from './components/titlebar-v2/TitleBar'
+import { TabBar } from './components/titlebar-v2/TabBar'
 import { Toolbar } from './components/toolbar-v2/Toolbar'
 import { ActivityBar } from './components/activitybar-v2/ActivityBar'
 import { Sidebar } from './components/sidebar-v2/Sidebar'
@@ -519,11 +520,6 @@ function AppV2() {
       }}
       data-theme={theme}
     >
-      {/* === TITLE BAR === */}
-      <div data-tauri-drag-region style={{ height: 'var(--titlebar-height, 38px)', flexShrink: 0 }}>
-        <TitleBar onCloseTab={handleCloseTab} />
-      </div>
-
       {/* === TOOLBAR === */}
       <Toolbar />
 
@@ -569,6 +565,16 @@ function AppV2() {
 
         {/* Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
+          {/* Tab Bar - 仅在编辑区域内 */}
+          {tabs.length > 0 && (
+            <div
+              className="flex items-stretch bg-[var(--bg-secondary)] border-b border-[var(--border-default)] select-none"
+              style={{ height: 'var(--tabbar-height, 38px)', flexShrink: 0 }}
+            >
+              <TabBar onCloseTab={handleCloseTab} />
+            </div>
+          )}
+
           {/* Editor + Preview */}
           {/* 桌面端: flex-row (水平排列); 移动端: flex-col (垂直排列) */}
           <div

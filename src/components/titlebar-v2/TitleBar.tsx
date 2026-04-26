@@ -1,15 +1,13 @@
-import { TabBar } from './TabBar'
-
 interface TitleBarProps {
-  onCloseTab?: (tabId: string) => void
+  // onCloseTab 已移除 - TabBar 不再在 TitleBar 中
 }
 
 /**
  * 标题栏组件（VS Code 风格）
- * 包含文件标签页
- * 原生交通灯由 macOS 系统自动渲染（decorations: true）
+ * 仅包含窗口拖拽区域，原生交通灯由 macOS 系统自动渲染（decorations: true）
+ * 文件标签栏已移至 Toolbar 下方
  */
-export function TitleBar({ onCloseTab }: TitleBarProps) {
+export function TitleBar(_props: TitleBarProps) {
   return (
     <div
       className="flex items-stretch bg-[var(--bg-secondary)] border-b border-[var(--border-default)] select-none"
@@ -17,9 +15,6 @@ export function TitleBar({ onCloseTab }: TitleBarProps) {
       data-tauri-drag-region
       role="banner"
       aria-label="标题栏"
-    >
-      {/* Tab Bar */}
-      <TabBar onCloseTab={onCloseTab} />
-    </div>
+    />
   )
 }
