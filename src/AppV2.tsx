@@ -1,5 +1,5 @@
 /**
- * Seven MD V2 - 新版主布局
+ * Seven Markdown V2 - 新版主布局
  * VS Code 风格: TitleBar + Toolbar + [ActivityBar|Sidebar] + [Editor|Preview] + StatusBar
  */
 
@@ -128,7 +128,22 @@ function AppV2() {
       unlisteners.push(await listen('menu-close-folder', () => {
         useWorkspaceStore.getState().closeFolder()
       }))
+      unlisteners.push(await listen('menu-clear-recent', () => {
+        localStorage.removeItem('recent-documents')
+        addNotification({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
+      }))
       unlisteners.push(await listen('menu-save', () => handleSaveFile()))
+      unlisteners.push(await listen('menu-save-all', () => {
+        // 保存所有已修改的文件
+        const tabs = useFileStore.getState().tabs
+        tabs.forEach(async (tab) => {
+          if (tab.isDirty && tab.path) {
+            await saveFile(tab.path, tab.content)
+            useFileStore.getState().setTabDirty(tab.id, false)
+          }
+        })
+        addNotification({ type: 'success', message: '所有文件已保存', autoClose: true, duration: 2000 })
+      }))
       unlisteners.push(await listen('menu-save-as', () => {
         // 另存为：与 handleSaveFile 类似但总是弹出保存对话框
         const activeTab = useFileStore.getState().getActiveTab()
@@ -175,6 +190,9 @@ function AppV2() {
       unlisteners.push(await listen('menu-paste', () => {
         window.dispatchEvent(new CustomEvent('editor:paste'))
       }))
+      unlisteners.push(await listen('menu-paste-match-style', () => {
+        window.dispatchEvent(new CustomEvent('editor:paste-match-style'))
+      }))
       unlisteners.push(await listen('menu-select-all', () => {
         window.dispatchEvent(new CustomEvent('editor:select-all'))
       }))
@@ -184,16 +202,44 @@ function AppV2() {
       unlisteners.push(await listen('menu-replace', () => {
         useUIStore.getState().setFindReplaceMode('replace')
       }))
+      unlisteners.push(await listen('menu-find-next', () => {
+        window.dispatchEvent(new CustomEvent('editor:find-next'))
+      }))
+      unlisteners.push(await listen('menu-find-previous', () => {
+        window.dispatchEvent(new CustomEvent('editor:find-previous'))
+      }))
+      unlisteners.push(await listen('menu-clear-format', () => {
+        window.dispatchEvent(new CustomEvent('editor:clear-format'))
+      }))
 
       // --- View 菜单事件 ---
       unlisteners.push(await listen('menu-command-palette', () => {
         useUIStore.getState().toggleCommandPalette()
+      }))
+      unlisteners.push(await listen('menu-toggle-ai-panel', () => {
+        const state = useUIStore.getState()
+        state.setAIPanelOpen(!state.aiPanelOpen)
       }))
       unlisteners.push(await listen('menu-toggle-sidebar', () => {
         useUIStore.getState().toggleSidebar()
       }))
       unlisteners.push(await listen('menu-toggle-outline', () => {
         useUIStore.getState().setActiveSidebarPanel('outline')
+      }))
+      unlisteners.push(await listen('menu-toggle-explorer', () => {
+        useUIStore.getState().setActiveSidebarPanel('explorer')
+      }))
+      unlisteners.push(await listen('menu-show-line-numbers', () => {
+        // 切换行号显示
+        window.dispatchEvent(new CustomEvent('editor:toggle-line-numbers'))
+      }))
+      unlisteners.push(await listen('menu-show-minimap', () => {
+        // 切换迷你地图显示
+        window.dispatchEvent(new CustomEvent('editor:toggle-minimap'))
+      }))
+      unlisteners.push(await listen('menu-word-wrap', () => {
+        // 切换自动换行
+        window.dispatchEvent(new CustomEvent('editor:toggle-word-wrap'))
       }))
       unlisteners.push(await listen('menu-zoom-in', () => {
         useUIStore.getState().zoomIn()
@@ -213,12 +259,25 @@ function AppV2() {
       unlisteners.push(await listen('menu-view-split', () => {
         useUIStore.getState().setViewMode('split')
       }))
+      unlisteners.push(await listen('menu-toggle-fullscreen', async () => {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        const win = getCurrentWindow()
+        const isFullscreen = await win.isFullscreen()
+        await win.setFullscreen(!isFullscreen)
+      }))
 
       // --- Insert 菜单事件 ---
       const insertMap: Record<string, string> = {
         'menu-insert-heading': '# ',
+        'menu-insert-h1': '# ',
+        'menu-insert-h2': '## ',
+        'menu-insert-h3': '### ',
+        'menu-insert-h4': '#### ',
+        'menu-insert-h5': '##### ',
+        'menu-insert-h6': '###### ',
         'menu-insert-bold': '**加粗文本**',
         'menu-insert-italic': '*斜体文本*',
+        'menu-insert-strikethrough': '~~删除线文本~~',
         'menu-insert-inline-code': '`代码`',
         'menu-insert-code-block': '```language\n\n```',
         'menu-insert-link': '[文本](url)',
@@ -229,6 +288,8 @@ function AppV2() {
         'menu-insert-ol': '1. ',
         'menu-insert-task': '- [ ] ',
         'menu-insert-quote': '> ',
+        'menu-insert-footnote': '[^1]\n\n[^1]: 脚注内容',
+        'menu-insert-details': '<details>\n<summary>点击展开</summary>\n\n内容\n</details>',
       }
       for (const [event, detail] of Object.entries(insertMap)) {
         unlisteners.push(await listen(event, () => {
@@ -244,6 +305,9 @@ function AppV2() {
         'menu-format-h1': '# ',
         'menu-format-h2': '## ',
         'menu-format-h3': '### ',
+        'menu-format-h4': '#### ',
+        'menu-format-h5': '##### ',
+        'menu-format-h6': '###### ',
         'menu-format-code': '`',
         'menu-format-link': '[](url)',
       }
