@@ -55,7 +55,6 @@
   [class*="TabBar"],
   [class*="Toolbar"],
   [class*="EditorPane"],
-  [class*="MenuBar"],
   [class*="CollapsiblePane"]:not(:has(.markdown-body)) {
     display: none !important;
   }

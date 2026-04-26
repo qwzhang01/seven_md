@@ -1,14 +1,18 @@
 /**
- * MD Mate V2 - 新版主布局
- * VS Code 风格: TitleBar + MenuBar + Toolbar + [ActivityBar|Sidebar] + [Editor|Preview] + StatusBar
+ * Seven MD V2 - 新版主布局
+ * VS Code 风格: TitleBar + Toolbar + [ActivityBar|Sidebar] + [Editor|Preview] + StatusBar
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
+import { listen } from '@tauri-apps/api/event'
 
-// New V2 Components
+// Keyboard shortcuts hook
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import type { ShortcutConfig } from './hooks/useKeyboardShortcuts'
+
+// V2 Components
 import { TitleBar } from './components/titlebar-v2/TitleBar'
-import { MenuBar } from './components/menubar-v2/MenuBar'
 import { Toolbar } from './components/toolbar-v2/Toolbar'
 import { ActivityBar } from './components/activitybar-v2/ActivityBar'
 import { Sidebar } from './components/sidebar-v2/Sidebar'
@@ -19,11 +23,14 @@ import { DirtyTabModal } from './components/modal-v2/DirtyTabModal'
 import { StatusBar as StatusBarV2 } from './components/statusbar-v2/StatusBar'
 import { Gutter, EditorPaneV2, FindReplaceBar, PreviewPaneV2 } from './components/editor-v2'
 
-// Legacy components (removed - using V2 now)
+import { ShortcutReferenceDialog } from './components/dialogs/ShortcutReferenceDialog'
+import { AboutDialog } from './components/dialogs/AboutDialog'
+
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Stores
-import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore } from './stores'
+import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore, useWorkspaceStore } from './stores'
+import type { ThemeId } from './stores/useThemeStore'
 import { readFile, saveFile } from './tauriCommands'
 
 // Commands registration
@@ -42,54 +49,15 @@ function AppV2() {
   const activeTab = getActiveTab()
   const activeContent = activeTab?.content ?? ''
 
+  // 防抖 refreshTree 用的 timer ref
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Editor pixel width state (null = flex:1, auto split)
   const [editorWidth, setEditorWidth] = useState<number | null>(null)
 
   // Dirty tab modal
   const [dirtyTabId, setDirtyTabId] = useState<string | null>(null)
   const dirtyTab = dirtyTabId ? tabs.find((t) => t.id === dirtyTabId) : null
-
-  // Handle window resize: auto-adjust sidebar and layout
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth
-      // Auto-collapse sidebar on small screens
-      if (width < 768 && ui.sidebarVisible) {
-        ui.setSidebarVisible(false)
-      }
-      // Reset editor width on significant resize
-      if (editorWidth !== null) {
-        const mainEl = document.getElementById('md-mate-editor-preview')
-        if (mainEl && editorWidth > mainEl.offsetWidth * 0.8) {
-          setEditorWidth(null) // Reset to flex auto-split
-        }
-      }
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [ui, editorWidth])
-
-  // Register commands on mount
-  useEffect(() => {
-    registerAllCommands()
-    // Apply initial theme
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [])
-
-  // Theme sync
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [theme])
-
-  // Handle gutter resize
-  const handleGutterResize = useCallback((dx: number) => {
-    const mainEl = document.getElementById('md-mate-editor-preview')
-    if (!mainEl) return
-    const total = mainEl.offsetWidth
-    const currentEditorW = editorWidth ?? total / 2
-    const newW = Math.max(MIN_EDITOR_WIDTH, Math.min(total * MAX_EDITOR_WIDTH_RATIO, currentEditorW + dx))
-    setEditorWidth(newW)
-  }, [editorWidth])
 
   // Open file
   const handleOpenFile = useCallback(async () => {
@@ -133,6 +101,242 @@ function AppV2() {
     }
   }, [activeTab, setTabDirty, addNotification])
 
+  // 监听原生菜单事件 + 文件系统变更事件
+  useEffect(() => {
+    const unlisteners: Array<() => void> = []
+
+    const setup = async () => {
+      // --- 文件系统变更 ---
+      unlisteners.push(await listen('fs-watch:changed', () => {
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current)
+        }
+        refreshTimerRef.current = setTimeout(() => {
+          useWorkspaceStore.getState().refreshTree()
+        }, 500)
+      }))
+
+      // --- File 菜单事件 ---
+      unlisteners.push(await listen('menu-new-file', () => openTab(null, '')))
+      unlisteners.push(await listen('menu-new-window', () => {
+        // TODO: 实现新窗口
+      }))
+      unlisteners.push(await listen('menu-open-file', () => handleOpenFile()))
+      unlisteners.push(await listen('menu-open-folder', () => {
+        useWorkspaceStore.getState().openFolder()
+      }))
+      unlisteners.push(await listen('menu-close-folder', () => {
+        useWorkspaceStore.getState().closeFolder()
+      }))
+      unlisteners.push(await listen('menu-save', () => handleSaveFile()))
+      unlisteners.push(await listen('menu-save-as', () => {
+        // 另存为：与 handleSaveFile 类似但总是弹出保存对话框
+        const activeTab = useFileStore.getState().getActiveTab()
+        if (!activeTab) return
+        open({
+          multiple: false,
+          directory: false,
+          title: '另存为',
+          filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
+        }).then(async (selected) => {
+          if (selected) {
+            await saveFile(selected as string, activeTab.content)
+            useFileStore.getState().updateTabPath(activeTab.id, selected as string)
+            addNotification({ type: 'success', message: '文件已保存', autoClose: true, duration: 2000 })
+          }
+        }).catch((e) => {
+          addNotification({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
+        })
+      }))
+      unlisteners.push(await listen('menu-export-pdf', () => {
+        window.dispatchEvent(new CustomEvent('app:export-pdf'))
+      }))
+      unlisteners.push(await listen('menu-export-html', () => {
+        window.dispatchEvent(new CustomEvent('app:export-html'))
+      }))
+      unlisteners.push(await listen('menu-quit', async () => {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window')
+        await getCurrentWindow().close()
+      }))
+
+      // --- Edit 菜单事件 ---
+      unlisteners.push(await listen('menu-undo', () => {
+        window.dispatchEvent(new CustomEvent('editor:undo'))
+      }))
+      unlisteners.push(await listen('menu-redo', () => {
+        window.dispatchEvent(new CustomEvent('editor:redo'))
+      }))
+      unlisteners.push(await listen('menu-cut', () => {
+        window.dispatchEvent(new CustomEvent('editor:cut'))
+      }))
+      unlisteners.push(await listen('menu-copy', () => {
+        window.dispatchEvent(new CustomEvent('editor:copy'))
+      }))
+      unlisteners.push(await listen('menu-paste', () => {
+        window.dispatchEvent(new CustomEvent('editor:paste'))
+      }))
+      unlisteners.push(await listen('menu-select-all', () => {
+        window.dispatchEvent(new CustomEvent('editor:select-all'))
+      }))
+      unlisteners.push(await listen('menu-find', () => {
+        useUIStore.getState().setFindReplaceMode('find')
+      }))
+      unlisteners.push(await listen('menu-replace', () => {
+        useUIStore.getState().setFindReplaceMode('replace')
+      }))
+
+      // --- View 菜单事件 ---
+      unlisteners.push(await listen('menu-command-palette', () => {
+        useUIStore.getState().toggleCommandPalette()
+      }))
+      unlisteners.push(await listen('menu-toggle-sidebar', () => {
+        useUIStore.getState().toggleSidebar()
+      }))
+      unlisteners.push(await listen('menu-toggle-outline', () => {
+        useUIStore.getState().setActiveSidebarPanel('outline')
+      }))
+      unlisteners.push(await listen('menu-zoom-in', () => {
+        useUIStore.getState().zoomIn()
+      }))
+      unlisteners.push(await listen('menu-zoom-out', () => {
+        useUIStore.getState().zoomOut()
+      }))
+      unlisteners.push(await listen('menu-reset-zoom', () => {
+        useUIStore.getState().setZoomLevel(14)
+      }))
+      unlisteners.push(await listen('menu-view-editor-only', () => {
+        useUIStore.getState().setViewMode('editor-only')
+      }))
+      unlisteners.push(await listen('menu-view-preview-only', () => {
+        useUIStore.getState().setViewMode('preview-only')
+      }))
+      unlisteners.push(await listen('menu-view-split', () => {
+        useUIStore.getState().setViewMode('split')
+      }))
+
+      // --- Insert 菜单事件 ---
+      const insertMap: Record<string, string> = {
+        'menu-insert-heading': '# ',
+        'menu-insert-bold': '**加粗文本**',
+        'menu-insert-italic': '*斜体文本*',
+        'menu-insert-inline-code': '`代码`',
+        'menu-insert-code-block': '```language\n\n```',
+        'menu-insert-link': '[文本](url)',
+        'menu-insert-image': '![描述](url)',
+        'menu-insert-table': '| 列1 | 列2 | 列3 |\n|------|------|------|\n| | | |',
+        'menu-insert-hr': '\n---\n',
+        'menu-insert-ul': '- ',
+        'menu-insert-ol': '1. ',
+        'menu-insert-task': '- [ ] ',
+        'menu-insert-quote': '> ',
+      }
+      for (const [event, detail] of Object.entries(insertMap)) {
+        unlisteners.push(await listen(event, () => {
+          window.dispatchEvent(new CustomEvent('editor:insert', { detail }))
+        }))
+      }
+
+      // --- Format 菜单事件 ---
+      const formatMap: Record<string, string> = {
+        'menu-format-bold': '**',
+        'menu-format-italic': '*',
+        'menu-format-strikethrough': '~~',
+        'menu-format-h1': '# ',
+        'menu-format-h2': '## ',
+        'menu-format-h3': '### ',
+        'menu-format-code': '`',
+        'menu-format-link': '[](url)',
+      }
+      for (const [event, detail] of Object.entries(formatMap)) {
+        unlisteners.push(await listen(event, () => {
+          window.dispatchEvent(new CustomEvent('editor:insert', { detail }))
+        }))
+      }
+
+      // --- Theme 菜单事件 ---
+      unlisteners.push(await listen<string>('menu-theme-change', (event) => {
+        useThemeStore.getState().setTheme(event.payload as ThemeId)
+      }))
+
+      // --- Help 菜单事件 ---
+      unlisteners.push(await listen('menu-welcome', () => {
+        addNotification({ type: 'info', message: '欢迎页功能开发中', autoClose: true, duration: 3000 })
+      }))
+      unlisteners.push(await listen('menu-markdown-guide', () => {
+        window.open('https://www.markdownguide.org/', '_blank')
+      }))
+      unlisteners.push(await listen('menu-keyboard-shortcuts', () => {
+        useUIStore.getState().setDialogType('shortcut-reference')
+      }))
+      unlisteners.push(await listen('menu-about', () => {
+        useUIStore.getState().setDialogType('about')
+      }))
+      unlisteners.push(await listen('menu-check-update', () => {
+        addNotification({ type: 'info', message: '检查更新功能开发中', autoClose: true, duration: 3000 })
+      }))
+    }
+
+    setup()
+
+    return () => {
+      unlisteners.forEach((fn) => fn())
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+      }
+    }
+  }, [handleOpenFile, handleSaveFile, openTab, addNotification])
+
+  // Handle export-pdf via window.print()
+  useEffect(() => {
+    const handler = () => {
+      window.print()
+    }
+    window.addEventListener('app:export-pdf', handler)
+    return () => window.removeEventListener('app:export-pdf', handler)
+  }, [])
+
+  // Handle window resize: auto-adjust sidebar and layout
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth
+      // Auto-collapse sidebar on small screens
+      if (width < 768 && ui.sidebarVisible) {
+        ui.setSidebarVisible(false)
+      }
+      // Reset editor width on significant resize
+      if (editorWidth !== null) {
+        const mainEl = document.getElementById('md-mate-editor-preview')
+        if (mainEl && editorWidth > mainEl.offsetWidth * 0.8) {
+          setEditorWidth(null) // Reset to flex auto-split
+        }
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [ui, editorWidth])
+
+  // Register commands on mount
+  useEffect(() => {
+    registerAllCommands()
+    // Apply initial theme
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [])
+
+  // Theme sync
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  // Handle gutter resize
+  const handleGutterResize = useCallback((dx: number) => {
+    const mainEl = document.getElementById('md-mate-editor-preview')
+    if (!mainEl) return
+    const total = mainEl.offsetWidth
+    const currentEditorW = editorWidth ?? total / 2
+    const newW = Math.max(MIN_EDITOR_WIDTH, Math.min(total * MAX_EDITOR_WIDTH_RATIO, currentEditorW + dx))
+    setEditorWidth(newW)
+  }, [editorWidth])
+
   // Handle tab close with dirty check
   const handleCloseTab = useCallback((tabId: string) => {
     const tab = tabs.find((t) => t.id === tabId)
@@ -152,47 +356,31 @@ function AppV2() {
     }
   }, [activeTab, updateTabContent, editorStore])
 
-  // Listen to custom events from menus/toolbar
-  useEffect(() => {
-    const handlers = [
-      ['app:save-file', handleSaveFile],
-      ['app:open-file', handleOpenFile],
-      ['app:new-file', () => openTab(null, '')],
-    ] as const
-
-    handlers.forEach(([event, handler]) => {
-      window.addEventListener(event, handler as EventListener)
-    })
-
-    return () => {
-      handlers.forEach(([event, handler]) => {
-        window.removeEventListener(event, handler as EventListener)
-      })
-    }
-  }, [handleSaveFile, handleOpenFile, openTab])
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isMeta = e.metaKey || e.ctrlKey
-      if (isMeta && e.key === 's') { e.preventDefault(); handleSaveFile() }
-      if (isMeta && e.key === 'o') { e.preventDefault(); handleOpenFile() }
-      if (isMeta && e.key === 'n') { e.preventDefault(); openTab(null, '') }
-      if (isMeta && e.shiftKey && e.key === 'P') { e.preventDefault(); ui.toggleCommandPalette() }
-      if (isMeta && e.key === 'b' && !e.shiftKey) { e.preventDefault(); ui.toggleSidebar() }
-      if (isMeta && e.key === 'f' && !e.shiftKey) { e.preventDefault(); ui.setFindReplaceMode('find') }
-      if (isMeta && e.key === '=' || (isMeta && e.key === '+')) { e.preventDefault(); ui.zoomIn() }
-      if (isMeta && e.key === '-') { e.preventDefault(); ui.zoomOut() }
-      if (isMeta && e.key === '0') { e.preventDefault(); ui.setZoomLevel(14) }
-      if (e.key === 'Escape') {
+  // Keyboard shortcuts — 使用统一 hook 替代内联 keydown 处理
+  const shortcuts: ShortcutConfig[] = useMemo(() => [
+    { key: 's', ctrlKey: true, action: () => handleSaveFile(), description: '保存文件' },
+    { key: 'o', ctrlKey: true, action: () => handleOpenFile(), description: '打开文件' },
+    { key: 'n', ctrlKey: true, action: () => openTab(null, ''), description: '新建文件' },
+    { key: 'P', ctrlKey: true, shiftKey: true, action: () => ui.toggleCommandPalette(), description: '命令面板' },
+    { key: 'b', ctrlKey: true, action: () => ui.toggleSidebar(), description: '切换侧边栏' },
+    { key: 'f', ctrlKey: true, action: () => ui.setFindReplaceMode('find'), description: '查找' },
+    { key: '=', ctrlKey: true, action: () => ui.zoomIn(), description: '放大' },
+    { key: '+', ctrlKey: true, action: () => ui.zoomIn(), description: '放大（+号）' },
+    { key: '-', ctrlKey: true, action: () => ui.zoomOut(), description: '缩小' },
+    { key: '0', ctrlKey: true, action: () => ui.setZoomLevel(14), description: '重置缩放' },
+    {
+      key: 'Escape',
+      action: () => {
         if (ui.commandPaletteOpen) ui.setCommandPaletteOpen(false)
-        if (ui.aiPanelOpen) ui.setAIPanelOpen(false)
-        if (ui.findReplaceOpen) ui.setFindReplaceOpen(false)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleSaveFile, handleOpenFile, openTab, ui])
+        else if (ui.aiPanelOpen) ui.setAIPanelOpen(false)
+        else if (ui.findReplaceOpen) ui.setFindReplaceOpen(false)
+      },
+      description: '关闭面板',
+      preventDefault: false,
+    },
+  ], [handleSaveFile, handleOpenFile, openTab, ui])
+
+  useKeyboardShortcuts(shortcuts)
 
   // View mode display
   const viewMode = ui.viewMode
@@ -215,9 +403,6 @@ function AppV2() {
       <div data-tauri-drag-region style={{ height: 'var(--titlebar-height, 38px)', flexShrink: 0 }}>
         <TitleBar onCloseTab={handleCloseTab} />
       </div>
-
-      {/* === MENU BAR === */}
-      <MenuBar />
 
       {/* === TOOLBAR === */}
       <Toolbar />
@@ -306,6 +491,14 @@ function AppV2() {
       {/* === OVERLAYS === */}
       <CommandPalette />
       <NotificationContainer />
+
+      {/* Dialogs */}
+      {ui.dialogType === 'shortcut-reference' && (
+        <ShortcutReferenceDialog onClose={() => ui.setDialogType(null)} />
+      )}
+      {ui.dialogType === 'about' && (
+        <AboutDialog onClose={() => ui.setDialogType(null)} />
+      )}
 
       {/* Dirty Tab Modal */}
       {dirtyTab && (

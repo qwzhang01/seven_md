@@ -15,19 +15,6 @@ test.describe('应用启动', () => {
     await expect(page.locator('[data-tauri-drag-region]').first()).toBeVisible()
   })
 
-  test('菜单栏渲染 7 个菜单', async ({ page }) => {
-    const menuBar = page.locator('[role="menubar"]')
-    await expect(menuBar).toBeVisible()
-    // 菜单项
-    await expect(page.getByText('文件')).toBeVisible()
-    await expect(page.getByText('编辑')).toBeVisible()
-    await expect(page.getByText('视图')).toBeVisible()
-    await expect(page.getByText('插入')).toBeVisible()
-    await expect(page.getByText('格式')).toBeVisible()
-    await expect(page.getByText('主题')).toBeVisible()
-    await expect(page.getByText('帮助')).toBeVisible()
-  })
-
   test('工具栏渲染', async ({ page }) => {
     const toolbar = page.locator('[role="toolbar"][aria-label="编辑工具栏"]')
     await expect(toolbar).toBeVisible()

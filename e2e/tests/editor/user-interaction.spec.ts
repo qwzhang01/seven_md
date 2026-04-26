@@ -79,10 +79,8 @@ test.describe('User Interaction - Navigation Shortcuts', () => {
 
 test.describe('User Interaction - Main Menu Navigation', () => {
   test('6.4 should have application menu bar', async ({ appPage }) => {
-    // In this app, menus are implemented as React components in the TitleBar area
-    // The MenuBar component exists but may not be rendered in browser mode
-    // (Tauri uses native menus for the actual app)
-    // Verify the app is functional
+    // Menus are now implemented as native Tauri menus (not accessible via Playwright DOM)
+    // Verify the app is functional via keyboard shortcuts
     const editorVisible = await appPage.locator('.cm-editor').isVisible();
     expect(editorVisible).toBe(true);
   });

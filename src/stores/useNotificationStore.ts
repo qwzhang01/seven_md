@@ -11,6 +11,7 @@ export interface Notification {
   createdAt: number
   autoClose: boolean
   duration: number // ms
+  isPaused?: boolean // hover 暂停标记
 }
 
 interface NotificationState {
@@ -22,6 +23,7 @@ interface NotificationState {
   removeNotification: (id: string) => void
   clearAll: () => void
   markAllRead: () => void
+  setNotificationPaused: (id: string, paused: boolean) => void
 }
 
 let notifIdCounter = 0
@@ -39,11 +41,20 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
     }
 
     set((s) => {
-      // Max 5 visible notifications
       const current = s.notifications
-      const notifications = current.length >= 5
-        ? [...current.slice(1), newNotif]
-        : [...current, newNotif]
+      let notifications: Notification[]
+      if (current.length >= 5) {
+        // 找到最早未被暂停的通知并移除
+        const removeIdx = current.findIndex((n) => !n.isPaused)
+        if (removeIdx !== -1) {
+          notifications = [...current.slice(0, removeIdx), ...current.slice(removeIdx + 1), newNotif]
+        } else {
+          // 所有通知都被暂停，强制移除最早的
+          notifications = [...current.slice(1), newNotif]
+        }
+      } else {
+        notifications = [...current, newNotif]
+      }
 
       return {
         notifications,
@@ -69,4 +80,10 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
 
   clearAll: () => set({ notifications: [], unreadCount: 0 }),
   markAllRead: () => set({ unreadCount: 0 }),
+  setNotificationPaused: (id, paused) =>
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        n.id === id ? { ...n, isPaused: paused } : n
+      ),
+    })),
 }))

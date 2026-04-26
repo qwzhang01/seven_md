@@ -1,8 +1,23 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Terminal, X } from 'lucide-react'
+import {
+  Terminal, X, FilePlus, Save, SaveAll, FolderOpen, FileDown, FileCode,
+  Undo2, Redo2, Search, Replace, AlignLeft,
+  Columns2, Code2, Eye, PanelLeft, ZoomIn, ZoomOut, Maximize, List,
+  Table, ListChecks, Link, Image, Minus,
+  Moon, Sun, Palette, Bot, PenLine, Languages,
+} from 'lucide-react'
 import { useUIStore, useCommandStore } from '../../stores'
 import { CATEGORY_LABELS } from '../../stores'
 import type { Command } from '../../stores'
+
+// Lucide 图标名 → 组件映射
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
+  FilePlus, Save, SaveAll, FolderOpen, FileDown, FileCode,
+  Undo2, Redo2, Search, Replace, AlignLeft,
+  Columns2, Code2, Eye, PanelLeft, ZoomIn, ZoomOut, Maximize, List,
+  Table, ListChecks, Link, Image, Minus,
+  Moon, Sun, Palette, Bot, PenLine, Languages,
+}
 
 export function CommandPalette() {
   const { commandPaletteOpen, setCommandPaletteOpen } = useUIStore()
@@ -159,8 +174,10 @@ function CommandItem({
       onMouseEnter={onHover}
       onClick={onExecute}
     >
-      {command.icon && (
-        <span className="text-base flex-shrink-0">{command.icon}</span>
+      {command.icon && ICON_MAP[command.icon] && (
+        <span className="flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+          {(() => { const IconComp = ICON_MAP[command.icon!]; return IconComp ? <IconComp size={16} /> : null })()}
+        </span>
       )}
       <span className="flex-1 truncate">
         <span style={{ color: 'var(--text-secondary)' }}>{categoryLabel}: </span>

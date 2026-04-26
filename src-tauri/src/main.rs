@@ -2,7 +2,7 @@ mod logger;
 mod commands;
 
 use logger::{init_logger, write_log, read_logs, get_log_dates, log, LogLevel};
-use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path};
+use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch};
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -49,7 +49,8 @@ pub fn main() {
             rename_path,
             delete_path,
             start_fs_watch,
-            stop_fs_watch
+            stop_fs_watch,
+            get_git_branch
         ])
         .setup(|app| {
             // Initialize logger
@@ -60,132 +61,287 @@ pub fn main() {
             
             init_logger(log_dir).expect("Failed to initialize logger");
             
-            // Create menu items
-            let open = MenuItem::with_id(app, "open", "Open...", true, Some("CmdOrCtrl+O"))?;
+            // ==========================================
+            // Menu items — 100% coverage of frontend menus
+            // ==========================================
+
+            // --- File menu items ---
+            let new_file = MenuItem::with_id(app, "new_file", "New File", true, Some("CmdOrCtrl+N"))?;
+            let new_window = MenuItem::with_id(app, "new_window", "New Window", true, Some("CmdOrCtrl+Shift+N"))?;
+            let open_file = MenuItem::with_id(app, "open_file", "Open File...", true, Some("CmdOrCtrl+O"))?;
             let open_folder = MenuItem::with_id(app, "open_folder", "Open Folder", true, None::<&str>)?;
             let close_folder = MenuItem::with_id(app, "close_folder", "Close Folder", true, None::<&str>)?;
             let save = MenuItem::with_id(app, "save", "Save", true, Some("CmdOrCtrl+S"))?;
             let save_as = MenuItem::with_id(app, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?;
-            let export_pdf = MenuItem::with_id(app, "export_pdf", "Export as PDF", true, Some("CmdOrCtrl+Shift+P"))?;
-            let export_html_item = MenuItem::with_id(app, "export_html", "Export as HTML", true, Some("CmdOrCtrl+Shift+E"))?;
+            let export_pdf = MenuItem::with_id(app, "export_pdf", "Export as PDF", true, None::<&str>)?;
+            let export_html_item = MenuItem::with_id(app, "export_html", "Export as HTML", true, None::<&str>)?;
             let export_submenu = Submenu::with_items(app, "Export", true, &[
                 &export_pdf,
                 &export_html_item,
             ])?;
             let quit = MenuItem::with_id(app, "quit", "Quit Seven MD", true, Some("CmdOrCtrl+Q"))?;
-            
-            let copy = MenuItem::with_id(app, "copy", "Copy", true, Some("CmdOrCtrl+C"))?;
+
+            // --- Edit menu items ---
+            let undo = MenuItem::with_id(app, "undo", "Undo", true, Some("CmdOrCtrl+Z"))?;
+            let redo = MenuItem::with_id(app, "redo", "Redo", true, Some("CmdOrCtrl+Shift+Z"))?;
             let cut = MenuItem::with_id(app, "cut", "Cut", true, Some("CmdOrCtrl+X"))?;
+            let copy = MenuItem::with_id(app, "copy", "Copy", true, Some("CmdOrCtrl+C"))?;
             let paste = MenuItem::with_id(app, "paste", "Paste", true, Some("CmdOrCtrl+V"))?;
             let select_all = MenuItem::with_id(app, "select_all", "Select All", true, Some("CmdOrCtrl+A"))?;
-            
-            let toggle_sidebar = MenuItem::with_id(app, "toggle_sidebar", "Toggle Sidebar", true, Some("CmdOrCtrl+B"))?;
+            let find = MenuItem::with_id(app, "find", "Find...", true, Some("CmdOrCtrl+F"))?;
+            let replace = MenuItem::with_id(app, "replace", "Replace...", true, Some("CmdOrCtrl+H"))?;
+
+            // --- View menu items ---
+            let command_palette = MenuItem::with_id(app, "command_palette", "Command Palette...", true, Some("CmdOrCtrl+Shift+P"))?;
+            let toggle_sidebar = MenuItem::with_id(app, "toggle_sidebar", "Toggle Sidebar", true, Some("CmdOrCtrl+\\"))?;
+            let toggle_outline = MenuItem::with_id(app, "toggle_outline", "Toggle Outline", true, Some("CmdOrCtrl+Shift+O"))?;
             let zoom_in = MenuItem::with_id(app, "zoom_in", "Zoom In", true, Some("CmdOrCtrl+="))?;
             let zoom_out = MenuItem::with_id(app, "zoom_out", "Zoom Out", true, Some("CmdOrCtrl+-"))?;
             let reset_zoom = MenuItem::with_id(app, "reset_zoom", "Reset Zoom", true, Some("CmdOrCtrl+0"))?;
-            
+            let view_editor_only = MenuItem::with_id(app, "view_editor_only", "Editor Only", true, None::<&str>)?;
+            let view_preview_only = MenuItem::with_id(app, "view_preview_only", "Preview Only", true, None::<&str>)?;
+            let view_split = MenuItem::with_id(app, "view_split", "Split View", true, None::<&str>)?;
+
+            // --- Insert menu items ---
+            let insert_heading = MenuItem::with_id(app, "insert_heading", "Heading", true, None::<&str>)?;
+            let insert_bold = MenuItem::with_id(app, "insert_bold", "Bold", true, None::<&str>)?;
+            let insert_italic = MenuItem::with_id(app, "insert_italic", "Italic", true, None::<&str>)?;
+            let insert_inline_code = MenuItem::with_id(app, "insert_inline_code", "Inline Code", true, None::<&str>)?;
+            let insert_code_block = MenuItem::with_id(app, "insert_code_block", "Code Block", true, None::<&str>)?;
+            let insert_link = MenuItem::with_id(app, "insert_link", "Link", true, Some("CmdOrCtrl+K"))?;
+            let insert_image = MenuItem::with_id(app, "insert_image", "Image", true, None::<&str>)?;
+            let insert_table = MenuItem::with_id(app, "insert_table", "Table", true, None::<&str>)?;
+            let insert_hr = MenuItem::with_id(app, "insert_hr", "Horizontal Rule", true, None::<&str>)?;
+            let insert_ul = MenuItem::with_id(app, "insert_ul", "Unordered List", true, None::<&str>)?;
+            let insert_ol = MenuItem::with_id(app, "insert_ol", "Ordered List", true, None::<&str>)?;
+            let insert_task = MenuItem::with_id(app, "insert_task", "Task List", true, None::<&str>)?;
+            let insert_quote = MenuItem::with_id(app, "insert_quote", "Blockquote", true, None::<&str>)?;
+
+            // --- Format menu items ---
+            let format_bold = MenuItem::with_id(app, "format_bold", "Bold", true, Some("CmdOrCtrl+B"))?;
+            let format_italic = MenuItem::with_id(app, "format_italic", "Italic", true, Some("CmdOrCtrl+I"))?;
+            let format_strikethrough = MenuItem::with_id(app, "format_strikethrough", "Strikethrough", true, None::<&str>)?;
+            let format_h1 = MenuItem::with_id(app, "format_h1", "Heading 1", true, None::<&str>)?;
+            let format_h2 = MenuItem::with_id(app, "format_h2", "Heading 2", true, None::<&str>)?;
+            let format_h3 = MenuItem::with_id(app, "format_h3", "Heading 3", true, None::<&str>)?;
+            let format_code = MenuItem::with_id(app, "format_code", "Code", true, None::<&str>)?;
+            let format_link = MenuItem::with_id(app, "format_link", "Link", true, None::<&str>)?;
+
+            // --- Theme menu items (hardcoded to match src/themes/index.ts allThemes) ---
+            let theme_dark = MenuItem::with_id(app, "theme_dark", "Dark Mode", true, None::<&str>)?;
+            let theme_light = MenuItem::with_id(app, "theme_light", "Light Mode", true, None::<&str>)?;
+            let theme_monokai = MenuItem::with_id(app, "theme_monokai", "Monokai", true, None::<&str>)?;
+            let theme_solarized = MenuItem::with_id(app, "theme_solarized", "Solarized", true, None::<&str>)?;
+            let theme_nord = MenuItem::with_id(app, "theme_nord", "Nord", true, None::<&str>)?;
+            let theme_dracula = MenuItem::with_id(app, "theme_dracula", "Dracula", true, None::<&str>)?;
+            let theme_github = MenuItem::with_id(app, "theme_github", "GitHub", true, None::<&str>)?;
+
+            // --- Help menu items ---
+            let welcome = MenuItem::with_id(app, "welcome", "Welcome", true, None::<&str>)?;
+            let markdown_guide = MenuItem::with_id(app, "markdown_guide", "Markdown Guide", true, None::<&str>)?;
+            let keyboard_shortcuts = MenuItem::with_id(app, "keyboard_shortcuts", "Keyboard Shortcuts", true, None::<&str>)?;
             let about = MenuItem::with_id(app, "about", "About Seven MD", true, None::<&str>)?;
-            
-            // Build File menu
+            let check_update = MenuItem::with_id(app, "check_update", "Check for Updates", true, None::<&str>)?;
+
+            // ==========================================
+            // Build submenus
+            // ==========================================
+
             let file_menu = Submenu::with_items(app, "File", true, &[
-                &open,
+                &new_file,
+                &new_window,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &open_file,
                 &open_folder,
                 &close_folder,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &save,
                 &save_as,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &export_submenu,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &quit,
             ])?;
-            
-            // Build Edit menu
+
             let edit_menu = Submenu::with_items(app, "Edit", true, &[
-                &copy,
+                &undo,
+                &redo,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &cut,
+                &copy,
                 &paste,
                 &select_all,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &find,
+                &replace,
             ])?;
-            
-            // Build View menu
+
             let view_menu = Submenu::with_items(app, "View", true, &[
+                &command_palette,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &toggle_sidebar,
+                &toggle_outline,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &zoom_in,
                 &zoom_out,
                 &reset_zoom,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &view_editor_only,
+                &view_preview_only,
+                &view_split,
             ])?;
-            
-            // Build Help menu
+
+            let insert_menu = Submenu::with_items(app, "Insert", true, &[
+                &insert_heading,
+                &insert_bold,
+                &insert_italic,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &insert_inline_code,
+                &insert_code_block,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &insert_link,
+                &insert_image,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &insert_table,
+                &insert_hr,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &insert_ul,
+                &insert_ol,
+                &insert_task,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &insert_quote,
+            ])?;
+
+            let format_menu = Submenu::with_items(app, "Format", true, &[
+                &format_bold,
+                &format_italic,
+                &format_strikethrough,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &format_h1,
+                &format_h2,
+                &format_h3,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
+                &format_code,
+                &format_link,
+            ])?;
+
+            let theme_menu = Submenu::with_items(app, "Theme", true, &[
+                &theme_dark,
+                &theme_light,
+                &theme_monokai,
+                &theme_solarized,
+                &theme_nord,
+                &theme_dracula,
+                &theme_github,
+            ])?;
+
             let help_menu = Submenu::with_items(app, "Help", true, &[
+                &welcome,
+                &markdown_guide,
+                &keyboard_shortcuts,
+                &tauri::menu::PredefinedMenuItem::separator(app)?,
                 &about,
+                &check_update,
             ])?;
-            
-            // Build the main menu
+
+            // ==========================================
+            // Build the main menu bar
+            // ==========================================
+
             let menu = Menu::with_items(app, &[
                 &file_menu,
                 &edit_menu,
                 &view_menu,
+                &insert_menu,
+                &format_menu,
+                &theme_menu,
                 &help_menu,
             ])?;
-            
-            // Set the menu for the app
+
             app.set_menu(menu)?;
-            
-            // Handle menu events
+
+            // ==========================================
+            // Handle menu events — emit Tauri events to frontend
+            // ==========================================
+
             let app_handle = app.handle().clone();
             app.on_menu_event(move |_window, event| {
-                match event.id().as_ref() {
-                    "open" => {
-                        let _ = app_handle.emit("menu-open", ());
-                    }
-                    "open_folder" => {
-                        let _ = app_handle.emit("menu-open-folder", ());
-                    }
-                    "close_folder" => {
-                        let _ = app_handle.emit("menu-close-folder", ());
-                    }
-                    "save" => {
-                        let _ = app_handle.emit("menu-save", ());
-                    }
-                    "save_as" => {
-                        let _ = app_handle.emit("menu-save-as", ());
-                    }
-                    "quit" => {
-                        let _ = app_handle.emit("menu-quit", ());
-                    }
-                    "copy" => {
-                        let _ = app_handle.emit("menu-copy", ());
-                    }
-                    "cut" => {
-                        let _ = app_handle.emit("menu-cut", ());
-                    }
-                    "paste" => {
-                        let _ = app_handle.emit("menu-paste", ());
-                    }
-                    "select_all" => {
-                        let _ = app_handle.emit("menu-select-all", ());
-                    }
-                    "toggle_sidebar" => {
-                        let _ = app_handle.emit("menu-toggle-sidebar", ());
-                    }
-                    "zoom_in" => {
-                        let _ = app_handle.emit("menu-zoom-in", ());
-                    }
-                    "zoom_out" => {
-                        let _ = app_handle.emit("menu-zoom-out", ());
-                    }
-                    "reset_zoom" => {
-                        let _ = app_handle.emit("menu-reset-zoom", ());
-                    }
-                    "about" => {
-                        let _ = app_handle.emit("menu-about", ());
-                    }
-                    "export_pdf" => {
-                        let _ = log(LogLevel::Debug, "export_pdf menu clicked".to_string(), None, Some("menu".to_string()));
-                        let _ = app_handle.emit("menu-export-pdf", ());
-                    }
-                    "export_html" => {
-                        let _ = log(LogLevel::Debug, "export_html menu clicked".to_string(), None, Some("menu".to_string()));
-                        let _ = app_handle.emit("menu-export-html", ());
-                    }
+                let id = event.id().as_ref();
+                match id {
+                    // File menu
+                    "new_file" => { let _ = app_handle.emit("menu-new-file", ()); }
+                    "new_window" => { let _ = app_handle.emit("menu-new-window", ()); }
+                    "open_file" => { let _ = app_handle.emit("menu-open-file", ()); }
+                    "open_folder" => { let _ = app_handle.emit("menu-open-folder", ()); }
+                    "close_folder" => { let _ = app_handle.emit("menu-close-folder", ()); }
+                    "save" => { let _ = app_handle.emit("menu-save", ()); }
+                    "save_as" => { let _ = app_handle.emit("menu-save-as", ()); }
+                    "export_pdf" => { let _ = app_handle.emit("menu-export-pdf", ()); }
+                    "export_html" => { let _ = app_handle.emit("menu-export-html", ()); }
+                    "quit" => { let _ = app_handle.emit("menu-quit", ()); }
+
+                    // Edit menu
+                    "undo" => { let _ = app_handle.emit("menu-undo", ()); }
+                    "redo" => { let _ = app_handle.emit("menu-redo", ()); }
+                    "cut" => { let _ = app_handle.emit("menu-cut", ()); }
+                    "copy" => { let _ = app_handle.emit("menu-copy", ()); }
+                    "paste" => { let _ = app_handle.emit("menu-paste", ()); }
+                    "select_all" => { let _ = app_handle.emit("menu-select-all", ()); }
+                    "find" => { let _ = app_handle.emit("menu-find", ()); }
+                    "replace" => { let _ = app_handle.emit("menu-replace", ()); }
+
+                    // View menu
+                    "command_palette" => { let _ = app_handle.emit("menu-command-palette", ()); }
+                    "toggle_sidebar" => { let _ = app_handle.emit("menu-toggle-sidebar", ()); }
+                    "toggle_outline" => { let _ = app_handle.emit("menu-toggle-outline", ()); }
+                    "zoom_in" => { let _ = app_handle.emit("menu-zoom-in", ()); }
+                    "zoom_out" => { let _ = app_handle.emit("menu-zoom-out", ()); }
+                    "reset_zoom" => { let _ = app_handle.emit("menu-reset-zoom", ()); }
+                    "view_editor_only" => { let _ = app_handle.emit("menu-view-editor-only", ()); }
+                    "view_preview_only" => { let _ = app_handle.emit("menu-view-preview-only", ()); }
+                    "view_split" => { let _ = app_handle.emit("menu-view-split", ()); }
+
+                    // Insert menu
+                    "insert_heading" => { let _ = app_handle.emit("menu-insert-heading", ()); }
+                    "insert_bold" => { let _ = app_handle.emit("menu-insert-bold", ()); }
+                    "insert_italic" => { let _ = app_handle.emit("menu-insert-italic", ()); }
+                    "insert_inline_code" => { let _ = app_handle.emit("menu-insert-inline-code", ()); }
+                    "insert_code_block" => { let _ = app_handle.emit("menu-insert-code-block", ()); }
+                    "insert_link" => { let _ = app_handle.emit("menu-insert-link", ()); }
+                    "insert_image" => { let _ = app_handle.emit("menu-insert-image", ()); }
+                    "insert_table" => { let _ = app_handle.emit("menu-insert-table", ()); }
+                    "insert_hr" => { let _ = app_handle.emit("menu-insert-hr", ()); }
+                    "insert_ul" => { let _ = app_handle.emit("menu-insert-ul", ()); }
+                    "insert_ol" => { let _ = app_handle.emit("menu-insert-ol", ()); }
+                    "insert_task" => { let _ = app_handle.emit("menu-insert-task", ()); }
+                    "insert_quote" => { let _ = app_handle.emit("menu-insert-quote", ()); }
+
+                    // Format menu
+                    "format_bold" => { let _ = app_handle.emit("menu-format-bold", ()); }
+                    "format_italic" => { let _ = app_handle.emit("menu-format-italic", ()); }
+                    "format_strikethrough" => { let _ = app_handle.emit("menu-format-strikethrough", ()); }
+                    "format_h1" => { let _ = app_handle.emit("menu-format-h1", ()); }
+                    "format_h2" => { let _ = app_handle.emit("menu-format-h2", ()); }
+                    "format_h3" => { let _ = app_handle.emit("menu-format-h3", ()); }
+                    "format_code" => { let _ = app_handle.emit("menu-format-code", ()); }
+                    "format_link" => { let _ = app_handle.emit("menu-format-link", ()); }
+
+                    // Theme menu — emit with theme ID payload
+                    "theme_dark" => { let _ = app_handle.emit("menu-theme-change", "dark"); }
+                    "theme_light" => { let _ = app_handle.emit("menu-theme-change", "light"); }
+                    "theme_monokai" => { let _ = app_handle.emit("menu-theme-change", "monokai"); }
+                    "theme_solarized" => { let _ = app_handle.emit("menu-theme-change", "solarized"); }
+                    "theme_nord" => { let _ = app_handle.emit("menu-theme-change", "nord"); }
+                    "theme_dracula" => { let _ = app_handle.emit("menu-theme-change", "dracula"); }
+                    "theme_github" => { let _ = app_handle.emit("menu-theme-change", "github"); }
+
+                    // Help menu
+                    "welcome" => { let _ = app_handle.emit("menu-welcome", ()); }
+                    "markdown_guide" => { let _ = app_handle.emit("menu-markdown-guide", ()); }
+                    "keyboard_shortcuts" => { let _ = app_handle.emit("menu-keyboard-shortcuts", ()); }
+                    "about" => { let _ = app_handle.emit("menu-about", ()); }
+                    "check_update" => { let _ = app_handle.emit("menu-check-update", ()); }
+
                     _ => {}
                 }
             });

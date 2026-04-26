@@ -1,6 +1,7 @@
 export { useThemeStore } from './useThemeStore'
 export type { ThemeId } from './useThemeStore'
 export { useUIStore } from './useUIStore'
+export type { DialogType } from './useUIStore'
 export { useFileStore } from './useFileStore'
 export { useEditorStore } from './useEditorStore'
 export { useCommandStore } from './useCommandStore'
@@ -11,3 +12,4 @@ export type { AIMode, RewriteStyle, TranslateDirection, AIMessage } from './useA
 export { useNotificationStore } from './useNotificationStore'
 export type { NotificationType, Notification } from './useNotificationStore'
 export { useSettingsStore } from './useSettingsStore'
+export { useWorkspaceStore } from './useWorkspaceStore'

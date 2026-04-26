@@ -9,14 +9,15 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, keymap, KeyBinding } from '@codemirror/view'
-import { undo, redo } from '@codemirror/commands'
+import { undo, redo, indentWithTab, defaultKeymap, historyKeymap } from '@codemirror/commands'
+import { history } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { syntaxHighlighting, HighlightStyle, bracketMatching } from '@codemirror/language'
 import { search } from '@codemirror/search'
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { tags } from '@lezer/highlight'
-import { useEditorStore, useUIStore, useThemeStore } from '../../stores'
+import { useEditorStore, useUIStore, useThemeStore, useAIStore } from '../../stores'
 import { EditorContextMenu } from './EditorContextMenu'
 
 /**
@@ -156,7 +157,14 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         search({ top: true }),
         bracketMatching(),
         closeBrackets(),
-        keymap.of([...closeBracketsKeymap, ...listContinuation()]),
+        history(),
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...listContinuation(),
+          indentWithTab,
+          ...historyKeymap,
+          ...defaultKeymap,
+        ]),
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !isExternalUpdate.current) {
@@ -166,6 +174,10 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
             const pos = update.state.selection.main.head
             const line = update.state.doc.lineAt(pos)
             setCursorPosition({ line: line.number, column: pos - line.from + 1 })
+            // 同步选中文本到 AI Store
+            const sel = update.state.selection.main
+            const selectedText = sel.empty ? null : update.state.sliceDoc(sel.from, sel.to)
+            useAIStore.getState().setSelectedText(selectedText)
           }
         }),
         EditorView.theme({
@@ -196,7 +208,28 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     })
     viewRef.current = view
 
+    // 滚动同步：监听 CodeMirror scroller 的 scroll 事件
+    const scroller = view.scrollDOM
+    let rafId: number | null = null
+    const handleScroll = () => {
+      const editorStore = useEditorStore.getState()
+      if (!editorStore.scrollSyncEnabled) return
+      if (rafId !== null) return // 节流
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const scrollHeight = scroller.scrollHeight
+        const clientHeight = scroller.clientHeight
+        if (scrollHeight > clientHeight) {
+          const ratio = scroller.scrollTop / (scrollHeight - clientHeight)
+          useEditorStore.getState().setScrollRatio(Math.max(0, Math.min(1, ratio)))
+        }
+      })
+    }
+    scroller.addEventListener('scroll', handleScroll)
+
     return () => {
+      scroller.removeEventListener('scroll', handleScroll)
+      if (rafId !== null) cancelAnimationFrame(rafId)
       view.destroy()
       viewRef.current = null
     }
@@ -255,6 +288,67 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     }
   }, [])
 
+  // Listen to editor:format — Markdown 格式化
+  useEffect(() => {
+    const handler = () => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const doc = view.state.doc.toString()
+
+      // 格式化规则：
+      // 1. 合并多余空行为 2 行（保留 Markdown 换行语义）
+      // 2. 去除行尾空格（但保留 Markdown 换行所需的两个尾部空格）
+      // 3. 确保文件末尾有一个换行符
+      let formatted = doc
+        // 去除行尾空格（保留 "  " Markdown 换行标记）
+        .split('\n')
+        .map((line: string) => {
+          const trailingSpaces = line.match(/(  +)$/)
+          // 如果行尾恰好两个空格（Markdown 换行），保留
+          if (trailingSpaces && trailingSpaces[1] === '  ') {
+            return line.replace(/\s+$/, '') + '  '
+          }
+          return line.replace(/\s+$/, '')
+        })
+        .join('\n')
+
+      // 合并 3+ 连续空行为 2 行
+      formatted = formatted.replace(/\n{3,}/g, '\n\n')
+
+      // 确保末尾换行
+      if (formatted.length > 0 && !formatted.endsWith('\n')) {
+        formatted += '\n'
+      }
+
+      if (formatted !== doc) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: formatted },
+        })
+      }
+    }
+    window.addEventListener('editor:format', handler)
+    return () => window.removeEventListener('editor:format', handler)
+  }, [])
+
+  // Listen to editor:replace-selection — 替换编辑器选中文本（AI 改写/翻译应用）
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const newText = (e as CustomEvent<string>).detail
+      if (!newText) return
+      const sel = view.state.selection.main
+      if (sel.empty) return
+      view.dispatch({
+        changes: { from: sel.from, to: sel.to, insert: newText },
+        selection: { anchor: sel.from + newText.length },
+      })
+      view.focus()
+    }
+    window.addEventListener('editor:replace-selection', handler)
+    return () => window.removeEventListener('editor:replace-selection', handler)
+  }, [])
+
   // Right-click context menu
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -281,6 +375,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
           onInsert={insertAtCursor}
           onFind={() => { useUIStore.getState().setFindReplaceMode('find'); useUIStore.getState().setFindReplaceOpen(true) }}
           onAIRewrite={() => { useUIStore.getState().setAIPanelOpen(true) }}
+          onFormat={() => { window.dispatchEvent(new CustomEvent('editor:format')) }}
         />
       )}
     </div>

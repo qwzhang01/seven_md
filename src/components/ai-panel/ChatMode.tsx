@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, RefreshCw, AlertCircle } from 'lucide-react'
+import { Send, Bot, User, RefreshCw, AlertCircle, Settings } from 'lucide-react'
 import { useAIStore, useNotificationStore } from '../../stores'
+import { aiChat, isAIConfigured, getAIConfig, setAIConfig } from '../../services/aiService'
 
 export function ChatMode() {
   const { messages, isLoading, error, addMessage, setLoading, setError } = useAIStore()
   const { addNotification } = useNotificationStore()
   const [input, setInput] = useState('')
   const messagesRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<boolean>(false)
 
   useEffect(() => {
     if (messagesRef.current) {
@@ -22,35 +22,19 @@ export function ChatMode() {
     setError(null)
     addMessage('user', text)
     setLoading(true)
-    abortRef.current = false
 
-    // Mock AI response with error simulation
-    // In production, replace with actual API call
     try {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          if (abortRef.current) {
-            reject(new Error('请求已取消'))
-            return
-          }
-          // Simulate occasional errors (10% chance)
-          if (Math.random() < 0.1) {
-            reject(new Error('AI 服务暂时不可用，请稍后重试'))
-            return
-          }
-          resolve()
-        }, 800)
-        return () => clearTimeout(timer)
-      })
+      if (!isAIConfigured()) {
+        throw new Error('请先配置 AI API Key。点击下方设置按钮进行配置。')
+      }
 
-      const replies = [
-        '我可以帮你改进这段 Markdown 的格式和结构。',
-        '这段文档描述清晰，可以考虑添加更多示例增强可读性。',
-        '建议将长段落拆分，使用标题来组织内容。',
-        '这段代码块可以添加语言标识来启用语法高亮。',
-        '可以使用表格来组织数据，使信息更加清晰。',
-      ]
-      addMessage('assistant', replies[Math.floor(Math.random() * replies.length)])
+      // 只发送最近 20 条消息避免 token 过多
+      const recentMessages = messages.slice(-20).map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+      const reply = await aiChat([...recentMessages, { role: 'user' as const, content: text }])
+      addMessage('assistant', reply)
     } catch (err) {
       const msg = err instanceof Error ? err.message : '未知错误'
       setError(msg)
@@ -58,7 +42,7 @@ export function ChatMode() {
     } finally {
       setLoading(false)
     }
-  }, [input, isLoading, addMessage, setLoading, setError, addNotification])
+  }, [input, isLoading, messages, addMessage, setLoading, setError, addNotification])
 
   const handleRetry = useCallback(() => {
     const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
@@ -67,6 +51,23 @@ export function ChatMode() {
       setInput(lastUserMsg.content)
     }
   }, [messages, setError])
+
+  const handleOpenSettings = useCallback(() => {
+    const config = getAIConfig()
+    const apiKey = prompt('请输入 AI API Key:', config.apiKey)
+    if (apiKey !== null) {
+      const endpoint = prompt('API Endpoint (默认 OpenAI):', config.endpoint)
+      if (endpoint !== null) {
+        const model = prompt('模型名称:', config.model)
+        if (model !== null) {
+          setAIConfig({ apiKey, endpoint, model })
+          addNotification({ type: 'success', message: 'AI 配置已保存', autoClose: true, duration: 2000 })
+        }
+      }
+    }
+  }, [addNotification])
+
+  const configured = isAIConfigured()
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -81,6 +82,9 @@ export function ChatMode() {
             <div className="text-sm rounded-lg px-3 py-2 max-w-[85%]"
               style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', lineHeight: 1.6 }}>
               你好！我是 MD Mate AI 助手，可以帮助你编写、改写、翻译或解释 Markdown 内容。
+              {!configured && (
+                <span style={{ color: 'var(--accent)' }}> 请先点击下方 ⚙️ 按钮配置 API Key。</span>
+              )}
             </div>
           </div>
         )}
@@ -149,7 +153,7 @@ export function ChatMode() {
               rows: 2,
               minHeight: 60,
             } as any}
-            placeholder="输入消息..."
+            placeholder={configured ? '输入消息...' : '请先配置 API Key...'}
             rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -157,20 +161,35 @@ export function ChatMode() {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
             }}
           />
-          <button
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0 self-end"
-            style={{
-              background: 'var(--accent)',
-              color: '#fff',
-              border: 'none',
-              cursor: isLoading ? 'default' : 'pointer',
-              opacity: isLoading ? 0.6 : 1,
-            }}
-            onClick={handleSend}
-            disabled={isLoading}
-          >
-            <Send size={16} />
-          </button>
+          <div className="flex flex-col gap-1 self-end">
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+              style={{
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                cursor: isLoading ? 'default' : 'pointer',
+                opacity: isLoading ? 0.6 : 1,
+              }}
+              onClick={handleSend}
+              disabled={isLoading}
+            >
+              <Send size={16} />
+            </button>
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+              style={{
+                background: 'transparent',
+                color: configured ? 'var(--text-secondary)' : 'var(--accent)',
+                border: '1px solid var(--border-primary)',
+                cursor: 'pointer',
+              }}
+              onClick={handleOpenSettings}
+              title="AI 设置"
+            >
+              <Settings size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

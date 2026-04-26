@@ -1,10 +1,11 @@
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useEffect, useRef } from 'react'
 import { ExternalLink } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
+import { useEditorStore, useUIStore } from '../../stores'
 
 interface PreviewPaneV2Props {
   content: string
@@ -12,6 +13,29 @@ interface PreviewPaneV2Props {
 }
 
 export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = '' }: PreviewPaneV2Props) {
+  const previewRef = useRef<HTMLDivElement>(null)
+  const isExternalScroll = useRef(false)
+
+  // 滚动同步：订阅 scrollRatio
+  const scrollRatio = useEditorStore((s) => s.scrollRatio)
+  const scrollSyncEnabled = useEditorStore((s) => s.scrollSyncEnabled)
+  const viewMode = useUIStore((s) => s.viewMode)
+
+  useEffect(() => {
+    if (!scrollSyncEnabled || viewMode !== 'split' || !previewRef.current) return
+    const el = previewRef.current
+    const scrollHeight = el.scrollHeight
+    const clientHeight = el.clientHeight
+    if (scrollHeight <= clientHeight) return
+
+    isExternalScroll.current = true
+    el.scrollTop = scrollRatio * (scrollHeight - clientHeight)
+    // 重置 flag 在下一帧
+    requestAnimationFrame(() => {
+      isExternalScroll.current = false
+    })
+  }, [scrollRatio, scrollSyncEnabled, viewMode])
+
   const handleOpenExternal = useCallback(() => {
     // Open preview in a new window
     const win = window.open('', '_blank')
@@ -70,6 +94,7 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
 
       {/* Preview content */}
       <div
+        ref={previewRef}
         id="md-preview-content"
         className="flex-1 overflow-y-auto px-5 py-4 markdown-preview"
         style={{

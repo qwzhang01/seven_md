@@ -1,23 +1,70 @@
-import { GitBranch, RefreshCw, AlertTriangle, Bell } from 'lucide-react'
-import { useEditorStore, useNotificationStore } from '../../stores'
+import { useState, useEffect, useCallback } from 'react'
+import { GitBranch, RefreshCw, AlertTriangle, Bell, ArrowUpDown } from 'lucide-react'
+import { useEditorStore, useFileStore, useNotificationStore, useWorkspaceStore } from '../../stores'
+import { getGitBranch } from '../../tauriCommands'
 
-interface StatusBarProps {
-  branch?: string
-  isSyncing?: boolean
-  errorCount?: number
-  warningCount?: number
-  language?: string
-}
-
-export function StatusBar({
-  branch = 'main',
-  isSyncing = false,
-  errorCount = 0,
-  warningCount = 0,
-  language = 'Markdown',
-}: StatusBarProps) {
-  const { cursorPosition, fileEncoding, lineEnding } = useEditorStore()
+export function StatusBar() {
+  const { cursorPosition, fileEncoding, lineEnding, scrollSyncEnabled, toggleScrollSync } = useEditorStore()
+  const { getActiveTab } = useFileStore()
   const { unreadCount, markAllRead } = useNotificationStore()
+  const { folderPath } = useWorkspaceStore()
+
+  // Git 分支
+  const [branch, setBranch] = useState<string>('—')
+
+  useEffect(() => {
+    let cancelled = false
+    let intervalId: ReturnType<typeof setInterval> | null = null
+
+    const fetchBranch = async () => {
+      if (!folderPath) {
+        setBranch('—')
+        return
+      }
+      try {
+        const result = await getGitBranch(folderPath)
+        if (!cancelled) {
+          setBranch(result || '—')
+        }
+      } catch {
+        if (!cancelled) setBranch('—')
+      }
+    }
+
+    fetchBranch()
+    // 每 5 秒轮询
+    intervalId = setInterval(fetchBranch, 5000)
+
+    return () => {
+      cancelled = true
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [folderPath])
+
+  // 行号跳转
+  const handleJumpToLine = useCallback(() => {
+    const input = prompt('跳转到行号:', String(cursorPosition.line))
+    if (input === null) return
+    const lineNum = parseInt(input, 10)
+    if (isNaN(lineNum) || lineNum < 1) return
+    window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: lineNum }))
+  }, [cursorPosition.line])
+
+  // 编码点击
+  const handleEncodingClick = useCallback(() => {
+    const { addNotification } = useNotificationStore.getState()
+    addNotification({ type: 'info', message: `当前编码: ${fileEncoding}`, autoClose: true, duration: 2000 })
+  }, [fileEncoding])
+
+  // 换行符点击
+  const handleLineEndingClick = useCallback(() => {
+    const { addNotification } = useNotificationStore.getState()
+    addNotification({ type: 'info', message: `当前换行符: ${lineEnding}`, autoClose: true, duration: 2000 })
+  }, [lineEnding])
+
+  // 同步状态：从 fileStore 读取当前 tab 的 isDirty
+  const activeTab = getActiveTab()
+  const isDirty = activeTab?.isDirty ?? false
 
   return (
     <div
@@ -46,14 +93,14 @@ export function StatusBar({
 
         <button
           className="flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors cursor-pointer"
-          title={isSyncing ? '同步中...' : '已同步'}
+          title={isDirty ? '未保存' : '已保存'}
           style={{ color: '#fff', background: 'transparent', border: 'none' }}
         >
           <RefreshCw
             size={11}
-            className={isSyncing ? 'animate-spin' : ''}
+            className={isDirty ? 'animate-spin' : ''}
           />
-          {!isSyncing && <span>已同步</span>}
+          {isDirty ? <span>未保存</span> : <span>已保存</span>}
         </button>
 
         <button
@@ -62,9 +109,9 @@ export function StatusBar({
           style={{ color: '#fff', background: 'transparent', border: 'none' }}
         >
           <AlertTriangle size={11} />
-          <span>{errorCount}</span>
+          <span>0</span>
           <span className="ml-1">⚠</span>
-          <span>{warningCount}</span>
+          <span>0</span>
         </button>
       </div>
 
@@ -74,6 +121,7 @@ export function StatusBar({
           className="hover:bg-white/10 px-1 rounded transition-colors"
           title="跳转到行"
           style={{ color: '#fff', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          onClick={handleJumpToLine}
         >
           行 {cursorPosition.line}, 列 {cursorPosition.column}
         </button>
@@ -82,6 +130,7 @@ export function StatusBar({
           className="hover:bg-white/10 px-1 rounded transition-colors"
           title="文件编码"
           style={{ color: '#fff', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          onClick={handleEncodingClick}
         >
           {fileEncoding}
         </button>
@@ -90,8 +139,24 @@ export function StatusBar({
           className="hover:bg-white/10 px-1 rounded transition-colors"
           title="行结束符"
           style={{ color: '#fff', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          onClick={handleLineEndingClick}
         >
           {lineEnding}
+        </button>
+
+        <button
+          className="flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors"
+          title={scrollSyncEnabled ? '滚动同步: 开 (点击关闭)' : '滚动同步: 关 (点击开启)'}
+          style={{
+            color: scrollSyncEnabled ? '#fff' : 'rgba(255,255,255,0.5)',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+          onClick={toggleScrollSync}
+        >
+          <ArrowUpDown size={11} />
+          <span>{scrollSyncEnabled ? '同步' : '同步'}</span>
         </button>
 
         <button
@@ -99,7 +164,7 @@ export function StatusBar({
           title="语言模式"
           style={{ color: '#fff', background: 'transparent', border: 'none', cursor: 'pointer' }}
         >
-          {language}
+          Markdown
         </button>
 
         <button

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::process::Command as StdCommand;
 use crate::logger::{log, LogLevel};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -499,6 +500,35 @@ pub fn delete_path(path: String) -> Result<(), String> {
             let msg = format!("Failed to delete path: {}", e);
             let _ = log(LogLevel::Error, msg.clone(), Some(serde_json::json!({"path": path, "error": e.to_string()})), Some("delete_path".to_string()));
             Err(msg)
+        }
+    }
+}
+
+/// 获取指定目录的 Git 分支名
+/// 执行 `git branch --show-current`，失败时返回空字符串
+#[tauri::command]
+pub fn get_git_branch(dir_path: String) -> String {
+    let _ = log(LogLevel::Debug, format!("Getting git branch for: {}", dir_path), None, Some("get_git_branch".to_string()));
+
+    let output = StdCommand::new("git")
+        .args(["branch", "--show-current"])
+        .current_dir(&dir_path)
+        .output();
+
+    match output {
+        Ok(out) => {
+            if out.status.success() {
+                let branch = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                let _ = log(LogLevel::Debug, format!("Git branch: {}", branch), None, Some("get_git_branch".to_string()));
+                branch
+            } else {
+                let _ = log(LogLevel::Debug, "Not a git repository or git command failed".to_string(), None, Some("get_git_branch".to_string()));
+                String::new()
+            }
+        }
+        Err(e) => {
+            let _ = log(LogLevel::Warn, format!("Failed to execute git: {}", e), None, Some("get_git_branch".to_string()));
+            String::new()
         }
     }
 }

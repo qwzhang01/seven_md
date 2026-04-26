@@ -15,6 +15,8 @@ interface EditorState {
   charCount: number
   fileEncoding: string
   lineEnding: 'LF' | 'CRLF'
+  scrollSyncEnabled: boolean
+  scrollRatio: number
 
   // Actions
   setContent: (content: string) => void
@@ -24,6 +26,9 @@ interface EditorState {
   setFileEncoding: (encoding: string) => void
   setLineEnding: (ending: 'LF' | 'CRLF') => void
   updateStats: () => void
+  setScrollSyncEnabled: (enabled: boolean) => void
+  setScrollRatio: (ratio: number) => void
+  toggleScrollSync: () => void
 }
 
 function countStats(content: string) {
@@ -43,6 +48,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
   charCount: 0,
   fileEncoding: 'UTF-8',
   lineEnding: 'LF',
+  scrollSyncEnabled: false,
+  scrollRatio: 0,
 
   setContent: (content) => {
     const stats = countStats(content)
@@ -60,4 +67,8 @@ export const useEditorStore = create<EditorState>()((set, get) => ({
     const { lines, chars, words } = countStats(content)
     set({ lineCount: lines, charCount: chars, wordCount: words })
   },
+
+  setScrollSyncEnabled: (enabled) => set({ scrollSyncEnabled: enabled }),
+  setScrollRatio: (ratio) => set({ scrollRatio: ratio }),
+  toggleScrollSync: () => set((s) => ({ scrollSyncEnabled: !s.scrollSyncEnabled })),
 }))

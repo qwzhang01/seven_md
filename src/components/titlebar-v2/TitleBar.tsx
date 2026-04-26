@@ -1,4 +1,3 @@
-import { TrafficLights } from './TrafficLights'
 import { TabBar } from './TabBar'
 import { TitleBarActions } from './TitleBarActions'
 
@@ -8,7 +7,8 @@ interface TitleBarProps {
 
 /**
  * 统一标题栏组件（VS Code 风格）
- * 整合了：交通灯按钮 + 标签页 + 操作按钮
+ * 整合了：标签页 + 操作按钮
+ * 原生交通灯由 macOS 系统自动渲染（decorations: true）
  */
 export function TitleBar({ onCloseTab }: TitleBarProps) {
   return (
@@ -19,9 +19,6 @@ export function TitleBar({ onCloseTab }: TitleBarProps) {
       role="banner"
       aria-label="标题栏"
     >
-      {/* macOS Traffic Lights */}
-      <TrafficLights />
-
       {/* Tab Bar */}
       <TabBar onCloseTab={onCloseTab} />
 

@@ -1,5 +1,4 @@
 use std::env;
-use std::process::Command;
 
 fn main() {
     // Set Windows-specific build environment variables

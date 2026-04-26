@@ -70,6 +70,22 @@ const SNIPPETS: SnippetItem[] = [
     category: '高级模板',
   },
   {
+    id: 'mermaid',
+    name: 'Mermaid 流程图',
+    preview: '```mermaid\ngraph TD\n  A --> B',
+    template: '```mermaid\ngraph TD\n    A[开始] --> B{判断}\n    B -->|是| C[处理]\n    B -->|否| D[结束]\n    C --> D\n```',
+    icon: <FileCode size={14} />,
+    category: '高级模板',
+  },
+  {
+    id: 'apidoc',
+    name: 'API 文档',
+    preview: '## GET /api/xxx\n### 请求\n### 响应',
+    template: '## GET /api/endpoint\n\n### 请求\n\n| 参数 | 类型 | 必填 | 说明 |\n|------|------|------|------|\n| id | string | 是 | 唯一标识 |\n\n### 响应\n\n```json\n{\n  "code": 200,\n  "message": "success",\n  "data": {}\n}\n```\n\n### 错误码\n\n| 错误码 | 说明 |\n|--------|------|\n| 400 | 参数错误 |\n| 404 | 资源不存在 |',
+    icon: <FileCode size={14} />,
+    category: '高级模板',
+  },
+  {
     id: 'prdtpl',
     name: 'PRD 需求模板',
     preview: '## 需求背景\n## 目标\n## 功能描述',

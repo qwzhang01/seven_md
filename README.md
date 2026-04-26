@@ -58,6 +58,12 @@
 <img src="docs/screenshots/dark-mode.png" alt="Dark Mode" width="45%">
 </div>
 
+## Logo
+
+<div align="center">
+<img src="docs/screenshots/login-double.png" alt="Logo">
+</div>
+
 ## 🚀 快速开始
 
 ### 前置要求

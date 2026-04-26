@@ -1,13 +1,8 @@
-import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Folder, FolderOpen, FileText, FilePlus, FolderPlus, RefreshCw } from 'lucide-react'
-import { useFileStore } from '../../stores'
-
-interface TreeNode {
-  name: string
-  path: string
-  type: 'file' | 'folder'
-  children?: TreeNode[]
-}
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { ChevronDown, ChevronRight, Folder, FolderOpen, FileText, FilePlus, FolderPlus, RefreshCw, Loader2, MinusSquare } from 'lucide-react'
+import { useFileStore, useWorkspaceStore } from '../../stores'
+import { readFile } from '../../tauriCommands'
+import type { FileTreeNode } from '../../types'
 
 // 根据文件扩展名返回颜色/图标
 function getFileIcon(name: string) {
@@ -22,23 +17,75 @@ function getFileIcon(name: string) {
   return colorMap[ext || ''] || 'text-[var(--text-secondary)]'
 }
 
-interface TreeItemProps {
-  node: TreeNode
+/** 内联输入组件，用于新建文件/文件夹 */
+function InlineInput({ onSubmit, onCancel, placeholder }: {
+  onSubmit: (value: string) => void
+  onCancel: () => void
+  placeholder: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const value = inputRef.current?.value.trim()
+      if (value) onSubmit(value)
+      else onCancel()
+    } else if (e.key === 'Escape') {
+      onCancel()
+    }
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      className="w-full text-xs px-1 py-0.5 outline-none"
+      style={{
+        background: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        border: '1px solid var(--accent)',
+        borderRadius: 2,
+      }}
+      placeholder={placeholder}
+      onKeyDown={handleKeyDown}
+      onBlur={onCancel}
+    />
+  )
+}
+
+interface TreeNodeItemProps {
+  node: FileTreeNode
   depth: number
   activeFile: string | null
   onFileClick: (path: string) => void
 }
 
-function TreeItem({ node, depth, activeFile, onFileClick }: TreeItemProps) {
-  const [expanded, setExpanded] = useState(depth < 2)
+/**
+ * 递归树节点组件
+ * 目录的展开/折叠状态和子节点数据来自 useWorkspaceStore
+ */
+function TreeNodeItem({ node, depth, activeFile, onFileClick }: TreeNodeItemProps) {
+  const expandedDirs = useWorkspaceStore((s) => s.expandedDirs)
+  const folderTree = useWorkspaceStore((s) => s.folderTree)
+  const toggleDirectory = useWorkspaceStore((s) => s.toggleDirectory)
 
-  if (node.type === 'folder') {
+  // 后端返回 type: "directory"，统一处理
+  const isDir = node.type === 'directory'
+
+  if (isDir) {
+    const expanded = expandedDirs.has(node.path)
+    const children = folderTree.get(node.path) || []
+
     return (
       <div>
         <div
           className="flex items-center cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
           style={{ paddingLeft: `${8 + depth * 12}px`, height: '24px', color: 'var(--text-secondary)' }}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => toggleDirectory(node.path)}
         >
           <span className="flex-shrink-0 mr-1" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -48,8 +95,8 @@ function TreeItem({ node, depth, activeFile, onFileClick }: TreeItemProps) {
           </span>
           <span className="text-xs truncate">{node.name}</span>
         </div>
-        {expanded && node.children?.map((child) => (
-          <TreeItem
+        {expanded && children.map((child) => (
+          <TreeNodeItem
             key={child.path}
             node={child}
             depth={depth + 1}
@@ -61,6 +108,7 @@ function TreeItem({ node, depth, activeFile, onFileClick }: TreeItemProps) {
     )
   }
 
+  // 文件节点
   const isActive = activeFile === node.path
   return (
     <div
@@ -89,28 +137,73 @@ function TreeItem({ node, depth, activeFile, onFileClick }: TreeItemProps) {
 
 export function ExplorerPanel() {
   const { tabs, activeTabId, switchTab, openTab } = useFileStore()
+  const {
+    folderPath,
+    rootNodes,
+    isLoading,
+    openFolder,
+    refreshTree,
+    createFile: wsCreateFile,
+    createDirectory: wsCreateDirectory,
+  } = useWorkspaceStore()
+
   const [openSections, setOpenSections] = useState({ openFiles: true, workspace: true })
+
+  // 内联新建状态: 'file' | 'folder' | null
+  const [inlineCreate, setInlineCreate] = useState<'file' | 'folder' | null>(null)
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
 
   const handleFileClick = useCallback(
-    (path: string) => {
+    async (path: string) => {
       const existing = tabs.find((t) => t.path === path)
       if (existing) {
         switchTab(existing.id)
       } else {
-        window.dispatchEvent(new CustomEvent('app:open-specific-file', { detail: path }))
+        // 通过 Tauri 读取文件内容并在新 tab 中打开
+        try {
+          const content = await readFile(path)
+          openTab(path, content)
+        } catch (error) {
+          console.error('打开文件失败:', error)
+        }
       }
     },
-    [tabs, switchTab]
+    [tabs, switchTab, openTab]
   )
 
   const toggleSection = (section: 'openFiles' | 'workspace') => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
-  // 模拟工作区文件树（实际应从 useAppState 或 fileStore 获取）
-  const workspaceTree: TreeNode | null = null  // 将在联调阶段填充
+  // 新建文件提交
+  const handleCreateFile = useCallback(async (name: string) => {
+    const parentDir = folderPath
+    if (!parentDir) return
+    try {
+      // 确保以 .md 结尾
+      const fileName = name.endsWith('.md') || name.endsWith('.markdown') ? name : `${name}.md`
+      await wsCreateFile(parentDir, fileName)
+    } catch (error) {
+      console.error('新建文件失败:', error)
+    }
+    setInlineCreate(null)
+  }, [folderPath, wsCreateFile])
+
+  // 新建文件夹提交
+  const handleCreateDirectory = useCallback(async (name: string) => {
+    const parentDir = folderPath
+    if (!parentDir) return
+    try {
+      await wsCreateDirectory(parentDir, name)
+    } catch (error) {
+      console.error('新建文件夹失败:', error)
+    }
+    setInlineCreate(null)
+  }, [folderPath, wsCreateDirectory])
+
+  const hasWorkspace = !!folderPath
+  const folderName = folderPath?.split('/').pop() || '工作区'
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
@@ -189,9 +282,9 @@ export function ExplorerPanel() {
       </div>
 
       {/* Workspace Section */}
-      <div>
+      <div className="flex-1 flex flex-col overflow-hidden">
         <div
-          className="flex items-center px-3 cursor-pointer group"
+          className="flex items-center px-3 cursor-pointer group flex-shrink-0"
           style={{
             height: '28px',
             color: 'var(--text-secondary)',
@@ -206,35 +299,87 @@ export function ExplorerPanel() {
           <span className="mr-1">
             {openSections.workspace ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </span>
-          <span className="flex-1">工作区</span>
-          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-            <button className="hover:bg-[var(--bg-active)] rounded p-0.5" title="新建文件" onClick={(e) => e.stopPropagation()}>
-              <FilePlus size={12} />
-            </button>
-            <button className="hover:bg-[var(--bg-active)] rounded p-0.5" title="新建文件夹" onClick={(e) => e.stopPropagation()}>
-              <FolderPlus size={12} />
-            </button>
-            <button className="hover:bg-[var(--bg-active)] rounded p-0.5" title="刷新" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('app:refresh-tree')) }}>
-              <RefreshCw size={12} />
-            </button>
-          </div>
+          <span className="flex-1 truncate">{hasWorkspace ? folderName : '工作区'}</span>
+          {isLoading && <Loader2 size={12} className="animate-spin mr-1" />}
+          {hasWorkspace && (
+            <div className="opacity-0 group-hover:opacity-100 flex gap-1">
+              <button
+                className="hover:bg-[var(--bg-active)] rounded p-0.5"
+                title="新建文件"
+                onClick={(e) => { e.stopPropagation(); setInlineCreate('file') }}
+              >
+                <FilePlus size={12} />
+              </button>
+              <button
+                className="hover:bg-[var(--bg-active)] rounded p-0.5"
+                title="新建文件夹"
+                onClick={(e) => { e.stopPropagation(); setInlineCreate('folder') }}
+              >
+                <FolderPlus size={12} />
+              </button>
+              <button
+                className="hover:bg-[var(--bg-active)] rounded p-0.5"
+                title="折叠全部"
+                onClick={(e) => { e.stopPropagation(); useWorkspaceStore.getState().collapseAll() }}
+              >
+                <MinusSquare size={12} />
+              </button>
+              <button
+                className="hover:bg-[var(--bg-active)] rounded p-0.5"
+                title="刷新"
+                onClick={(e) => { e.stopPropagation(); refreshTree() }}
+              >
+                <RefreshCw size={12} />
+              </button>
+            </div>
+          )}
         </div>
 
         {openSections.workspace && (
           <div className="overflow-y-auto flex-1">
-            {workspaceTree ? (
-              <TreeItem
-                node={workspaceTree}
-                depth={0}
-                activeFile={activeTab?.path ?? null}
-                onFileClick={handleFileClick}
-              />
+            {/* 内联新建输入框 */}
+            {inlineCreate && hasWorkspace && (
+              <div style={{ paddingLeft: '20px', paddingRight: '8px', height: '26px' }} className="flex items-center">
+                <span className="flex-shrink-0 mr-1" style={{ fontSize: 14 }}>
+                  {inlineCreate === 'folder'
+                    ? <Folder size={14} style={{ color: '#c09553' }} />
+                    : <FileText size={14} className="text-blue-400" />
+                  }
+                </span>
+                <InlineInput
+                  placeholder={inlineCreate === 'folder' ? '文件夹名称' : '文件名称.md'}
+                  onSubmit={inlineCreate === 'folder' ? handleCreateDirectory : handleCreateFile}
+                  onCancel={() => setInlineCreate(null)}
+                />
+              </div>
+            )}
+
+            {hasWorkspace ? (
+              rootNodes.length > 0 ? (
+                rootNodes.map((node) => (
+                  <TreeNodeItem
+                    key={node.path}
+                    node={node}
+                    depth={0}
+                    activeFile={activeTab?.path ?? null}
+                    onFileClick={handleFileClick}
+                  />
+                ))
+              ) : (
+                <div className="px-6 py-4 text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+                  {isLoading ? '加载中...' : '文件夹为空'}
+                </div>
+              )
             ) : (
-              <div className="px-6 py-4 text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
+              <div
+                className="px-6 py-4 text-xs text-center cursor-pointer hover:opacity-80"
+                style={{ color: 'var(--text-tertiary)' }}
+                onClick={openFolder}
+              >
                 <div className="mb-2 opacity-50">
                   <Folder size={32} className="mx-auto" />
                 </div>
-                <div>点击"打开文件夹"加载工作区</div>
+                <div>点击打开文件夹</div>
               </div>
             )}
           </div>

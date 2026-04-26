@@ -602,7 +602,4 @@
     height: auto !important;
     padding: 2px 4px;
   }
-  [data-component="menubar"] {
-    overflow-x: auto;
-  }
 }

@@ -1,7 +1,6 @@
 import { Page } from '@playwright/test';
 import { EditorPage } from './EditorPage';
 import { PreviewPage } from './PreviewPage';
-import { MenuBarPage } from './MenuBarPage';
 import { SettingsPage } from './SettingsPage';
 import { FileDialogPage } from './FileDialogPage';
 
@@ -15,7 +14,6 @@ export class PageObjectFactory {
   // Cached instances
   private _editorPage?: EditorPage;
   private _previewPage?: PreviewPage;
-  private _menuBarPage?: MenuBarPage;
   private _settingsPage?: SettingsPage;
   private _fileDialogPage?: FileDialogPage;
 
@@ -44,16 +42,6 @@ export class PageObjectFactory {
   }
 
   /**
-   * Get or create a MenuBarPage instance
-   */
-  get menuBar(): MenuBarPage {
-    if (!this._menuBarPage) {
-      this._menuBarPage = new MenuBarPage(this.page);
-    }
-    return this._menuBarPage;
-  }
-
-  /**
    * Get or create a SettingsPage instance
    */
   get settings(): SettingsPage {
@@ -79,14 +67,12 @@ export class PageObjectFactory {
   static create(page: Page): {
     editor: EditorPage;
     preview: PreviewPage;
-    menuBar: MenuBarPage;
     settings: SettingsPage;
     fileDialog: FileDialogPage;
   } {
     return {
       editor: new EditorPage(page),
       preview: new PreviewPage(page),
-      menuBar: new MenuBarPage(page),
       settings: new SettingsPage(page),
       fileDialog: new FileDialogPage(page),
     };

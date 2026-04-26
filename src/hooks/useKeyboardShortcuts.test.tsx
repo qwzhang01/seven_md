@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useKeyboardShortcuts, formatShortcut, isMacOS, getModifierKey } from './useKeyboardShortcuts'
-import { AppProvider } from '../context/AppContext'
 import React from 'react'
 
 // Mock logger
@@ -20,8 +19,9 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
   save: vi.fn(),
 }))
 
+// AppProvider 已废弃，useKeyboardShortcuts 是纯 hook 不依赖 Context
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <AppProvider>{children}</AppProvider>
+  <>{children}</>
 )
 
 describe('useKeyboardShortcuts', () => {

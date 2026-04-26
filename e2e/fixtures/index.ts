@@ -1,7 +1,6 @@
 import { test as base, Page } from '@playwright/test';
 import { EditorPage } from '../pages/EditorPage';
 import { PreviewPage } from '../pages/PreviewPage';
-import { MenuBarPage } from '../pages/MenuBarPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { FileDialogPage } from '../pages/FileDialogPage';
 import { PageObjectFactory } from '../pages/PageObjectFactory';
@@ -64,7 +63,6 @@ async function injectTauriMocks(page: Page): Promise<void> {
 type TestFixtures = {
   editorPage: EditorPage;
   previewPage: PreviewPage;
-  menuBarPage: MenuBarPage;
   settingsPage: SettingsPage;
   fileDialogPage: FileDialogPage;
   pageFactory: PageObjectFactory;
@@ -113,11 +111,6 @@ export const test = base.extend<TestFixtures>({
   previewPage: async ({ appPage }, use) => {
     const previewPage = new PreviewPage(appPage);
     await use(previewPage);
-  },
-
-  menuBarPage: async ({ appPage }, use) => {
-    const menuBarPage = new MenuBarPage(appPage);
-    await use(menuBarPage);
   },
 
   settingsPage: async ({ appPage }, use) => {

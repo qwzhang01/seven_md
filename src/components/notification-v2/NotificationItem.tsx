@@ -31,7 +31,7 @@ interface NotificationItemProps {
 }
 
 export function NotificationItem({ notification }: NotificationItemProps) {
-  const { removeNotification } = useNotificationStore()
+  const { removeNotification, setNotificationPaused } = useNotificationStore()
   const [visible, setVisible] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isPaused = useRef(false)
@@ -79,8 +79,8 @@ export function NotificationItem({ notification }: NotificationItemProps) {
         transform: visible ? 'translateY(0)' : 'translateY(10px)',
         transition: 'opacity 0.2s ease, transform 0.2s ease',
       }}
-      onMouseEnter={() => { isPaused.current = true; if (timerRef.current) clearTimeout(timerRef.current) }}
-      onMouseLeave={() => { isPaused.current = false; startTimer() }}
+      onMouseEnter={() => { isPaused.current = true; setNotificationPaused(notification.id, true); if (timerRef.current) clearTimeout(timerRef.current) }}
+      onMouseLeave={() => { isPaused.current = false; setNotificationPaused(notification.id, false); startTimer() }}
     >
       <span style={{ color: config.color, flexShrink: 0, marginTop: 1 }}>
         {config.icon}

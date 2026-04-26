@@ -86,18 +86,13 @@ test.describe('File Operations - Export', () => {
     await editorPage.waitForEditor();
     await editorPage.typeInEditor('# Export Test\n\nContent to export.');
     await appPage.waitForTimeout(500);
-    // Try to access export functionality via menu (may not be available in browser mode)
+    // Try to access export functionality via keyboard shortcut (native menu not accessible in Playwright)
     try {
-      // Look for File menu button by text
-      const fileMenuBtn = appPage.locator('[role="menubar"] button').first();
-      const btnVisible = await fileMenuBtn.isVisible().catch(() => false);
-      if (btnVisible) {
-        await fileMenuBtn.click();
-        await appPage.waitForTimeout(300);
-        await appPage.keyboard.press('Escape');
-      }
+      // Use keyboard shortcut to trigger save (Ctrl+S / Cmd+S)
+      await appPage.keyboard.press('Meta+s');
+      await appPage.waitForTimeout(300);
     } catch {
-      // Menu not available in browser mode
+      // Keyboard shortcut not available in browser mode
     }
     // Test passes if no crash
     const editorVisible = await appPage.locator('.cm-editor').isVisible().catch(() => false);

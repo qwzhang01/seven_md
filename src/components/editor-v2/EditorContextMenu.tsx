@@ -7,6 +7,7 @@ interface EditorContextMenuProps {
   onInsert: (text: string) => void
   onFind: () => void
   onAIRewrite: () => void
+  onFormat?: () => void
 }
 
 interface MenuItem {
@@ -18,7 +19,7 @@ interface MenuItem {
   submenu?: MenuItem[]
 }
 
-export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite }: EditorContextMenuProps) {
+export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite, onFormat }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Adjust position to avoid overflow
@@ -71,6 +72,8 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
     { label: '🔤 全选', shortcut: 'Ctrl+A', action: () => document.execCommand('selectAll') },
     { separator: true },
     { label: '🔍 查找', shortcut: 'Ctrl+F', action: onFind },
+    { separator: true },
+    { label: '📝 格式化文档', action: onFormat },
     { separator: true },
     { label: '🤖 AI 改写', action: onAIRewrite },
   ]
