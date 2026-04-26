@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: View layout supports three display modes
 The system SHALL support three view modes for arranging the editor and preview areas: Split (default), Editor Only, Preview Only.
@@ -20,33 +20,6 @@ The system SHALL support three view modes for arranging the editor and preview a
 - **THEN** the editor pane SHALL be hidden
 - **AND** the preview pane SHALL expand to fill the full available width
 - **AND** the change SHALL include a smooth transition animation (~200ms)
-
-### Requirement: Gutter allows resizing editor/preview ratio
-The system SHALL allow users to drag the divider between editor and preview to resize their relative widths.
-
-#### Scenario: Drag gutter to resize
-- **WHEN** user clicks and drags the vertical gutter between editor and preview
-- **THEN** the gutter position SHALL follow the cursor horizontally
-- **AND** the editor width and preview width SHALL adjust proportionally
-- **AND** during dragging, the gutter SHALL highlight with accent color
-- **AND** mouse cursor SHALL change to ↔ (east-west-resize cursor)
-
-#### Scenario: Minimum pane sizes enforced
-- **WHEN** dragging the gutter
-- **THEN** neither pane SHALL shrink below 200px minimum width
-- **IF** the limit is reached, further dragging in that direction SHALL be blocked
-
-#### Scenario: Hover effect on gutter
-- **WHEN** user hovers over the gutter without clicking
-- **THEN** the gutter SHALL subtly highlight (2px wider, accent color tint)
-
-### Requirement: View mode transitions are animated
-The system SHALL provide smooth animations when switching view modes.
-
-#### Scenario: Smooth transition
-- **WHEN** switching between any two view modes
-- **THEN** a CSS transition of ~200ms with ease timing SHALL animate the layout change
-- **AND** the transition SHALL not cause content flicker or layout shift artifacts
 
 ### Requirement: Toolbar view switcher controls view modes
 The system SHALL provide view mode switcher buttons in the toolbar as a quick access method.

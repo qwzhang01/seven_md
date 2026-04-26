@@ -9,6 +9,7 @@ import {
   List, ListOrdered, ListChecks,
   Quote, Table, Minus,
   Bot,
+  Columns2, PanelLeft, PanelRight,
 } from 'lucide-react'
 import { useUIStore } from '../../stores'
 
@@ -18,6 +19,7 @@ function insertAtCursor(text: string) {
 
 export function Toolbar() {
   const ui = useUIStore()
+  const { viewMode, setViewMode } = useUIStore()
 
   return (
     <div
@@ -83,10 +85,36 @@ export function Toolbar() {
         <ToolbarButton icon={<Minus size={14} />} tooltip="水平线" onClick={() => insertAtCursor('\n---\n')} />
       </ToolbarGroup>
 
+      {/* View Mode Switcher */}
+      <ToolbarGroup>
+        <ToolbarButton
+          icon={<Columns2 size={14} />}
+          tooltip="分栏"
+          shortcut="Ctrl+Alt+3"
+          active={viewMode === 'split'}
+          onClick={() => setViewMode('split')}
+        />
+        <ToolbarButton
+          icon={<PanelLeft size={14} />}
+          tooltip="仅编辑器"
+          shortcut="Ctrl+Alt+1"
+          active={viewMode === 'editor-only'}
+          onClick={() => setViewMode('editor-only')}
+        />
+        <ToolbarButton
+          icon={<PanelRight size={14} />}
+          tooltip="仅预览"
+          shortcut="Ctrl+Alt+2"
+          active={viewMode === 'preview-only'}
+          onClick={() => setViewMode('preview-only')}
+        />
+      </ToolbarGroup>
+
       {/* AI */}
       <ToolbarGroup>
         <ToolbarButton
           icon={<Bot size={14} />}
+          label="AI"
           tooltip="AI 助手"
           onClick={() => ui.setAIPanelOpen(true)}
           accent

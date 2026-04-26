@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react'
 
 interface ToolbarButtonProps {
-  icon: ReactNode
+  icon?: ReactNode
+  label?: string
   tooltip: string
   shortcut?: string
   active?: boolean
@@ -12,6 +13,7 @@ interface ToolbarButtonProps {
 
 export function ToolbarButton({
   icon,
+  label,
   tooltip,
   shortcut,
   active = false,
@@ -21,11 +23,14 @@ export function ToolbarButton({
 }: ToolbarButtonProps) {
   const [showTooltip, setShowTooltip] = useState(false)
 
+  const hasContent = icon || label
+
   return (
     <div className="relative">
       <button
         className={`
-          flex items-center justify-center w-7 h-7 rounded-sm transition-colors
+          flex items-center gap-1 px-1.5 h-7 rounded-sm transition-colors
+          ${hasContent ? '' : 'w-7 justify-center'}
           ${disabled
             ? 'text-[var(--text-disabled)] cursor-default'
             : active
@@ -42,7 +47,8 @@ export function ToolbarButton({
         aria-label={tooltip}
         title={shortcut ? `${tooltip} (${shortcut})` : tooltip}
       >
-        {icon}
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        {label && <span className="text-[13px] font-medium leading-none">{label}</span>}
       </button>
 
       {/* Tooltip */}
