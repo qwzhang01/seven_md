@@ -100,7 +100,7 @@ class WindowsInstallTest {
    */
   getMSIProductCode(msiPath) {
     try {
-      const result = execSync(`powershell "(Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq 'Seven MD' }).IdentifyingNumber"`);
+      const result = execSync(`powershell "(Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -eq 'Seven Markdown' }).IdentifyingNumber"`);
       return result.toString().trim();
     } catch (error) {
       console.log('Could not get MSI product code:', error.message);
@@ -123,14 +123,14 @@ class WindowsInstallTest {
     const startMenuPath = path.join(process.env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs');
     if (fs.existsSync(startMenuPath)) {
       const startMenuFiles = this.getAllFiles(startMenuPath);
-      installedFiles.push(...startMenuFiles.filter(file => file.includes('Seven MD')));
+      installedFiles.push(...startMenuFiles.filter(file => file.includes('Seven Markdown')));
     }
 
     // Check desktop shortcut
     const desktopPath = path.join(process.env.USERPROFILE, 'Desktop');
     if (fs.existsSync(desktopPath)) {
       const desktopFiles = fs.readdirSync(desktopPath);
-      installedFiles.push(...desktopFiles.filter(file => file.includes('Seven MD')));
+      installedFiles.push(...desktopFiles.filter(file => file.includes('Seven Markdown')));
     }
 
     return installedFiles;
@@ -183,7 +183,7 @@ class WindowsInstallTest {
     
     try {
       // Check HKCU registry
-      const hkcuResult = execSync('reg query "HKCU\\Software\\Seven MD" /s 2>nul', { encoding: 'utf8' });
+      const hkcuResult = execSync('reg query "HKCU\\Software\\Seven Markdown" /s 2>nul', { encoding: 'utf8' });
       if (hkcuResult && hkcuResult.trim()) {
         remainingKeys.push('HKCU registry keys found');
       }

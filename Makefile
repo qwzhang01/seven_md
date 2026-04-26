@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "Seven MD - Available Commands:"
+	@echo "Seven Markdown - Available Commands:"
 	@echo ""
 	@echo "  make install     - Install all dependencies"
 	@echo "  make dev         - Start development server"

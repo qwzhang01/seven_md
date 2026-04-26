@@ -15,7 +15,12 @@ const ITEMS: ActivityItem[] = [
   { id: 'snippets', icon: <Code2 size={22} />, tooltip: '片段' },
 ]
 
-export function ActivityBar() {
+interface ActivityBarProps {
+  onToggleMobileSidebar?: () => void
+  isMobile?: boolean
+}
+
+export function ActivityBar({ onToggleMobileSidebar, isMobile = false }: ActivityBarProps) {
   const { activeSidebarPanel, sidebarVisible, setActiveSidebarPanel, setSidebarVisible } = useUIStore()
 
   return (
@@ -42,10 +47,17 @@ export function ActivityBar() {
               borderLeft: `2px solid ${isActive ? 'var(--accent)' : 'transparent'}`,
             }}
             onClick={() => {
-              if (activeSidebarPanel === item.id && sidebarVisible) {
-                setSidebarVisible(false)
-              } else {
+              if (isMobile && onToggleMobileSidebar) {
+                // 移动端：切换 overlay
                 setActiveSidebarPanel(item.id)
+                onToggleMobileSidebar()
+              } else {
+                // 桌面端：标准侧边栏切换
+                if (activeSidebarPanel === item.id && sidebarVisible) {
+                  setSidebarVisible(false)
+                } else {
+                  setActiveSidebarPanel(item.id)
+                }
               }
             }}
             title={item.tooltip}

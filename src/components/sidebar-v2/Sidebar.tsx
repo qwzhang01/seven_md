@@ -60,7 +60,7 @@ export function Sidebar({ content }: SidebarProps) {
 
   return (
     <div
-      className="relative flex-shrink-0 flex flex-col overflow-hidden"
+      className="relative flex-shrink-0 flex flex-col overflow-hidden h-full"
       style={{
         width: sidebarWidth,
         background: 'var(--bg-sidebar, var(--bg-secondary))',
@@ -75,9 +75,9 @@ export function Sidebar({ content }: SidebarProps) {
         {renderPanel()}
       </div>
 
-      {/* Resize handle - 4px 拖拽区域，带悬停高亮 */}
+      {/* Resize handle - 桌面端显示，移动端隐藏 */}
       <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:w-1 hover:bg-[var(--accent)]/30 transition-all"
+        className="hidden md:block absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:w-1 hover:bg-[var(--accent)]/30 transition-all"
         style={{
           zIndex: 10,
           background: 'transparent',

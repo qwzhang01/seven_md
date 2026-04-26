@@ -46,7 +46,7 @@ describe('Windows E2E Tests', () => {
   test('Application launches successfully on Windows', async () => {
     // Check if main window is visible
     const windowTitle = await page.title();
-    expect(windowTitle).toContain('Seven MD');
+    expect(windowTitle).toContain('Seven Markdown');
     
     // Check if app content is loaded
     const appContent = await page.locator('#app').isVisible();

@@ -5,7 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 // English translations
 const enTranslations = {
   common: {
-    appName: 'Seven MD',
+    appName: 'Seven Markdown',
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
@@ -66,7 +66,7 @@ const enTranslations = {
     replace: 'Replace...',
     documentation: 'Documentation',
     githubRepository: 'GitHub Repository',
-    aboutApp: 'About Seven MD',
+    aboutApp: 'About Seven Markdown',
     keyboardShortcuts: 'Keyboard Shortcuts',
   },
   sidebar: {
@@ -175,10 +175,10 @@ const enTranslations = {
     componentStack: 'Component Stack',
   },
   about: {
-    title: 'About Seven MD',
+    title: 'About Seven Markdown',
     version: 'Version',
     description: 'A modern Markdown reader for macOS built with Tauri + React',
-    author: 'Seven MD Contributors',
+    author: 'Seven Markdown Contributors',
     license: 'MIT License',
     website: 'Website',
     repository: 'Repository',
@@ -188,7 +188,7 @@ const enTranslations = {
 // Chinese translations
 const zhTranslations = {
   common: {
-    appName: 'Seven MD',
+    appName: 'Seven Markdown',
     loading: '加载中...',
     error: '错误',
     success: '成功',
@@ -249,7 +249,7 @@ const zhTranslations = {
     replace: '替换...',
     documentation: '文档',
     githubRepository: 'GitHub 仓库',
-    aboutApp: '关于 Seven MD',
+    aboutApp: '关于 Seven Markdown',
     keyboardShortcuts: '键盘快捷键',
   },
   sidebar: {
@@ -358,10 +358,10 @@ const zhTranslations = {
     componentStack: '组件堆栈',
   },
   about: {
-    title: '关于 Seven MD',
+    title: '关于 Seven Markdown',
     version: '版本',
     description: '基于 Tauri + React 构建的现代化 Markdown 阅读器',
-    author: 'Seven MD 贡献者',
+    author: 'Seven Markdown 贡献者',
     license: 'MIT 许可证',
     website: '网站',
     repository: '代码仓库',

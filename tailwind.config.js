@@ -7,6 +7,10 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        // 移动端断点 (768px 以下为移动端布局)
+        'md': '768px',
+      },
       height: {
         'titlebar': '32px',
         'statusbar': '24px',

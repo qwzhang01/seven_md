@@ -10,6 +10,7 @@ import { listen } from '@tauri-apps/api/event'
 // Keyboard shortcuts hook
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import type { ShortcutConfig } from './hooks/useKeyboardShortcuts'
+import { useIsMobile } from './hooks/useMediaQuery'
 
 // V2 Components
 import { TitleBar } from './components/titlebar-v2/TitleBar'
@@ -45,6 +46,10 @@ function AppV2() {
   const theme = useThemeStore((s) => s.currentTheme)
   const { addNotification } = useNotificationStore()
   const editorStore = useEditorStore()
+  const isMobile = useIsMobile()
+
+  // 移动端侧边栏 overlay 状态
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const activeTab = getActiveTab()
   const activeContent = activeTab?.content ?? ''
@@ -365,9 +370,9 @@ function AppV2() {
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth
-      // Auto-collapse sidebar on small screens
-      if (width < 768 && ui.sidebarVisible) {
-        ui.setSidebarVisible(false)
+      // Auto-close mobile sidebar overlay on resize to desktop
+      if (width >= 768 && mobileSidebarOpen) {
+        setMobileSidebarOpen(false)
       }
       // Reset editor width on significant resize
       if (editorWidth !== null) {
@@ -379,7 +384,7 @@ function AppV2() {
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [ui, editorWidth])
+  }, [editorWidth, mobileSidebarOpen])
 
   // Register commands on mount
   useEffect(() => {
@@ -488,11 +493,12 @@ function AppV2() {
         if (ui.commandPaletteOpen) ui.setCommandPaletteOpen(false)
         else if (ui.aiPanelOpen) ui.setAIPanelOpen(false)
         else if (ui.findReplaceOpen) ui.setFindReplaceOpen(false)
+        else if (isMobile && mobileSidebarOpen) setMobileSidebarOpen(false)
       },
       description: '关闭面板',
       preventDefault: false,
     },
-  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab])
+  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen])
 
   useKeyboardShortcuts(shortcuts)
 
@@ -525,29 +531,60 @@ function AppV2() {
       <div className="flex flex-1 overflow-hidden relative">
         {/* Activity Bar */}
         <div data-component="activitybar">
-          <ActivityBar />
+          <ActivityBar
+            onToggleMobileSidebar={() => setMobileSidebarOpen((prev) => !prev)}
+            isMobile={isMobile}
+          />
         </div>
 
-        {/* Sidebar */}
-        <ErrorBoundary boundaryName="Sidebar">
-          <div data-component="sidebar" data-collapsed={!ui.sidebarVisible}>
-            <Sidebar content={activeContent} />
-          </div>
-        </ErrorBoundary>
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <ErrorBoundary boundaryName="Sidebar">
+            <div data-component="sidebar" data-collapsed={!ui.sidebarVisible}>
+              <Sidebar content={activeContent} />
+            </div>
+          </ErrorBoundary>
+        )}
+
+        {/* Mobile Sidebar Overlay */}
+        {isMobile && mobileSidebarOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-250"
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            {/* Sidebar Panel */}
+            <div
+              className="fixed top-0 left-12 bottom-0 w-72 z-50 flex flex-col shadow-xl"
+              style={{
+                background: 'var(--bg-sidebar, var(--bg-secondary))',
+                borderRight: '1px solid var(--border-primary)',
+              }}
+            >
+              <Sidebar content={activeContent} />
+            </div>
+          </>
+        )}
 
         {/* Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ minWidth: 0 }}>
           {/* Editor + Preview */}
-          <div id="md-mate-editor-preview" data-component="editor-preview" className="flex-1 flex overflow-hidden relative">
+          {/* 桌面端: flex-row (水平排列); 移动端: flex-col (垂直排列) */}
+          <div
+            id="md-mate-editor-preview"
+            data-component="editor-preview"
+            className="flex-1 flex overflow-hidden relative transition-all duration-250"
+          >
             {/* Editor Pane */}
             {showEditor && tabs.length > 0 && (
               <div
                 data-component="editor-pane"
-                className="relative flex-col flex"
+                className="relative flex-col flex overflow-hidden"
                 style={{
-                  flex: editorWidth ? `0 0 ${editorWidth}px` : 1,
-                  overflow: 'hidden',
-                  transition: 'flex 0.1s ease',
+                  flex: isMobile ? '1 1 50%' : (editorWidth ? `0 0 ${editorWidth}px` : 1),
+                  minHeight: isMobile ? '50%' : 'auto',
+                  transition: 'flex 0.25s ease',
                 }}
               >
                 <ErrorBoundary boundaryName="Editor">
@@ -562,16 +599,39 @@ function AppV2() {
               </div>
             )}
 
-            {/* Gutter */}
-            {showGutter && tabs.length > 0 && (
+            {/* Desktop Gutter (vertical divider) - 移动端隐藏 */}
+            {!isMobile && showGutter && tabs.length > 0 && (
               <div data-component="gutter">
                 <Gutter onResize={handleGutterResize} />
               </div>
             )}
 
+            {/* Mobile Horizontal Divider - 仅移动端显示 */}
+            {isMobile && showGutter && tabs.length > 0 && (
+              <div
+                data-component="mobile-gutter"
+                className="h-2 flex-shrink-0 flex items-center justify-center bg-[var(--bg-secondary)] cursor-row-resize"
+                style={{ borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)' }}
+              >
+                <div
+                  className="w-10 h-1 rounded-full"
+                  style={{ background: 'var(--text-tertiary)' }}
+                />
+              </div>
+            )}
+
             {/* Preview Pane */}
             {showPreview && tabs.length > 0 && (
-              <div data-component="preview-pane" style={{ flex: 1, overflow: 'hidden', minWidth: MIN_EDITOR_WIDTH }}>
+              <div
+                data-component="preview-pane"
+                style={{
+                  flex: isMobile ? '1 1 50%' : 1,
+                  minHeight: isMobile ? '50%' : MIN_EDITOR_WIDTH,
+                  overflow: 'hidden',
+                  minWidth: MIN_EDITOR_WIDTH,
+                  transition: 'flex 0.25s ease',
+                }}
+              >
                 <ErrorBoundary boundaryName="Preview">
                   <PreviewPaneV2 content={activeContent} className="h-full" />
                 </ErrorBoundary>

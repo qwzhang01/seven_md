@@ -2,10 +2,10 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product 
     Id="*" 
-    Name="Seven MD" 
+    Name="Seven Markdown" 
     Language="1033" 
     Version="1.0.0" 
-    Manufacturer="Seven MD Team" 
+    Manufacturer="Seven Markdown Team" 
     UpgradeCode="{{upgrade_code}}">
     
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
@@ -14,7 +14,7 @@
     
     <MediaTemplate EmbedCab="yes" />
     
-    <Feature Id="ProductFeature" Title="Seven MD" Level="1">
+    <Feature Id="ProductFeature" Title="Seven Markdown" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
   </Product>
@@ -22,7 +22,7 @@
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="Seven MD" />
+        <Directory Id="INSTALLFOLDER" Name="Seven Markdown" />
       </Directory>
     </Directory>
   </Fragment>

@@ -1,6 +1,6 @@
-# Contributing to Seven MD
+# Contributing to Seven Markdown
 
-感谢你考虑为 Seven MD 做贡献！🎉
+感谢你考虑为 Seven Markdown 做贡献！🎉
 
 ## 📋 目录
 

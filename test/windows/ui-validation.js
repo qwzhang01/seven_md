@@ -38,7 +38,7 @@ class WindowsUIVAlidation {
     const title = await this.page.title();
     results.push({
       test: 'Window Title',
-      passed: title.includes('Seven MD'),
+      passed: title.includes('Seven Markdown'),
       details: `Title: "${title}"`
     });
 

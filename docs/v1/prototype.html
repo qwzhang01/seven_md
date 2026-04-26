@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD Mate - The Markdown Editor for AI Era</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/turndown/dist/TurndownService.js"></script>
+</head>
+<body>
+    <!-- macOS 标题栏 -->
+    <div class="titlebar">
+        <div class="traffic-lights">
+            <span class="tl-btn tl-close"><i class="ri-close-line"></i></span>
+            <span class="tl-btn tl-minimize"><i class="ri-subtract-line"></i></span>
+            <span class="tl-btn tl-maximize"><i class="ri-add-line"></i></span>
+        </div>
+        <div class="titlebar-tabs" id="titlebarTabs"></div>
+    </div>
+
+    <!-- macOS 使用系统原生菜单，无需 HTML 菜单栏 -->
+
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="undo" title="撤销 (Ctrl+Z)"><i class="ri-arrow-go-back-line"></i></button>
+            <button class="tool-btn" data-action="redo" title="重做 (Ctrl+Shift+Z)"><i class="ri-arrow-go-forward-line"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="fmtH1" title="标题 1">H1</button>
+            <button class="tool-btn" data-action="fmtH2" title="标题 2">H2</button>
+            <button class="tool-btn" data-action="fmtH3" title="标题 3">H3</button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="fmtBold" title="加粗 (Ctrl+B)"><i class="ri-bold"></i></button>
+            <button class="tool-btn" data-action="fmtItalic" title="斜体 (Ctrl+I)"><i class="ri-italic"></i></button>
+            <button class="tool-btn" data-action="fmtStrike" title="删除线"><i class="ri-strikethrough"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="insCode" title="行内代码"><i class="ri-code-line"></i></button>
+            <button class="tool-btn" data-action="insCodeBlock" title="代码块"><i class="ri-code-box-line"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="insLink" title="链接 (Ctrl+K)"><i class="ri-link"></i></button>
+            <button class="tool-btn" data-action="insImage" title="图片"><i class="ri-image-line"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="insUl" title="无序列表"><i class="ri-list-unordered"></i></button>
+            <button class="tool-btn" data-action="insOl" title="有序列表"><i class="ri-list-ordered"></i></button>
+            <button class="tool-btn" data-action="insTask" title="任务列表"><i class="ri-list-check-2"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+        <div class="toolbar-group">
+            <button class="tool-btn" data-action="insBlockquote" title="引用"><i class="ri-double-quotes-l"></i></button>
+            <button class="tool-btn" data-action="insTable" title="表格"><i class="ri-table-line"></i></button>
+            <button class="tool-btn" data-action="insHr" title="水平线"><i class="ri-separator"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group toolbar-right-actions">
+            <button class="tool-btn" id="btnCommandPalette" title="命令面板 (Ctrl+Shift+P)"><i class="ri-terminal-box-line"></i></button>
+            <button class="tool-btn" id="btnToggleSidebar" title="切换侧边栏 (Ctrl+B)"><i class="ri-side-bar-line"></i></button>
+            <div class="toolbar-separator"></div>
+            <button class="tool-btn" data-action="aiAssist" title="AI 助手" id="btnAI"><i class="ri-robot-line"></i><span class="tool-label">AI</span></button>
+        </div>
+    </div>
+
+    <!-- 主体区域 -->
+    <div class="main-area">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <!-- 活动栏（VS Code 风格，垂直排列图标在左侧） -->
+            <div class="activity-bar" id="activityBar">
+                <button class="activity-bar-item active" data-tab="explorer" title="资源管理器 (Ctrl+Shift+E)"><i class="ri-folder-2-line"></i></button>
+                <button class="activity-bar-item" data-tab="search" title="搜索 (Ctrl+Shift+F)"><i class="ri-search-line"></i></button>
+                <button class="activity-bar-item" data-tab="outline" title="大纲 (Ctrl+Shift+O)"><i class="ri-list-unordered"></i></button>
+                <button class="activity-bar-item" data-tab="snippets" title="片段"><i class="ri-code-s-slash-line"></i></button>
+            </div>
+            <!-- 侧边栏内容面板 -->
+            <div class="sidebar-content">
+                <!-- 资源管理器 -->
+                <div class="sidebar-panel active" id="panelExplorer">
+                    <div class="explorer-section">
+                        <div class="explorer-header" data-toggle="files">
+                            <i class="ri-arrow-down-s-line"></i>
+                            <span>打开的文件</span>
+                            <div class="explorer-actions">
+                                <button class="explorer-action" data-action="newFile" title="新建文件"><i class="ri-file-add-line"></i></button>
+                            </div>
+                        </div>
+                        <div class="explorer-body" id="openFilesList">
+                            <div class="file-item active" data-file="readme.md">
+                                <i class="ri-file-text-line file-icon"></i>
+                                <span class="file-name">readme.md</span>
+                                <span class="file-modified dot"></span>
+                            </div>
+                            <div class="file-item" data-file="spec.md">
+                                <i class="ri-file-text-line file-icon"></i>
+                                <span class="file-name">spec.md</span>
+                            </div>
+                            <div class="file-item" data-file="changelog.md">
+                                <i class="ri-file-text-line file-icon"></i>
+                                <span class="file-name">changelog.md</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="explorer-section">
+                        <div class="explorer-header" data-toggle="workspace">
+                            <i class="ri-arrow-down-s-line"></i>
+                            <span>MD Mate 工作区</span>
+                            <div class="explorer-actions">
+                                <button class="explorer-action" data-action="newFile" title="新建文件"><i class="ri-file-add-line"></i></button>
+                                <button class="explorer-action" data-action="newFolder" title="新建文件夹"><i class="ri-folder-add-line"></i></button>
+                                <button class="explorer-action" data-action="refresh" title="刷新"><i class="ri-refresh-line"></i></button>
+                                <button class="explorer-action" data-action="collapse" title="折叠全部"><i class="ri-arrow-up-double-line"></i></button>
+                            </div>
+                        </div>
+                        <div class="explorer-body" id="workspaceTree">
+                            <div class="tree-item folder open">
+                                <div class="tree-row">
+                                    <i class="ri-arrow-down-s-line tree-arrow"></i>
+                                    <i class="ri-folder-open-line tree-icon folder-icon"></i>
+                                    <span class="tree-label">md-mate</span>
+                                </div>
+                                <div class="tree-children">
+                                    <div class="tree-item folder open">
+                                        <div class="tree-row">
+                                            <i class="ri-arrow-down-s-line tree-arrow"></i>
+                                            <i class="ri-folder-open-line tree-icon folder-icon"></i>
+                                            <span class="tree-label">docs</span>
+                                        </div>
+                                        <div class="tree-children">
+                                            <div class="tree-item file" data-file="docs/readme.md">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-text-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">readme.md</span>
+                                                </div>
+                                            </div>
+                                            <div class="tree-item file" data-file="docs/spec.md">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-text-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">spec.md</span>
+                                                </div>
+                                            </div>
+                                            <div class="tree-item file" data-file="docs/changelog.md">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-text-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">changelog.md</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tree-item folder">
+                                        <div class="tree-row">
+                                            <i class="ri-arrow-right-s-line tree-arrow"></i>
+                                            <i class="ri-folder-3-line tree-icon folder-icon"></i>
+                                            <span class="tree-label">src</span>
+                                        </div>
+                                        <div class="tree-children hidden">
+                                            <div class="tree-item file" data-file="src/main.go">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-code-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">main.go</span>
+                                                </div>
+                                            </div>
+                                            <div class="tree-item file" data-file="src/config.go">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-code-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">config.go</span>
+                                                </div>
+                                            </div>
+                                            <div class="tree-item file" data-file="src/handler.go">
+                                                <div class="tree-row">
+                                                    <i class="ri-file-code-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">handler.go</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tree-item folder">
+                                        <div class="tree-row">
+                                            <i class="ri-arrow-right-s-line tree-arrow"></i>
+                                            <i class="ri-folder-3-line tree-icon folder-icon"></i>
+                                            <span class="tree-label">templates</span>
+                                        </div>
+                                        <div class="tree-children hidden">
+                                            <div class="tree-item file" data-file="templates/index.html">
+                                                <div class="tree-row">
+                                                    <i class="ri-html5-line tree-icon file-icon"></i>
+                                                    <span class="tree-label">index.html</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tree-item file" data-file=".gitignore">
+                                        <div class="tree-row">
+                                            <i class="ri-file-shield-line tree-icon file-icon"></i>
+                                            <span class="tree-label">.gitignore</span>
+                                        </div>
+                                    </div>
+                                    <div class="tree-item file" data-file="go.mod">
+                                        <div class="tree-row">
+                                            <i class="ri-file-list-3-line tree-icon file-icon"></i>
+                                            <span class="tree-label">go.mod</span>
+                                        </div>
+                                    </div>
+                                    <div class="tree-item file" data-file="go.sum">
+                                        <div class="tree-row">
+                                            <i class="ri-file-list-3-line tree-icon file-icon"></i>
+                                            <span class="tree-label">go.sum</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 搜索面板 -->
+                <div class="sidebar-panel" id="panelSearch">
+                    <div class="search-input-wrap">
+                        <i class="ri-search-line search-icon"></i>
+                        <input type="text" class="search-input" id="searchInput" placeholder="搜索文件内容...">
+                    </div>
+                    <div class="search-options">
+                        <button class="search-option" id="searchCaseSensitive" title="区分大小写"><span>Aa</span></button>
+                        <button class="search-option" id="searchWholeWord" title="全字匹配"><span>W</span></button>
+                        <button class="search-option" id="searchRegex" title="正则表达式"><span>.*</span></button>
+                    </div>
+                    <div class="search-status" id="searchStatus">
+                        <span class="search-status-text" id="searchStatusText">输入关键词开始搜索</span>
+                    </div>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                <!-- 大纲面板 -->
+                <div class="sidebar-panel" id="panelOutline">
+                    <div class="outline-filter-wrap">
+                        <input type="text" class="outline-filter" id="outlineFilter" placeholder="筛选大纲...">
+                    </div>
+                    <div class="outline-tree" id="outlineTree">
+                        <div class="outline-empty" id="outlineEmpty">
+                            <i class="ri-list-unordered"></i>
+                            <span>编辑文档后自动生成大纲</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 片段面板 -->
+                <div class="sidebar-panel" id="panelSnippets">
+                    <div class="snippets-filter-wrap">
+                        <input type="text" class="snippets-filter" id="snippetsFilter" placeholder="搜索片段...">
+                    </div>
+                    <div class="snippets-list">
+                    <div class="snippets-category">
+                        <div class="snippets-cat-header" data-toggle="cat-basic">
+                            <i class="ri-arrow-down-s-line"></i>
+                            <span>基础格式</span>
+                        </div>
+                        <div class="snippets-cat-body" id="catBasic">
+                            <div class="snippet-item" data-snippet="table">
+                                <div class="snippet-icon"><i class="ri-table-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">Markdown 表格</div>
+                                    <div class="snippet-preview">| 列1 | 列2 | 列3 |&#10;| --- | --- | --- |&#10;| 内容 | 内容 | 内容 |</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="codeblock">
+                                <div class="snippet-icon"><i class="ri-code-box-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">代码块</div>
+                                    <div class="snippet-preview">```语言&#10;// 代码&#10;```</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="tasklist">
+                                <div class="snippet-icon"><i class="ri-list-check-2"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">任务列表</div>
+                                    <div class="snippet-preview">- [x] 已完成&#10;- [ ] 未完成</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="note">
+                                <div class="snippet-icon"><i class="ri-sticky-note-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">注释框</div>
+                                    <div class="snippet-preview">> 📌 **注意**: 此处需要特别注意</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="snippets-category">
+                        <div class="snippets-cat-header" data-toggle="cat-advanced">
+                            <i class="ri-arrow-down-s-line"></i>
+                            <span>高级模板</span>
+                        </div>
+                        <div class="snippets-cat-body" id="catAdvanced">
+                            <div class="snippet-item" data-snippet="image">
+                                <div class="snippet-icon"><i class="ri-image-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">图片</div>
+                                    <div class="snippet-preview">![描述](url)</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="footnote">
+                                <div class="snippet-icon"><i class="ri-footprint-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">脚注</div>
+                                    <div class="snippet-preview">[^1] 脚注内容</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="details">
+                                <div class="snippet-icon"><i class="ri-arrow-down-circle-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">折叠区块</div>
+                                    <div class="snippet-preview">&lt;details&gt;&#10;&lt;summary&gt;标题&lt;/summary&gt;&#10;内容&#10;&lt;/details&gt;</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="mermaid">
+                                <div class="snippet-icon"><i class="ri-flow-chart"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">Mermaid 流程图</div>
+                                    <div class="snippet-preview">```mermaid&#10;graph TD&#10;    A --&gt; B&#10;```</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="snippets-category">
+                        <div class="snippets-cat-header" data-toggle="cat-spec">
+                            <i class="ri-arrow-down-s-line"></i>
+                            <span>Spec 模板</span>
+                        </div>
+                        <div class="snippets-cat-body" id="catSpec">
+                            <div class="snippet-item" data-snippet="prdtpl">
+                                <div class="snippet-icon"><i class="ri-file-list-3-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">PRD 需求模板</div>
+                                    <div class="snippet-preview">## 需求背景&#10;## 目标&#10;## 功能描述</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="apitpl">
+                                <div class="snippet-icon"><i class="ri-server-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">API 文档模板</div>
+                                    <div class="snippet-preview">## 接口名称&#10;**URL**: /api/xxx&#10;**Method**: GET</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                            <div class="snippet-item" data-snippet="readmetpl">
+                                <div class="snippet-icon"><i class="ri-book-open-line"></i></div>
+                                <div class="snippet-info">
+                                    <div class="snippet-name">README 模板</div>
+                                    <div class="snippet-preview"># 项目名称&#10;## 简介&#10;## 安装&#10;## 使用</div>
+                                </div>
+                                <button class="snippet-insert" title="插入"><i class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            <div class="sidebar-resize" id="sidebarResize"></div>
+        </aside>
+
+        <!-- 编辑器区域 -->
+        <div class="editor-area" id="editorArea">
+            <!-- 编辑器标签栏 -->
+            <div class="editor-tabs">
+                <div class="tab-bar" id="editorTabBar">
+                    <div class="tab active" data-tab="readme.md">
+                        <i class="ri-file-text-line tab-icon"></i>
+                        <span class="tab-name">readme.md</span>
+                        <span class="tab-modified dot"></span>
+                        <button class="tab-close"><i class="ri-close-line"></i></button>
+                    </div>
+                    <div class="tab" data-tab="spec.md">
+                        <i class="ri-file-text-line tab-icon"></i>
+                        <span class="tab-name">spec.md</span>
+                        <button class="tab-close"><i class="ri-close-line"></i></button>
+                    </div>
+                    <div class="tab" data-tab="changelog.md">
+                        <i class="ri-file-text-line tab-icon"></i>
+                        <span class="tab-name">changelog.md</span>
+                        <button class="tab-close"><i class="ri-close-line"></i></button>
+                    </div>
+                </div>
+                <div class="tab-bar-actions">
+                    <button class="tool-btn" id="btnViewMode" title="切换视图模式">
+                        <i class="ri-layout-column-line"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 编辑器和预览 -->
+            <div class="editor-preview-wrap" id="editorPreviewWrap">
+                <!-- 行号 + 编辑器 -->
+                <div class="editor-pane" id="editorPane">
+                    <div class="line-numbers" id="lineNumbers"></div>
+                    <div class="editor-content" id="editorContent" contenteditable="true" spellcheck="false">
+# MD Mate - AI 时代的 Markdown 编辑器
+
+MD Mate 是为 AI 时代而生的 Markdown 编辑器，让你像写代码一样写文档。
+
+## 功能特性
+
+### 实时预览
+
+编辑器右侧实时渲染 Markdown 预览，所见即所得。
+
+### 语法高亮
+
+支持 Markdown 语法高亮，代码块支持多种语言着色。
+
+### 主题切换
+
+支持多种主题切换，包括深色、浅色、Monokai、Solarized、Nord、Dracula、GitHub 等。
+
+### AI 辅助写作
+
+集成 AI 助手，帮你智能编写与理解文档内容。
+
+## 安装与使用
+
+```bash
+# macOS 下载安装
+brew install --cask md-mate
+
+# 或从官网下载
+# https://mdmate.app
+```
+
+## 开发计划
+
+### v1.0 里程碑
+
+- [x] 基础 Markdown 编辑
+- [x] 实时预览
+- [x] 语法高亮
+- [x] 主题切换
+- [ ] AI 辅助写作
+- [ ] 协同编辑
+
+### v2.0 规划
+
+- [ ] 插件系统
+- [ ] Git 集成
+- [ ] 多语言支持
+- [ ] 云同步
+
+## 贡献指南
+
+欢迎贡献代码！请阅读 [贡献指南](CONTRIBUTING.md)。
+
+## 许可证
+
+MIT License
+
+---
+
+> 📌 **注意**: MD Mate 目前处于早期开发阶段，功能可能不完善。
+                    </div>
+                </div>
+
+                <!-- 分隔条 -->
+                <div class="gutter" id="gutter">
+                    <div class="gutter-line"></div>
+                </div>
+
+                <!-- 预览区 -->
+                <div class="preview-pane" id="previewPane">
+                    <div class="preview-header">
+                        <span>预览</span>
+                        <div class="preview-actions">
+                            <button class="tool-btn" title="在新窗口打开"><i class="ri-external-link-line"></i></button>
+                        </div>
+                    </div>
+                    <div class="preview-content" id="previewContent"></div>
+                </div>
+            </div>
+
+            <!-- 查找替换栏 -->
+            <div class="find-bar hidden" id="findBar">
+                <div class="find-row">
+                    <div class="find-input-wrap">
+                        <i class="ri-search-line"></i>
+                        <input type="text" class="find-input" id="findInput" placeholder="查找...">
+                    </div>
+                    <div class="find-info" id="findInfo">无结果</div>
+                    <button class="tool-btn" data-action="findPrev" title="上一个"><i class="ri-arrow-up-line"></i></button>
+                    <button class="tool-btn" data-action="findNext" title="下一个"><i class="ri-arrow-down-line"></i></button>
+                </div>
+                <div class="find-row replace-row">
+                    <div class="find-input-wrap">
+                        <i class="ri-find-replace-line"></i>
+                        <input type="text" class="find-input" id="replaceInput" placeholder="替换...">
+                    </div>
+                    <button class="tool-btn" data-action="replaceOne" title="替换"><i class="ri-find-replace-line"></i></button>
+                    <button class="tool-btn" data-action="replaceAll" title="全部替换"><i class="ri-file-copy-line"></i></button>
+                </div>
+                <div class="find-options">
+                    <label class="search-option"><input type="checkbox" id="findCaseSensitive"> Aa</label>
+                    <label class="search-option"><input type="checkbox" id="findWholeWord"> W</label>
+                    <label class="search-option"><input type="checkbox" id="findRegex"> .*</label>
+                </div>
+                <button class="find-close" id="findClose"><i class="ri-close-line"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="statusbar">
+        <div class="status-left">
+            <div class="status-item" id="statusBranch" title="Git 分支">
+                <i class="ri-git-branch-line"></i> main
+            </div>
+            <div class="status-item status-sync" id="statusSync" title="同步状态">
+                <i class="ri-refresh-line"></i>
+            </div>
+            <div class="status-item" id="statusErrors" title="错误与警告">
+                <i class="ri-error-warning-line"></i> 0 <i class="ri-alert-line"></i> 0
+            </div>
+        </div>
+        <div class="status-right">
+            <div class="status-item cursor-pos" id="statusCursorPos">行 1, 列 1</div>
+            <div class="status-item" id="statusEncoding">UTF-8</div>
+            <div class="status-item" id="statusEol">LF</div>
+            <div class="status-item" id="statusLanguage">Markdown</div>
+            <div class="status-item" id="statusNotifications" title="通知">
+                <i class="ri-notification-3-line"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu hidden" id="contextMenu">
+        <div class="context-group">
+            <div class="context-item" data-action="ctxCut"><i class="ri-scissors-line"></i> 剪切 <span class="shortcut">Ctrl+X</span></div>
+            <div class="context-item" data-action="ctxCopy"><i class="ri-file-copy-line"></i> 复制 <span class="shortcut">Ctrl+C</span></div>
+            <div class="context-item" data-action="ctxPaste"><i class="ri-clipboard-line"></i> 粘贴 <span class="shortcut">Ctrl+V</span></div>
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-group">
+            <div class="context-item has-submenu" data-action="ctxInsert">
+                <i class="ri-add-circle-line"></i> 插入
+                <i class="ri-arrow-right-s-line context-arrow"></i>
+                <div class="context-submenu">
+                    <div class="context-item" data-action="insHeading"><i class="ri-heading"></i> 标题</div>
+                    <div class="context-item" data-action="insBold"><i class="ri-bold"></i> 加粗</div>
+                    <div class="context-item" data-action="insItalic"><i class="ri-italic"></i> 斜体</div>
+                    <div class="context-separator"></div>
+                    <div class="context-item" data-action="insCode"><i class="ri-code-line"></i> 行内代码</div>
+                    <div class="context-item" data-action="insCodeBlock"><i class="ri-code-box-line"></i> 代码块</div>
+                    <div class="context-separator"></div>
+                    <div class="context-item" data-action="insLink"><i class="ri-link"></i> 链接</div>
+                    <div class="context-item" data-action="insImage"><i class="ri-image-line"></i> 图片</div>
+                    <div class="context-separator"></div>
+                    <div class="context-item" data-action="insTable"><i class="ri-table-line"></i> 表格</div>
+                    <div class="context-item" data-action="insHr"><i class="ri-separator"></i> 水平线</div>
+                    <div class="context-separator"></div>
+                    <div class="context-item" data-action="insUl"><i class="ri-list-unordered"></i> 无序列表</div>
+                    <div class="context-item" data-action="insOl"><i class="ri-list-ordered"></i> 有序列表</div>
+                    <div class="context-item" data-action="insTask"><i class="ri-list-check-2"></i> 任务列表</div>
+                    <div class="context-separator"></div>
+                    <div class="context-item" data-action="insBlockquote"><i class="ri-double-quotes-l"></i> 引用</div>
+                </div>
+            </div>
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-group">
+            <div class="context-item" data-action="ctxSelectAll"><i class="ri-select"></i> 全选 <span class="shortcut">Ctrl+A</span></div>
+        </div>
+        <div class="context-separator"></div>
+        <div class="context-group">
+            <div class="context-item" data-action="ctxFormat"><i class="ri-paint-brush-line"></i> 格式化文档</div>
+            <div class="context-item" data-action="ctxAI"><i class="ri-robot-line"></i> AI 改写</div>
+        </div>
+    </div>
+
+    <!-- 命令面板 -->
+    <div class="command-palette hidden" id="commandPalette">
+        <div class="command-overlay"></div>
+        <div class="command-box">
+            <div class="command-input-wrap">
+                <i class="ri-terminal-box-line"></i>
+                <input type="text" class="command-input" id="commandInput" placeholder="输入命令或搜索...">
+                <button class="command-close" id="commandClose"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="command-list" id="commandList">
+                <div class="command-item" data-command="theme:dark"><i class="ri-moon-line"></i> 主题: 切换到深色模式</div>
+                <div class="command-item" data-command="theme:light"><i class="ri-sun-line"></i> 主题: 切换到浅色模式</div>
+                <div class="command-item" data-command="view:split"><i class="ri-layout-column-line"></i> 视图: 分栏视图</div>
+                <div class="command-item" data-command="view:editor"><i class="ri-code-box-line"></i> 视图: 仅编辑器</div>
+                <div class="command-item" data-command="view:preview"><i class="ri-eye-line"></i> 视图: 仅预览</div>
+                <div class="command-item" data-command="editor:format"><i class="ri-paint-brush-line"></i> 编辑器: 格式化文档</div>
+                <div class="command-item" data-command="editor:wordwrap"><i class="ri-text-wrap"></i> 编辑器: 切换自动换行</div>
+                <div class="command-item" data-command="file:save"><i class="ri-save-line"></i> 文件: 保存</div>
+                <div class="command-item" data-command="file:saveAs"><i class="ri-save-3-line"></i> 文件: 另存为</div>
+                <div class="command-item" data-command="file:exportPdf"><i class="ri-file-pdf-2-line"></i> 文件: 导出为 PDF</div>
+                <div class="command-item" data-command="file:exportHtml"><i class="ri-file-code-line"></i> 文件: 导出为 HTML</div>
+                <div class="command-item" data-command="insert:table"><i class="ri-table-line"></i> 插入: 表格</div>
+                <div class="command-item" data-command="insert:codeblock"><i class="ri-code-box-line"></i> 插入: 代码块</div>
+                <div class="command-item" data-command="insert:tasklist"><i class="ri-list-check-2"></i> 插入: 任务列表</div>
+                <div class="command-item" data-command="ai:assist"><i class="ri-robot-line"></i> AI: 打开助手</div>
+                <div class="command-item" data-command="ai:rewrite"><i class="ri-magic-line"></i> AI: 改写选中文本</div>
+                <div class="command-item" data-command="ai:translate"><i class="ri-translate-2"></i> AI: 翻译选中文本</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 助手面板 -->
+    <div class="ai-panel hidden" id="aiPanel">
+        <div class="ai-header">
+            <div class="ai-tabs">
+                <button class="ai-tab active" data-ai-tab="chat"><i class="ri-chat-3-line"></i> 对话</button>
+                <button class="ai-tab" data-ai-tab="rewrite"><i class="ri-magic-line"></i> 改写</button>
+                <button class="ai-tab" data-ai-tab="translate"><i class="ri-translate-2"></i> 翻译</button>
+                <button class="ai-tab" data-ai-tab="explain"><i class="ri-lightbulb-line"></i> 解释</button>
+            </div>
+            <button class="ai-close" id="aiClose"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="ai-body">
+            <div class="ai-chat active" id="aiChat">
+                <div class="ai-messages" id="aiMessages">
+                    <div class="ai-message assistant">
+                        <div class="ai-avatar"><i class="ri-robot-line"></i></div>
+                        <div class="ai-text">你好！我是 MD Mate AI 助手，可以帮助你编写、改写、翻译或解释 Markdown 内容。有什么我可以帮你的？</div>
+                    </div>
+                </div>
+                <div class="ai-input-area">
+                    <textarea class="ai-input" id="aiInput" placeholder="输入消息..." rows="2"></textarea>
+                    <button class="ai-send" id="aiSend"><i class="ri-send-plane-fill"></i></button>
+                </div>
+            </div>
+            <div class="ai-rewrite" id="aiRewrite">
+                <div class="ai-rewrite-options">
+                    <button class="ai-rewrite-opt active" data-style="professional">专业</button>
+                    <button class="ai-rewrite-opt" data-style="casual">随意</button>
+                    <button class="ai-rewrite-opt" data-style="concise">简洁</button>
+                    <button class="ai-rewrite-opt" data-style="expand">扩展</button>
+                </div>
+                <div class="ai-rewrite-preview" id="aiRewritePreview">选中文本将显示在此处...</div>
+                <button class="ai-rewrite-apply" id="aiRewriteApply">应用改写</button>
+            </div>
+            <div class="ai-translate" id="aiTranslate">
+                <div class="ai-translate-options">
+                    <button class="ai-translate-opt active" data-lang="en">中文 → 英文</button>
+                    <button class="ai-translate-opt" data-lang="zh">英文 → 中文</button>
+                    <button class="ai-translate-opt" data-lang="ja">中文 → 日文</button>
+                </div>
+                <div class="ai-translate-preview" id="aiTranslatePreview">选中文本将显示在此处...</div>
+                <button class="ai-translate-apply" id="aiTranslateApply">应用翻译</button>
+            </div>
+            <div class="ai-explain" id="aiExplain">
+                <div class="ai-explain-text">选中代码或文本，我会为你解释其含义。</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div class="notifications" id="notifications"></div>
+
+    <!-- 模态对话框 -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <div class="modal-box" id="modalBox">
+            <div class="modal-header" id="modalHeader"></div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer" id="modalFooter">
+                <button class="modal-btn modal-cancel" id="modalCancel">取消</button>
+                <button class="modal-btn modal-confirm" id="modalConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <!-- Seven Markdown v0.2.0 -->
+</body>
+</html>
