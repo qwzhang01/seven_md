@@ -20,6 +20,8 @@ tauri-plugin-dialog = "2.7.0"
 tauri-plugin-fs = "2.5.0"
 chrono = { version = "0.4", features = ["serde"] }
 lazy_static = "1.4"
+tokio = { version = "1", features = ["sync"] }
+futures = "0.3"
 
 [dev-dependencies]
 tempfile = "3.10"

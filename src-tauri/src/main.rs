@@ -337,16 +337,16 @@ pub fn main() {
             #[cfg(target_os = "macos")]
             {
                 // macOS Apple menu
-                let about_item = PredefinedMenuItem::about(app, Some("Seven Markdown"))?;
-                let hide = PredefinedMenuItem::hide(app)?;
-                let hide_others = PredefinedMenuItem::hide_others(app)?;
-                let show_all = PredefinedMenuItem::show_all(app)?;
-                let quit_mac = PredefinedMenuItem::quit(app, "退出")?;
+                let about_item = PredefinedMenuItem::about(app, Some("Seven Markdown"), None)?;
+                let hide = PredefinedMenuItem::hide(app, Some("隐藏"))?;
+                let hide_others = PredefinedMenuItem::hide_others(app, Some("隐藏其他"))?;
+                let show_all = PredefinedMenuItem::show_all(app, Some("显示全部"))?;
+                let quit_mac = PredefinedMenuItem::quit(app, Some("退出 Seven Markdown"))?;
                 
                 let apple_menu = Submenu::with_items(app, "Seven Markdown", true, &[
                     &about_item,
                     &PredefinedMenuItem::separator(app)?,
-                    &PredefinedMenuItem::services(app)?,
+                    &PredefinedMenuItem::services(app, None)?,
                     &PredefinedMenuItem::separator(app)?,
                     &hide,
                     &hide_others,
@@ -357,7 +357,7 @@ pub fn main() {
 
                 let window_minimize = MenuItem::with_id(app, "window_minimize", "最小化", true, Some("Cmd+M"))?;
                 let window_zoom = MenuItem::with_id(app, "window_zoom", "缩放", true, None::<&str>)?;
-                let window_front = PredefinedMenuItem::front(app)?;
+                let window_front = MenuItem::with_id(app, "window_front", "全部置于前面", true, None::<&str>)?;
                 
                 let window_menu = Submenu::with_items(app, "窗口", true, &[
                     &window_minimize,
@@ -512,14 +512,24 @@ pub fn main() {
 }
 
 #[tauri::command]
-fn open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+async fn open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let _ = log(LogLevel::Debug, "Opening folder dialog".to_string(), None, Some("open_folder".to_string()));
     
     use tauri_plugin_dialog::DialogExt;
+    use tokio::sync::oneshot;
     
-    let folder_path = app.dialog()
+    // Create a one-shot channel to receive the dialog result
+    let (tx, rx) = oneshot::channel();
+    
+    // Use callback-based pick_folder
+    app.dialog()
         .file()
-        .blocking_pick_folder();
+        .pick_folder(move |result| {
+            let _ = tx.send(result);
+        });
+    
+    // Wait for the result asynchronously
+    let folder_path = rx.await.map_err(|e| format!("Receive error: {}", e))?;
     
     match &folder_path {
         Some(path) => {
@@ -658,7 +668,7 @@ fn stop_fs_watch(
 
 /// Add a file path to the recent documents list
 #[tauri::command]
-fn add_recent_document(app: tauri::AppHandle, path: String) -> Result<(), String> {
+fn add_recent_document(_app: tauri::AppHandle, path: String) -> Result<(), String> {
     let _ = log(LogLevel::Debug, "Adding recent document".to_string(), 
         Some(serde_json::json!({"path": path.clone()})), 
         Some("add_recent_document".to_string()));
