@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Info } from 'lucide-react'
 
 interface AboutDialogProps {
@@ -25,11 +25,67 @@ const MELogoSvg = () => (
 
 export function AboutDialog({ onClose }: AboutDialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
 
+  // 打开时触发动画并自动聚焦
+  useEffect(() => {
+    // 延迟一小帧触发动画
+    requestAnimationFrame(() => {
+      setIsAnimating(true)
+    })
+    // 自动聚焦到关闭按钮
+    closeButtonRef.current?.focus()
+  }, [])
+
+  // 键盘事件处理：Escape、Enter、Tab 焦点陷阱
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      // Escape 关闭对话框
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+
+      // Enter 确认主操作（关闭）
+      if (e.key === 'Enter') {
+        // 只有当焦点不在按钮上时才触发关闭
+        const activeEl = document.activeElement
+        if (activeEl?.tagName !== 'BUTTON') {
+          e.preventDefault()
+          onClose()
+        }
+        return
+      }
+
+      // Tab 焦点陷阱
+      if (e.key === 'Tab') {
+        const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (!focusableElements || focusableElements.length === 0) return
+
+        const firstEl = focusableElements[0]
+        const lastEl = focusableElements[focusableElements.length - 1]
+
+        if (e.shiftKey) {
+          // Shift+Tab：焦点在第一个元素时循环到最后
+          if (document.activeElement === firstEl) {
+            e.preventDefault()
+            lastEl.focus()
+          }
+        } else {
+          // Tab：焦点在最后一个元素时循环到第一个
+          if (document.activeElement === lastEl) {
+            e.preventDefault()
+            firstEl.focus()
+          }
+        }
+      }
     }
+
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
@@ -37,12 +93,17 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-opacity duration-150 ease-out ${
+        isAnimating ? 'opacity-100' : 'opacity-0'
+      }`}
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
       <div
-        className="rounded-lg shadow-2xl"
+        ref={dialogRef}
+        className={`rounded-lg shadow-2xl transition-transform duration-150 ease-out ${
+          isAnimating ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
+        }`}
         style={{
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-primary)',
@@ -59,6 +120,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>关于 {APP_NAME}</span>
           </div>
           <button
+            ref={closeButtonRef}
             className="flex items-center justify-center w-6 h-6 rounded transition-colors"
             style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={onClose}
