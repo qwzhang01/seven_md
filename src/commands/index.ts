@@ -43,6 +43,7 @@ export function registerAllCommands() {
     { id: 'insert.link', category: 'insert' as const, title: '链接', icon: 'Link', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '[文本](url)' })) } },
     { id: 'insert.image', category: 'insert' as const, title: '图片', icon: 'Image', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '![描述](url)' })) } },
     { id: 'insert.hr', category: 'insert' as const, title: '水平线', icon: 'Minus', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '\n---\n' })) } },
+    { id: 'insert.quote', category: 'insert' as const, title: '引用', icon: 'Quote', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '> ' })) } },
 
     // ===== 主题命令 =====
     { id: 'theme.dark', category: 'theme' as const, title: '切换到深色模式', icon: 'Moon', execute: () => { useThemeStore.getState().setTheme('dark') } },

@@ -1,6 +1,8 @@
 # 代码贡献指南
 
-感谢您对 Seven MD 项目的关注！本指南将帮助您快速上手参与开发。
+感谢您对 **Seven Markdown** 项目的关注！本指南将帮助您快速上手参与开发。
+
+> 💡 **项目愿景**：Seven Markdown 是 AI 时代的 Markdown 写作工作站，也是"各垂直领域 AI Agent"愿景的第一步。了解更多请阅读 [README.md](../README.md) 和 [FUTURE_TODO.md](./FUTURE_TODO.md)。
 
 ---
 
@@ -87,40 +89,43 @@ seven_md/
 ├── src/                        # 前端源代码
 │   ├── components/             # React 组件
 │   │   ├── titlebar-v2/       # 标题栏（TrafficLights + TabBar + TitleBarActions）
-│   │   ├── menubar-v2/        # 菜单栏（MenuBar + MenuDropdown + 7 个子菜单）
 │   │   ├── toolbar-v2/        # 工具栏（Toolbar + ToolbarButton + ToolbarGroup）
 │   │   ├── activitybar-v2/    # 活动栏
 │   │   ├── sidebar-v2/        # 侧边栏（Explorer/Search/Outline/Snippets 4 面板）
 │   │   ├── editor-v2/         # 编辑器（EditorPaneV2 + PreviewPaneV2 + Gutter + 右键菜单 + 查找替换）
 │   │   ├── ai-panel/          # AI 助手（AIPanel + Chat/Rewrite/Translate/Explain 4 模式）
 │   │   ├── cmd-palette/       # 命令面板
-│   │   ├── notification-v2/   # 通知系统
+│   │   ├── notification-v2/   # 通知系统（4 类型 + hover 暂停）
 │   │   ├── modal-v2/          # 模态对话框（Modal + ConfirmDialog + DirtyTabModal）
+│   │   ├── dialogs/           # 业务对话框
 │   │   ├── statusbar-v2/      # 状态栏
 │   │   └── ErrorBoundary/     # 错误边界
 │   ├── stores/                 # Zustand 状态管理（8 个 store）
 │   ├── commands/               # 命令注册与执行
-│   ├── hooks/                  # 自定义 Hooks
+│   ├── hooks/                  # 自定义 Hooks（含 useKeyboardShortcuts）
 │   ├── utils/                  # 工具函数
 │   ├── styles/                 # 全局样式
 │   ├── themes/                 # 主题定义
 │   ├── types/                  # TypeScript 类型
 │   ├── i18n/                   # 国际化
 │   ├── test/                   # 测试文件
-│   ├── AppV2.tsx               # 主应用组件
+│   ├── AppV2.tsx               # 主应用组件（注册 Tauri 菜单事件）
 │   └── main.tsx                # 入口
 ├── src-tauri/                  # Rust 后端
 │   ├── src/
-│   │   ├── main.rs             # 应用入口
-│   │   ├── lib.rs              # 库导出
+│   │   ├── main.rs             # 应用入口 + Tauri 原生菜单定义
 │   │   ├── commands.rs         # Tauri IPC 命令
-│   │   ├── logger.rs           # 日志模块
-│   │   └── menu.rs             # 原生菜单
+│   │   └── logger.rs           # 日志模块
 │   └── Cargo.toml
 ├── e2e/                        # Playwright E2E 测试
-├── docs/                       # 文档
-└── openspec/                   # 设计规范
+├── docs/                       # 文档（含 FUTURE_TODO.md 规划路线图）
+└── openspec/                   # OpenSpec 设计规范（含 10+ 进行中变更）
 ```
+
+> ⚠️ **重要提示**：菜单栏使用 **Tauri 原生菜单**（在 `src-tauri/src/main.rs` 中定义），**不是前端 HTML 组件**。因此 `src/components/` 下 *没有* `menubar-v2` 目录。如需新增菜单项：
+> 1. 在 `src-tauri/src/main.rs` 中添加 `MenuItem::with_id(...)`
+> 2. 在 `src/AppV2.tsx` 的菜单事件监听 `useEffect` 中添加处理分支
+> 3. 对应命令注册到 `src/commands/`
 
 ---
 
@@ -396,4 +401,4 @@ cd src-tauri && cargo test && cargo clippy
 2. 搜索 GitHub Issues
 3. 创建新 Issue 并打上 `question` 标签
 
-感谢您为 Seven MD 做出贡献！
+感谢您为 Seven Markdown 做出贡献！

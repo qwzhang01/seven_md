@@ -44,19 +44,8 @@ describe('useNotificationStore', () => {
     expect(useNotificationStore.getState().notifications).toHaveLength(0)
   })
 
-  it('autoClose: true 时，5秒后自动移除', () => {
-    act(() => {
-      useNotificationStore.getState().addNotification({
-        type: 'info',
-        message: 'auto close',
-        autoClose: true,
-        duration: 5000,
-      })
-    })
-    expect(useNotificationStore.getState().notifications).toHaveLength(1)
-    act(() => { vi.advanceTimersByTime(5001) })
-    expect(useNotificationStore.getState().notifications).toHaveLength(0)
-  })
+  // 注意：auto-close 计时器已移至 NotificationItem 组件层管理（支持 hover 暂停）
+  // Store 层不再持有 auto-close 的 setTimeout，组件层通过 remainingTime + startTimeRef 精确控制
 
   it('最多 5 条可见，超出自动淘汰旧通知', () => {
     act(() => {

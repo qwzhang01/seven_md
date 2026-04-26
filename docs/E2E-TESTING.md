@@ -67,7 +67,7 @@ e2e/
 │   ├── BasePage.ts        # 基础页面对象
 │   ├── EditorPage.ts      # 编辑器交互
 │   ├── PreviewPage.ts     # 预览面板交互
-│   ├── MenuBarPage.ts     # 菜单栏交互
+│   ├── MenuBarPage.ts     # 菜单栏交互（通过 Tauri 菜单事件触发）
 │   ├── SettingsPage.ts    # 设置交互
 │   ├── FileDialogPage.ts  # 文件对话框交互
 │   └── PageObjectFactory.ts # 页面对象工厂

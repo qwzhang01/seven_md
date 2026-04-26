@@ -2,7 +2,7 @@ mod logger;
 mod commands;
 
 use logger::{init_logger, write_log, read_logs, get_log_dates, log, LogLevel};
-use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch};
+use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal, reveal_in_finder};
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -53,7 +53,9 @@ pub fn main() {
             get_git_branch,
             add_recent_document,
             clear_recent_documents,
-            get_recent_documents
+            get_recent_documents,
+            open_in_terminal,
+            reveal_in_finder,
         ])
         .setup(|app| {
             // Initialize logger
@@ -88,6 +90,7 @@ pub fn main() {
                 &export_pdf,
                 &export_html_item,
             ])?;
+            let close_tab = MenuItem::with_id(app, "close_tab", "关闭标签", true, Some("CmdOrCtrl+W"))?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, Some("CmdOrCtrl+Q"))?;
 
             // --- Edit menu items ---
@@ -230,6 +233,8 @@ pub fn main() {
                 &save_as,
                 &PredefinedMenuItem::separator(app)?,
                 &export_submenu,
+                &PredefinedMenuItem::separator(app)?,
+                &close_tab,
                 &PredefinedMenuItem::separator(app)?,
                 &quit,
             ])?;
@@ -416,6 +421,7 @@ pub fn main() {
                     "save_as" => { let _ = app_handle.emit("menu-save-as", ()); }
                     "export_pdf" => { let _ = app_handle.emit("menu-export-pdf", ()); }
                     "export_html" => { let _ = app_handle.emit("menu-export-html", ()); }
+                    "close_tab" => { let _ = app_handle.emit("menu-close-tab", ()); }
                     "quit" => { let _ = app_handle.emit("menu-quit", ()); }
 
                     // Edit menu

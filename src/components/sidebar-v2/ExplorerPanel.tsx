@@ -1,8 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Folder, FolderOpen, FileText, FilePlus, FolderPlus, RefreshCw, Loader2, MinusSquare } from 'lucide-react'
 import { useFileStore, useWorkspaceStore } from '../../stores'
-import { readFile } from '../../tauriCommands'
+import { readFile, deletePath, renamePath, openInTerminal, revealInFinder } from '../../tauriCommands'
 import type { FileTreeNode } from '../../types'
+import {
+  ExplorerContextMenu,
+  getFileContextMenuItems,
+  getFolderContextMenuItems,
+  type ContextMenuItem,
+} from './ExplorerContextMenu'
+import { ConfirmDialog } from '../modal-v2'
 
 // 根据文件扩展名返回颜色/图标
 function getFileIcon(name: string) {
@@ -57,18 +64,88 @@ function InlineInput({ onSubmit, onCancel, placeholder }: {
   )
 }
 
+/** 重命名对话框组件 */
+function RenameDialog({ node, onSubmit, onCancel }: {
+  node: FileTreeNode
+  onSubmit: (newName: string) => void
+  onCancel: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState(node.name)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  // 计算扩展名（保留原扩展名）
+  const ext = node.type !== 'directory' ? '.' + node.name.split('.').pop() : ''
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const newName = value.trim()
+      if (newName && newName !== node.name) {
+        onSubmit(newName + ext)
+      } else {
+        onCancel()
+      }
+    } else if (e.key === 'Escape') {
+      onCancel()
+    }
+  }
+
+  return (
+    <div
+      className="fixed z-[9999] flex items-center gap-2 px-2 py-1 rounded"
+      style={{
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--accent)',
+        boxShadow: 'var(--shadow-menu)',
+        minWidth: 150,
+      }}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="flex-1 text-xs px-1 py-0.5 outline-none"
+        style={{
+          background: 'transparent',
+          color: 'var(--text-primary)',
+        }}
+        onKeyDown={handleKeyDown}
+        onBlur={() => {
+          const newName = value.trim()
+          if (newName && newName !== node.name) {
+            onSubmit(newName + ext)
+          } else {
+            onCancel()
+          }
+        }}
+      />
+      {node.type !== 'directory' && (
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          {ext}
+        </span>
+      )}
+    </div>
+  )
+}
+
 interface TreeNodeItemProps {
   node: FileTreeNode
   depth: number
   activeFile: string | null
   onFileClick: (path: string) => void
+  onContextMenu: (e: React.MouseEvent, node: FileTreeNode) => void
 }
 
 /**
  * 递归树节点组件
  * 目录的展开/折叠状态和子节点数据来自 useWorkspaceStore
  */
-function TreeNodeItem({ node, depth, activeFile, onFileClick }: TreeNodeItemProps) {
+function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: TreeNodeItemProps) {
   const expandedDirs = useWorkspaceStore((s) => s.expandedDirs)
   const folderTree = useWorkspaceStore((s) => s.folderTree)
   const toggleDirectory = useWorkspaceStore((s) => s.toggleDirectory)
@@ -86,6 +163,7 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick }: TreeNodeItemProp
           className="flex items-center cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
           style={{ paddingLeft: `${8 + depth * 12}px`, height: '24px', color: 'var(--text-secondary)' }}
           onClick={() => toggleDirectory(node.path)}
+          onContextMenu={(e) => onContextMenu(e, node)}
         >
           <span className="flex-shrink-0 mr-1" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -102,6 +180,7 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick }: TreeNodeItemProp
             depth={depth + 1}
             activeFile={activeFile}
             onFileClick={onFileClick}
+            onContextMenu={onContextMenu}
           />
         ))}
       </div>
@@ -120,6 +199,7 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick }: TreeNodeItemProp
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
       }}
       onClick={() => onFileClick(node.path)}
+      onContextMenu={(e) => onContextMenu(e, node)}
       onMouseEnter={(e) => {
         if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'
       }}
@@ -143,6 +223,7 @@ export function ExplorerPanel() {
     isLoading,
     openFolder,
     refreshTree,
+    loadDirectory,
     createFile: wsCreateFile,
     createDirectory: wsCreateDirectory,
   } = useWorkspaceStore()
@@ -151,6 +232,23 @@ export function ExplorerPanel() {
 
   // 内联新建状态: 'file' | 'folder' | null
   const [inlineCreate, setInlineCreate] = useState<'file' | 'folder' | null>(null)
+
+  // 右键菜单状态
+  const [contextMenu, setContextMenu] = useState<{
+    items: ContextMenuItem[]
+    position: { x: number; y: number }
+  } | null>(null)
+
+  // 重命名状态
+  const [renameState, setRenameState] = useState<{
+    node: FileTreeNode
+    position: { x: number; y: number }
+  } | null>(null)
+
+  // 删除确认对话框状态
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    node: FileTreeNode
+  } | null>(null)
 
   const activeTab = tabs.find((t) => t.id === activeTabId)
 
@@ -171,6 +269,165 @@ export function ExplorerPanel() {
     },
     [tabs, switchTab, openTab]
   )
+
+  // 获取父目录路径
+  const getParentPath = (node: FileTreeNode): string => {
+    const lastSlash = node.path.lastIndexOf('/')
+    return lastSlash > 0 ? node.path.substring(0, lastSlash) : folderPath || ''
+  }
+
+  // 处理右键菜单
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, node: FileTreeNode) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const isDir = node.type === 'directory'
+      const parentPath = getParentPath(node)
+
+      if (isDir) {
+        const items = getFolderContextMenuItems({
+          folderPath: node.path,
+          folderName: node.name,
+          onNewFile: () => {
+            setInlineCreate('file')
+          },
+          onNewFolder: () => {
+            setInlineCreate('folder')
+          },
+          onRename: () => {
+            setRenameState({ node, position: { x: e.clientX, y: e.clientY } })
+          },
+          onDelete: () => {
+            setDeleteConfirm({ node })
+          },
+          onCopyPath: async () => {
+            try {
+              await navigator.clipboard.writeText(node.path)
+            } catch (error) {
+              console.error('复制路径失败:', error)
+            }
+          },
+          onOpenTerminal: async () => {
+            try {
+              await openInTerminal(node.path)
+            } catch (error) {
+              console.error('在终端中打开失败:', error)
+            }
+          },
+          onRevealInFinder: async () => {
+            try {
+              await revealInFinder(node.path)
+            } catch (error) {
+              console.error('在 Finder 中显示失败:', error)
+            }
+          },
+        })
+        setContextMenu({ items, position: { x: e.clientX, y: e.clientY } })
+      } else {
+        const items = getFileContextMenuItems({
+          parentPath,
+          fileName: node.name,
+          filePath: node.path,
+          onNewFile: () => {
+            setInlineCreate('file')
+          },
+          onNewFolder: () => {
+            setInlineCreate('folder')
+          },
+          onRename: () => {
+            setRenameState({ node, position: { x: e.clientX, y: e.clientY } })
+          },
+          onDelete: () => {
+            setDeleteConfirm({ node })
+          },
+          onCopyPath: async () => {
+            try {
+              await navigator.clipboard.writeText(node.path)
+            } catch (error) {
+              console.error('复制路径失败:', error)
+            }
+          },
+          onOpenTerminal: async () => {
+            try {
+              await openInTerminal(node.path)
+            } catch (error) {
+              console.error('在终端中打开失败:', error)
+            }
+          },
+          onRevealInFinder: async () => {
+            try {
+              await revealInFinder(node.path)
+            } catch (error) {
+              console.error('在 Finder 中显示失败:', error)
+            }
+          },
+        })
+        setContextMenu({ items, position: { x: e.clientX, y: e.clientY } })
+      }
+    },
+    [folderPath]
+  )
+
+  // 处理重命名
+  const handleRename = useCallback(async (newName: string) => {
+    if (!renameState) return
+
+    const { node } = renameState
+    if (newName === node.name || !newName.trim()) {
+      setRenameState(null)
+      return
+    }
+
+    try {
+      const parentPath = getParentPath(node)
+      const separator = parentPath.endsWith('/') ? '' : '/'
+      const newPath = `${parentPath}${separator}${newName}`
+      await renamePath(node.path, newPath)
+
+      // 如果是文件且在打开的标签中，需要更新标签
+      if (node.type !== 'directory') {
+        const existingTab = tabs.find((t) => t.path === node.path)
+        if (existingTab) {
+          // 暂时移除旧标签，用户需要手动重新打开
+        }
+      }
+
+      // 刷新目录
+      await loadDirectory(parentPath)
+    } catch (error) {
+      console.error('重命名失败:', error)
+    }
+
+    setRenameState(null)
+  }, [renameState, tabs, loadDirectory])
+
+  // 处理删除
+  const handleDelete = useCallback(async () => {
+    if (!deleteConfirm) return
+
+    const { node } = deleteConfirm
+    const parentPath = getParentPath(node)
+
+    try {
+      await deletePath(node.path)
+
+      // 如果是文件且在打开的标签中，需要关闭标签
+      if (node.type !== 'directory') {
+        const existingTab = tabs.find((t) => t.path === node.path)
+        if (existingTab) {
+          // 可以添加关闭标签的逻辑
+        }
+      }
+
+      // 刷新目录
+      await loadDirectory(parentPath)
+    } catch (error) {
+      console.error('删除失败:', error)
+    }
+
+    setDeleteConfirm(null)
+  }, [deleteConfirm, tabs, loadDirectory])
 
   const toggleSection = (section: 'openFiles' | 'workspace') => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -363,6 +620,7 @@ export function ExplorerPanel() {
                     depth={0}
                     activeFile={activeTab?.path ?? null}
                     onFileClick={handleFileClick}
+                    onContextMenu={handleContextMenu}
                   />
                 ))
               ) : (
@@ -385,6 +643,38 @@ export function ExplorerPanel() {
           </div>
         )}
       </div>
+
+      {/* 右键菜单 */}
+      {contextMenu && (
+        <ExplorerContextMenu
+          items={contextMenu.items}
+          position={contextMenu.position}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* 重命名输入框 */}
+      {renameState && (
+        <RenameDialog
+          node={renameState.node}
+          onSubmit={handleRename}
+          onCancel={() => setRenameState(null)}
+        />
+      )}
+
+      {/* 删除确认对话框 */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          open={true}
+          title="确认删除"
+          message={`确定要删除 "${deleteConfirm.node.name}" 吗？${deleteConfirm.node.type === 'directory' ? '文件夹及其所有内容将被永久删除。' : '此操作不可撤销。'}`}
+          confirmLabel="删除"
+          cancelLabel="取消"
+          danger={true}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   )
 }

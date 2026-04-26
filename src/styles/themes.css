@@ -102,6 +102,12 @@
   --markdown-list: #569cd6;
   --markdown-hr: #6a6a6a;
 
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
+
   /* Editor */
   --editor-bg: #1e1e1e;
   --editor-fg: #d4d4d4;
@@ -181,6 +187,12 @@
   --markdown-quote: #008000;
   --markdown-list: #0000ff;
   --markdown-hr: #999999;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- Monokai ---- */
@@ -242,6 +254,12 @@
   --markdown-quote: #75715c;
   --markdown-list: #f92672;
   --markdown-hr: #75746c;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- Solarized ---- */
@@ -303,6 +321,12 @@
   --markdown-quote: #586e75;
   --markdown-list: #859900;
   --markdown-hr: #586e75;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- Nord ---- */
@@ -364,6 +388,12 @@
   --markdown-quote: #616e88;
   --markdown-list: #81a1c1;
   --markdown-hr: #616e88;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- Dracula ---- */
@@ -425,6 +455,12 @@
   --markdown-quote: #6272a4;
   --markdown-list: #ff79c6;
   --markdown-hr: #6272a4;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- GitHub ---- */
@@ -486,6 +522,12 @@
   --markdown-quote: #6a737d;
   --markdown-list: #d73a49;
   --markdown-hr: #d1d5da;
+
+  /* Outline Panel Heading Colors */
+  --heading-h1: var(--accent);
+  --heading-h2: var(--markdown-h2);
+  --heading-h3: var(--markdown-h3);
+  --heading-h4: var(--markdown-h4);
 }
 
 /* ---- Global theme transition ---- */

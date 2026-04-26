@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Scissors, Clipboard, FileText, Plus, Type, Search, Sparkles, Bot } from 'lucide-react'
 
 interface EditorContextMenuProps {
@@ -22,6 +22,24 @@ interface MenuItem {
 
 export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite, onFormat }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 子菜单展开状态
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
+
+  // 延迟关闭子菜单，确保鼠标移入子菜单时不关闭
+  const scheduleClose = () => {
+    closeTimerRef.current = setTimeout(() => {
+      setOpenSubmenu(null)
+    }, 150)
+  }
+
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = null
+    }
+  }
 
   // Adjust position to avoid overflow
   const menuX = Math.min(x, window.innerWidth - 220)
@@ -100,6 +118,10 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
             key={i}
             item={item}
             onClose={onClose}
+            onOpenSubmenu={setOpenSubmenu}
+            openSubmenu={openSubmenu}
+            scheduleClose={scheduleClose}
+            cancelClose={cancelClose}
           />
         )
       ))}
@@ -107,12 +129,42 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
   )
 }
 
-function MenuItemRow({ item, onClose }: { item: MenuItem; onClose: () => void }) {
+function MenuItemRow({ item, onClose, onOpenSubmenu, openSubmenu, scheduleClose, cancelClose }: {
+  item: MenuItem
+  onClose: () => void
+  onOpenSubmenu: (id: string | null) => void
+  openSubmenu: string | null
+  scheduleClose: () => void
+  cancelClose: () => void
+}) {
   const hasSubmenu = !!item.submenu
+  const isSubmenuOpen = hasSubmenu && openSubmenu === item.label
+  const itemId = item.label || `item-${Math.random()}`
+
+  // 子菜单定位计算
+  const getSubmenuPosition = () => {
+    return {
+      left: 'calc(100% + 4px)',
+      right: 'auto',
+      top: 0,
+      bottom: 'auto',
+    }
+  }
 
   return (
     <div
       className="relative group"
+      onMouseEnter={() => {
+        if (hasSubmenu) {
+          cancelClose()
+          onOpenSubmenu(itemId)
+        }
+      }}
+      onMouseLeave={() => {
+        if (hasSubmenu) {
+          scheduleClose()
+        }
+      }}
     >
       <button
         className="w-full text-left flex items-center gap-2 px-4 py-1.5 text-xs transition-colors"
@@ -120,7 +172,13 @@ function MenuItemRow({ item, onClose }: { item: MenuItem; onClose: () => void })
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-context-hover, var(--bg-active))' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
         onClick={() => {
-          if (item.action) { item.action(); onClose() }
+          if (hasSubmenu) {
+            cancelClose()
+            onOpenSubmenu(isSubmenuOpen ? null : itemId)
+          } else if (item.action) {
+            item.action()
+            onClose()
+          }
         }}
         role="menuitem"
       >
@@ -130,14 +188,17 @@ function MenuItemRow({ item, onClose }: { item: MenuItem; onClose: () => void })
         {hasSubmenu && <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>▶</span>}
       </button>
 
-      {/* Submenu */}
+      {/* Submenu - 使用 React state 控制显示 */}
       {hasSubmenu && item.submenu && (
         <div
-          className="absolute left-full top-0 z-[10000] min-w-[180px] rounded py-1 shadow-lg hidden group-hover:block"
+          className={`absolute z-[10000] min-w-[180px] rounded py-1 shadow-lg transition-opacity duration-150 ${isSubmenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
           style={{
             background: 'var(--bg-context-menu, var(--bg-secondary))',
             border: '1px solid var(--border-primary)',
+            ...getSubmenuPosition(),
           }}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
         >
           {item.submenu.map((sub, j) =>
             sub.separator ? (

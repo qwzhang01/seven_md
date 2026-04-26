@@ -31,33 +31,69 @@ interface NotificationItemProps {
 }
 
 export function NotificationItem({ notification }: NotificationItemProps) {
-  const { removeNotification, setNotificationPaused } = useNotificationStore()
+  const { removeNotification } = useNotificationStore()
   const [visible, setVisible] = useState(false)
+  // 1.1 remainingTime state：从剩余时间继续倒计时，而非重新计时
+  const [remainingTime, setRemainingTime] = useState(notification.duration || 5000)
+  // 1.2 isPaused state 管理暂停状态
+  const [isPaused, setIsPaused] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isPaused = useRef(false)
+  // 用 ref 记录计时器启动时刻，精确计算已流逝时间
+  const startTimeRef = useRef<number | null>(null)
 
   const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.info
 
+  // 1.3 + 1.4：统一的计时器逻辑
   const startTimer = useCallback(() => {
     if (!notification.autoClose) return
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      if (!isPaused.current) {
-        setVisible(false)
-        setTimeout(() => removeNotification(notification.id), 300)
-      }
-    }, notification.duration || 5000)
-  }, [notification, removeNotification])
 
+    const totalDuration = notification.duration || 5000
+    // 从 remainingTime 恢复（hover 离开后）或从完整时长启动
+    const timeToUse = remainingTime > 0 ? remainingTime : totalDuration
+    startTimeRef.current = Date.now()
+
+    timerRef.current = setTimeout(() => {
+      setVisible(false)
+      setTimeout(() => removeNotification(notification.id), 300)
+    }, timeToUse)
+  }, [notification, removeNotification, remainingTime])
+
+  // 初始化：slide in + 启动计时器
+  // 依赖 autoClose/duration，确保组件重建时重新初始化（notification.id 变化时）
   useEffect(() => {
-    // Slide in
     const t = setTimeout(() => setVisible(true), 10)
-    startTimer()
+    if (notification.autoClose) {
+      const d = notification.duration || 5000
+      setRemainingTime(d)
+      startTimeRef.current = Date.now()
+      startTimer()
+    }
     return () => {
       clearTimeout(t)
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [startTimer])
+  }, [notification.autoClose, notification.duration])
+
+  // 1.3 onMouseEnter：暂停计时器，保存剩余时间
+  const handleMouseEnter = useCallback(() => {
+    if (!notification.autoClose) return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    // 计算已流逝时间，保存剩余时间
+    if (startTimeRef.current !== null) {
+      const elapsed = Date.now() - startTimeRef.current
+      const totalDuration = notification.duration || 5000
+      setRemainingTime(Math.max(0, totalDuration - elapsed))
+    }
+    setIsPaused(true)
+  }, [notification.autoClose, notification.duration])
+
+  // 1.4 onMouseLeave：恢复计时器，从 remainingTime 继续
+  const handleMouseLeave = useCallback(() => {
+    if (!notification.autoClose) return
+    setIsPaused(false)
+    startTimer()
+  }, [notification.autoClose, startTimer])
 
   const handleClose = useCallback(() => {
     setVisible(false)
@@ -79,8 +115,8 @@ export function NotificationItem({ notification }: NotificationItemProps) {
         transform: visible ? 'translateY(0)' : 'translateY(10px)',
         transition: 'opacity 0.2s ease, transform 0.2s ease',
       }}
-      onMouseEnter={() => { isPaused.current = true; setNotificationPaused(notification.id, true); if (timerRef.current) clearTimeout(timerRef.current) }}
-      onMouseLeave={() => { isPaused.current = false; setNotificationPaused(notification.id, false); startTimer() }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <span style={{ color: config.color, flexShrink: 0, marginTop: 1 }}>
         {config.icon}

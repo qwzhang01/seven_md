@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type DialogType = 'shortcut-reference' | 'about' | null
+export type DialogType = 'shortcut-reference' | 'about' | 'welcome' | null
 
 interface UIState {
   sidebarVisible: boolean

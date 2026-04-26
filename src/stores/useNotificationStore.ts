@@ -62,13 +62,8 @@ export const useNotificationStore = create<NotificationState>()((set, get) => ({
       }
     })
 
-    // Auto-close after duration
-    if (notification.autoClose !== false) {
-      const duration = notification.duration || 5000
-      setTimeout(() => {
-        get().removeNotification(id)
-      }, duration)
-    }
+    // Auto-close 由 NotificationItem 组件内部管理（支持 hover 暂停）
+    // Store 层不再设置独立 setTimeout，避免重复移除或绕过暂停逻辑
 
     return id
   },

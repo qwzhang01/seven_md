@@ -93,15 +93,16 @@
 ### 日志文件位置
 
 ```
-%APPDATA%\Seven MD\logs\
-即：C:\Users\<用户名>\AppData\Roaming\Seven MD\logs\
+%APPDATA%\Seven Markdown\logs\
+即：C:\Users\<用户名>\AppData\Roaming\Seven Markdown\logs\
+（旧版本为 Seven MD）
 ```
 
 ### 启用调试模式
 
 ```cmd
 # 命令行启动
-"C:\Program Files\Seven MD\Seven MD.exe" --debug
+"C:\Program Files\Seven Markdown\Seven Markdown.exe" --debug
 
 # 或设置环境变量
 set SEVEN_MD_DEBUG=1
@@ -121,7 +122,8 @@ set SEVEN_MD_DEBUG=1
 ```cmd
 # 1. 关闭应用
 # 2. 删除配置目录
-rmdir /s "%APPDATA%\Seven MD"
+rmdir /s "%APPDATA%\Seven Markdown"
+# 或旧版本：rmdir /s "%APPDATA%\Seven MD"
 # 3. 重新启动应用
 ```
 

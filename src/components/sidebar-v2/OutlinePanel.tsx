@@ -12,13 +12,29 @@ interface OutlinePanelProps {
 }
 
 const HEADING_COLORS = [
-  'var(--markdown-h1, #569cd6)',
-  'var(--markdown-h2, #4ec9b0)',
-  'var(--markdown-h3, #c586c0)',
-  'var(--markdown-h4, #cc6699)',
+  'var(--heading-h1)',
+  'var(--heading-h2)',
+  'var(--heading-h3)',
+  'var(--heading-h4)',
   'var(--text-secondary)',
   'var(--text-tertiary)',
 ]
+
+// 层级缩进配置：H1=0, H2=0, H3=16px, H4=32px
+const LEVEL_INDENTS: Record<number, number> = {
+  1: 0,
+  2: 0,
+  3: 16,
+  4: 32,
+}
+
+// 字号配置：H1 最大，H2 中等，H3-H4 较小
+const LEVEL_FONT_SIZES: Record<number, string> = {
+  1: 'text-sm',
+  2: 'text-xs',
+  3: 'text-xs',
+  4: 'text-xs',
+}
 
 function parseHeadings(content: string): Heading[] {
   const lines = content.split('\n')
@@ -81,19 +97,22 @@ export function OutlinePanel({ content }: OutlinePanelProps) {
         ) : (
           filtered.map((heading, i) => {
             const isActive = heading.line === activeHeading
-            const indent = (heading.level - 1) * 12
+            const indent = LEVEL_INDENTS[heading.level] ?? 0
+            const baseIndent = heading.level <= 2 ? 0 : (heading.level - 1) * 12
             const color = HEADING_COLORS[Math.min(heading.level - 1, HEADING_COLORS.length - 1)]
+            const fontSize = LEVEL_FONT_SIZES[heading.level] ?? 'text-xs'
 
             return (
               <div
                 key={i}
-                className="flex items-center cursor-pointer transition-colors overflow-hidden"
+                className={`flex items-center cursor-pointer transition-colors overflow-hidden ${fontSize}`}
                 style={{
-                  paddingLeft: `${12 + indent}px`,
+                  paddingLeft: `${12 + indent + baseIndent}px`,
                   paddingRight: '12px',
-                  height: '28px',
+                  height: heading.level === 1 ? '32px' : '28px',
                   background: isActive ? 'var(--bg-active)' : 'transparent',
                   color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: heading.level === 1 ? '600' : heading.level === 2 ? '500' : '400',
                 }}
                 onClick={() => handleHeadingClick(heading)}
                 onMouseEnter={(e) => {
@@ -104,16 +123,17 @@ export function OutlinePanel({ content }: OutlinePanelProps) {
                 }}
               >
                 <span
-                  className="text-xs font-bold mr-2 flex-shrink-0 w-7 text-center rounded"
+                  className="font-bold mr-2 flex-shrink-0 w-7 text-center rounded"
                   style={{
                     color,
                     background: `${color}22`,
                     padding: '1px 0',
+                    fontSize: heading.level === 1 ? '11px' : '10px',
                   }}
                 >
                   H{heading.level}
                 </span>
-                <span className="text-xs truncate">{heading.text}</span>
+                <span className="truncate">{heading.text}</span>
               </div>
             )
           })

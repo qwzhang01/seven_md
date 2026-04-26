@@ -68,3 +68,17 @@ export const searchInFiles = async (
 export const getGitBranch = async (dirPath: string): Promise<string> => {
   return await invoke('get_git_branch', { dirPath })
 }
+
+/**
+ * 在终端中打开指定路径
+ */
+export const openInTerminal = async (path: string): Promise<void> => {
+  return await invoke('open_in_terminal', { path })
+}
+
+/**
+ * 在 Finder 中显示文件或文件夹（仅 macOS）
+ */
+export const revealInFinder = async (path: string): Promise<void> => {
+  return await invoke('reveal_in_finder', { path })
+}

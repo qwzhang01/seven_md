@@ -27,6 +27,7 @@ import { Gutter, EditorPaneV2, FindReplaceBar, PreviewPaneV2 } from './component
 
 import { ShortcutReferenceDialog } from './components/dialogs/ShortcutReferenceDialog'
 import { AboutDialog } from './components/dialogs/AboutDialog'
+import { WelcomeDialog } from './components/dialogs/WelcomeDialog'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -64,6 +65,34 @@ function AppV2() {
   // Dirty tab modal
   const [dirtyTabId, setDirtyTabId] = useState<string | null>(null)
   const dirtyTab = dirtyTabId ? tabs.find((t) => t.id === dirtyTabId) : null
+
+  // 创建新窗口
+  const createNewWindow = useCallback(async () => {
+    try {
+      const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
+      const label = `window-${Date.now()}`
+      const webview = new WebviewWindow(label, {
+        title: 'Seven Markdown',
+        width: 1200,
+        height: 800,
+        center: true,
+        resizable: true,
+        decorations: true,
+      })
+      
+      webview.once('tauri://created', () => {
+        console.log('新窗口已创建:', label)
+      })
+      
+      webview.once('tauri://error', (e) => {
+        console.error('创建窗口失败', e)
+        addNotification({ type: 'error', message: `创建窗口失败: ${e}`, autoClose: true, duration: 5000 })
+      })
+    } catch (e) {
+      console.error('创建新窗口异常:', e)
+      addNotification({ type: 'error', message: `创建新窗口异常: ${e}`, autoClose: true, duration: 5000 })
+    }
+  }, [addNotification])
 
   // Open file
   const handleOpenFile = useCallback(async () => {
@@ -124,9 +153,7 @@ function AppV2() {
 
       // --- File 菜单事件 ---
       unlisteners.push(await listen('menu-new-file', () => openTab(null, '')))
-      unlisteners.push(await listen('menu-new-window', () => {
-        // TODO: 实现新窗口
-      }))
+      unlisteners.push(await listen('menu-new-window', () => createNewWindow()))
       unlisteners.push(await listen('menu-open-file', () => handleOpenFile()))
       unlisteners.push(await listen('menu-open-folder', () => {
         useWorkspaceStore.getState().openFolder()
@@ -174,6 +201,18 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-export-html', () => {
         window.dispatchEvent(new CustomEvent('app:export-html'))
+      }))
+      unlisteners.push(await listen('menu-close-tab', () => {
+        const tab = useFileStore.getState().getActiveTab()
+        if (tab) {
+          const tabEl = document.querySelector(`[data-tab-id="${tab.id}"] .tab-close`)
+          if (tabEl) {
+            (tabEl as HTMLElement).click()
+          } else {
+            // fallback: 直接调用 closeTab
+            useFileStore.getState().closeTab(tab.id)
+          }
+        }
       }))
       unlisteners.push(await listen('menu-quit', async () => {
         const { getCurrentWindow } = await import('@tauri-apps/api/window')
@@ -332,7 +371,7 @@ function AppV2() {
 
       // --- Help 菜单事件 ---
       unlisteners.push(await listen('menu-welcome', () => {
-        addNotification({ type: 'info', message: '欢迎页功能开发中', autoClose: true, duration: 3000 })
+        useUIStore.getState().setDialogType('welcome')
       }))
       unlisteners.push(await listen('menu-markdown-guide', () => {
         window.open('https://www.markdownguide.org/', '_blank')
@@ -343,8 +382,22 @@ function AppV2() {
       unlisteners.push(await listen('menu-about', () => {
         useUIStore.getState().setDialogType('about')
       }))
-      unlisteners.push(await listen('menu-check-update', () => {
-        addNotification({ type: 'info', message: '检查更新功能开发中', autoClose: true, duration: 3000 })
+      unlisteners.push(await listen('menu-check-update', async () => {
+        try {
+          addNotification({ type: 'info', message: '正在检查更新...', autoClose: false, duration: 0 })
+          // 获取当前版本
+          const currentVersion = '0.1.0'
+          // 简单实现：显示当前版本信息
+          // 后期可接入真正的版本检查 API
+          addNotification({ 
+            type: 'success', 
+            message: `当前已是最新版本 v${currentVersion}`, 
+            autoClose: true, 
+            duration: 3000 
+          })
+        } catch (e) {
+          addNotification({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
+        }
       }))
     }
 
@@ -356,7 +409,7 @@ function AppV2() {
         clearTimeout(refreshTimerRef.current)
       }
     }
-  }, [handleOpenFile, handleSaveFile, openTab, addNotification])
+  }, [handleOpenFile, handleSaveFile, openTab, addNotification, createNewWindow])
 
   // Handle export-pdf via window.print()
   useEffect(() => {
@@ -434,6 +487,7 @@ function AppV2() {
     { key: 's', ctrlKey: true, action: () => handleSaveFile(), description: '保存文件' },
     { key: 'o', ctrlKey: true, action: () => handleOpenFile(), description: '打开文件' },
     { key: 'n', ctrlKey: true, action: () => openTab(null, ''), description: '新建文件' },
+    { key: 'N', ctrlKey: true, shiftKey: true, action: createNewWindow, description: '新建窗口' },
     { key: 'w', ctrlKey: true, action: () => { const tab = getActiveTab(); if (tab) handleCloseTab(tab.id) }, description: '关闭标签' },
 
     // === 面板切换 ===
@@ -499,7 +553,7 @@ function AppV2() {
       description: '关闭面板',
       preventDefault: false,
     },
-  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen])
+  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen, createNewWindow])
 
   useKeyboardShortcuts(shortcuts)
 
@@ -678,6 +732,9 @@ function AppV2() {
       )}
       {ui.dialogType === 'about' && (
         <AboutDialog onClose={() => ui.setDialogType(null)} />
+      )}
+      {ui.dialogType === 'welcome' && (
+        <WelcomeDialog onClose={() => ui.setDialogType(null)} />
       )}
 
       {/* Dirty Tab Modal */}

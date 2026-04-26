@@ -533,6 +533,89 @@ pub fn get_git_branch(dir_path: String) -> String {
     }
 }
 
+/// 在终端中打开指定路径（目录则直接在目录中打开，文件则打开其所在目录）
+#[tauri::command]
+pub fn open_in_terminal(path: String) -> Result<(), String> {
+    let _ = log(LogLevel::Debug, format!("Opening in terminal: {}", path), None, Some("open_in_terminal".to_string()));
+
+    let p = Path::new(&path);
+    let dir = if p.is_file() {
+        p.parent().map(|d| d.to_path_buf())
+    } else {
+        Some(p.to_path_buf())
+    };
+
+    match dir {
+        Some(dir) => {
+            #[cfg(target_os = "macos")]
+            {
+                match StdCommand::new("osascript")
+                    .args(["-e", &format!("tell app \"Terminal\" to do script \"cd {} && clear\"", dir.to_string_lossy())])
+                    .spawn()
+                {
+                    Ok(_) => {
+                        let _ = log(LogLevel::Info, "Terminal opened successfully".to_string(), Some(serde_json::json!({"path": path})), Some("open_in_terminal".to_string()));
+                        Ok(())
+                    }
+                    Err(e) => Err(format!("Failed to open Terminal: {}", e))
+                }
+            }
+            #[cfg(target_os = "windows")]
+            {
+                match StdCommand::new("cmd")
+                    .args(["/C", "start", "cmd", "/K", &format!("cd /d {}", dir.to_string_lossy())])
+                    .spawn()
+                {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!("Failed to open cmd: {}", e))
+                }
+            }
+            #[cfg(target_os = "linux")]
+            {
+                // 尝试常见的终端：gnome-terminal, konsole, xterm
+                let terminals = ["gnome-terminal", "konsole", "xterm"];
+                for term in terminals {
+                    if StdCommand::new("which")
+                        .arg(term)
+                        .output()
+                        .map(|o| o.status.success())
+                        .unwrap_or(false)
+                    {
+                        let result = match term {
+                            "gnome-terminal" => StdCommand::new(term).arg("--").arg(format!("cd {} && $SHELL", dir.to_string_lossy())).spawn(),
+                            "konsole" => StdCommand::new(term).arg("-e").arg("bash").arg("-c").arg(format!("cd {} && $SHELL", dir.to_string_lossy())).spawn(),
+                            _ => StdCommand::new(term).spawn(),
+                        };
+                        if result.is_ok() {
+                            return Ok(());
+                        }
+                    }
+                }
+                Err("No terminal emulator found".to_string())
+            }
+        }
+        None => Err("Invalid path".to_string())
+    }
+}
+
+/// 在 Finder 中显示文件或文件夹（macOS 专用）
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub fn reveal_in_finder(path: String) -> Result<(), String> {
+    let _ = log(LogLevel::Debug, format!("Revealing in Finder: {}", path), None, Some("reveal_in_finder".to_string()));
+
+    match StdCommand::new("osascript")
+        .args(["-e", &format!("tell app \"Finder\" to reveal POSIX file \"{}\"", path)])
+        .spawn()
+    {
+        Ok(_) => {
+            let _ = log(LogLevel::Info, "Revealed in Finder".to_string(), Some(serde_json::json!({"path": path})), Some("reveal_in_finder".to_string()));
+            Ok(())
+        }
+        Err(e) => Err(format!("Failed to reveal in Finder: {}", e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
