@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Seven MD Logo](docs/logo.png)
+![Seven MD Logo](docs/screenshots/login-design.png)
 
 **AI 时代的 Markdown 编辑器，让你像写代码一样写文档**
 
