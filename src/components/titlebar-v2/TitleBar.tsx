@@ -1,13 +1,12 @@
 import { TabBar } from './TabBar'
-import { TitleBarActions } from './TitleBarActions'
 
 interface TitleBarProps {
   onCloseTab?: (tabId: string) => void
 }
 
 /**
- * 统一标题栏组件（VS Code 风格）
- * 整合了：标签页 + 操作按钮
+ * 标题栏组件（VS Code 风格）
+ * 包含文件标签页
  * 原生交通灯由 macOS 系统自动渲染（decorations: true）
  */
 export function TitleBar({ onCloseTab }: TitleBarProps) {
@@ -21,9 +20,6 @@ export function TitleBar({ onCloseTab }: TitleBarProps) {
     >
       {/* Tab Bar */}
       <TabBar onCloseTab={onCloseTab} />
-
-      {/* Action Buttons */}
-      <TitleBarActions />
     </div>
   )
 }

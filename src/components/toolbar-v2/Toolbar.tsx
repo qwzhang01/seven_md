@@ -10,6 +10,7 @@ import {
   Quote, Table, Minus,
   Bot,
   Columns2, PanelLeft, PanelRight,
+  Command,
 } from 'lucide-react'
 import { useUIStore } from '../../stores'
 
@@ -18,8 +19,8 @@ function insertAtCursor(text: string) {
 }
 
 export function Toolbar() {
-  const ui = useUIStore()
-  const { viewMode, setViewMode } = useUIStore()
+  const { viewMode, setViewMode, sidebarVisible, toggleCommandPalette, toggleSidebar } = useUIStore()
+  const { setAIPanelOpen } = useUIStore()
 
   return (
     <div
@@ -110,16 +111,28 @@ export function Toolbar() {
         />
       </ToolbarGroup>
 
-      {/* AI */}
-      <ToolbarGroup>
+      {/* Command Palette + Sidebar Toggle + AI - 右对齐 */}
+      <div className="ml-auto flex items-center gap-0">
+        <ToolbarButton
+          icon={<Command size={14} />}
+          tooltip="命令面板 (Ctrl+Shift+P)"
+          onClick={toggleCommandPalette}
+        />
+        <ToolbarButton
+          icon={<PanelLeft size={14} />}
+          tooltip={sidebarVisible ? '隐藏侧边栏 (Ctrl+B)' : '显示侧边栏 (Ctrl+B)'}
+          active={sidebarVisible}
+          onClick={toggleSidebar}
+        />
+        <div className="w-px h-4 mx-1 bg-[var(--border-default)]" />
         <ToolbarButton
           icon={<Bot size={14} />}
           label="AI"
           tooltip="AI 助手"
-          onClick={() => ui.setAIPanelOpen(true)}
+          onClick={() => setAIPanelOpen(true)}
           accent
         />
-      </ToolbarGroup>
+      </div>
     </div>
   )
 }
