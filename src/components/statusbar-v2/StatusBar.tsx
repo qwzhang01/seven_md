@@ -145,7 +145,7 @@ export function StatusBar() {
         </button>
 
         <button
-          className="flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors"
+          className="relative flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors"
           title={scrollSyncEnabled ? '滚动同步: 开 (点击关闭)' : '滚动同步: 关 (点击开启)'}
           style={{
             color: scrollSyncEnabled ? '#fff' : 'rgba(255,255,255,0.5)',
@@ -156,7 +156,9 @@ export function StatusBar() {
           onClick={toggleScrollSync}
         >
           <ArrowUpDown size={11} />
-          <span>{scrollSyncEnabled ? '同步' : '同步'}</span>
+          <span style={{ opacity: scrollSyncEnabled ? 1 : 0.5 }}>
+            {scrollSyncEnabled ? '同步: 开' : '同步: 关'}
+          </span>
         </button>
 
         <button
@@ -168,13 +170,19 @@ export function StatusBar() {
         </button>
 
         <button
-          className="flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors"
+          className="relative flex items-center gap-1 hover:bg-white/10 px-1 rounded transition-colors"
           title="通知"
           style={{ color: '#fff', background: 'transparent', border: 'none', cursor: 'pointer' }}
           onClick={markAllRead}
         >
           <Bell size={11} />
           {unreadCount > 0 && <span>{unreadCount}</span>}
+          {unreadCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full"
+              aria-label={`${unreadCount} 条未读通知`}
+            />
+          )}
         </button>
       </div>
     </div>
