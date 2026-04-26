@@ -1,4 +1,4 @@
-import { useCommandStore, useUIStore, useThemeStore, useFileStore } from '../stores'
+import { useCommandStore, useUIStore, useThemeStore, useFileStore, useSettingsStore } from '../stores'
 import { commandRegistry } from './registry'
 
 /**
@@ -14,8 +14,8 @@ export function registerAllCommands() {
     { id: 'file.save', category: 'file' as const, title: '保存', shortcut: 'Ctrl+S', icon: 'Save', execute: () => { window.dispatchEvent(new CustomEvent('app:save-file')) } },
     { id: 'file.saveAs', category: 'file' as const, title: '另存为', shortcut: 'Ctrl+Shift+S', icon: 'SaveAll', execute: () => { window.dispatchEvent(new CustomEvent('app:save-as')) } },
     { id: 'file.open', category: 'file' as const, title: '打开文件', shortcut: 'Ctrl+O', icon: 'FolderOpen', execute: () => { window.dispatchEvent(new CustomEvent('app:open-file')) } },
-    { id: 'file.exportPdf', category: 'file' as const, title: '导出为 PDF', icon: 'FileDown', execute: () => { window.dispatchEvent(new CustomEvent('app:export-pdf')) } },
-    { id: 'file.exportHtml', category: 'file' as const, title: '导出为 HTML', icon: 'FileCode', execute: () => { window.dispatchEvent(new CustomEvent('app:export-html')) } },
+    { id: 'file.exportPdf', category: 'file' as const, title: '导出为 PDF', shortcut: 'Ctrl+Shift+E', icon: 'FileDown', execute: () => { window.dispatchEvent(new CustomEvent('app:export-pdf')) } },
+    { id: 'file.exportHtml', category: 'file' as const, title: '导出为 HTML', shortcut: 'Ctrl+Shift+W', icon: 'FileCode', execute: () => { window.dispatchEvent(new CustomEvent('app:export-html')) } },
 
     // ===== 编辑命令 =====
     { id: 'edit.undo', category: 'edit' as const, title: '撤销', shortcut: 'Ctrl+Z', icon: 'Undo2', execute: () => { window.dispatchEvent(new CustomEvent('editor:undo')) } },
@@ -23,6 +23,7 @@ export function registerAllCommands() {
     { id: 'edit.find', category: 'edit' as const, title: '查找', shortcut: 'Ctrl+F', icon: 'Search', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('find') } },
     { id: 'edit.replace', category: 'edit' as const, title: '替换', shortcut: 'Ctrl+H', icon: 'Replace', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('replace') } },
     { id: 'edit.format', category: 'edit' as const, title: '格式化文档', icon: 'AlignLeft', execute: () => { window.dispatchEvent(new CustomEvent('editor:format')) } },
+    { id: 'edit.wordWrap', category: 'edit' as const, title: '切换自动换行', icon: 'WrapText', execute: () => { const state = useSettingsStore.getState(); state.setWordWrap(!state.wordWrap) } },
 
     // ===== 视图命令 =====
     { id: 'view.split', category: 'view' as const, title: '分栏视图', icon: 'Columns2', execute: () => { useUIStore.getState().setViewMode('split') } },

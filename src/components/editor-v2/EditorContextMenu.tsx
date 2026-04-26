@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { Scissors, Clipboard, FileText, Plus, Type, Search, Sparkles, Bot } from 'lucide-react'
 
 interface EditorContextMenuProps {
   x: number
@@ -12,7 +13,7 @@ interface EditorContextMenuProps {
 
 interface MenuItem {
   label?: string
-  icon?: string
+  icon?: ReactNode
   shortcut?: string
   action?: () => void
   separator?: boolean
@@ -63,19 +64,19 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
   ]
 
   const menuItems: MenuItem[] = [
-    { label: '✂️ 剪切', shortcut: 'Ctrl+X', action: () => document.execCommand('cut') },
-    { label: '📋 复制', shortcut: 'Ctrl+C', action: () => document.execCommand('copy') },
-    { label: '📄 粘贴', shortcut: 'Ctrl+V', action: () => document.execCommand('paste') },
+    { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => document.execCommand('cut') },
+    { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => document.execCommand('copy') },
+    { label: '粘贴', icon: <FileText size={14} />, shortcut: 'Ctrl+V', action: () => document.execCommand('paste') },
     { separator: true },
-    { label: '➕ 插入', submenu: insertItems },
+    { label: '插入', icon: <Plus size={14} />, submenu: insertItems },
     { separator: true },
-    { label: '🔤 全选', shortcut: 'Ctrl+A', action: () => document.execCommand('selectAll') },
+    { label: '全选', icon: <Type size={14} />, shortcut: 'Ctrl+A', action: () => document.execCommand('selectAll') },
     { separator: true },
-    { label: '🔍 查找', shortcut: 'Ctrl+F', action: onFind },
+    { label: '查找', icon: <Search size={14} />, shortcut: 'Ctrl+F', action: onFind },
     { separator: true },
-    { label: '📝 格式化文档', action: onFormat },
+    { label: '格式化文档', icon: <Sparkles size={14} />, action: onFormat },
     { separator: true },
-    { label: '🤖 AI 改写', action: onAIRewrite },
+    { label: 'AI 改写', icon: <Bot size={14} />, action: onAIRewrite },
   ]
 
   return (
@@ -123,6 +124,7 @@ function MenuItemRow({ item, onClose }: { item: MenuItem; onClose: () => void })
         }}
         role="menuitem"
       >
+        {item.icon && <span className="flex-shrink-0">{item.icon}</span>}
         <span className="flex-1">{item.label}</span>
         {item.shortcut && <span className="text-[10px]" style={{ color: 'var(--text-menu-shortcut, var(--text-secondary))' }}>{item.shortcut}</span>}
         {hasSubmenu && <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>▶</span>}

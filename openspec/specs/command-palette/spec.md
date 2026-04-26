@@ -47,6 +47,11 @@ The system SHALL organize commands into categories and allow execution via selec
 - **THEN** the selection highlight SHALL move to the previous/next command in the filtered list
 - **AND** pressing Enter SHALL execute the currently selected command
 
+#### Scenario: Export commands display keyboard shortcuts
+- **WHEN** the command palette shows the export commands
+- **THEN** "导出为 PDF" SHALL display its keyboard shortcut `Ctrl+Shift+E` (macOS: `Cmd+Shift+E`)
+- **AND** "导出为 HTML" SHALL display its keyboard shortcut `Ctrl+Shift+W` (macOS: `Cmd+Shift+W`)
+
 ### Requirement: Command palette can be dismissed
 The system SHALL allow users to close the command palette.
 

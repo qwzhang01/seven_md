@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   Terminal, X, FilePlus, Save, SaveAll, FolderOpen, FileDown, FileCode,
-  Undo2, Redo2, Search, Replace, AlignLeft,
+  Undo2, Redo2, Search, Replace, AlignLeft, WrapText,
   Columns2, Code2, Eye, PanelLeft, ZoomIn, ZoomOut, Maximize, List,
   Table, ListChecks, Link, Image, Minus,
   Moon, Sun, Palette, Bot, PenLine, Languages,
@@ -13,7 +13,7 @@ import type { Command } from '../../stores'
 // Lucide 图标名 → 组件映射
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   FilePlus, Save, SaveAll, FolderOpen, FileDown, FileCode,
-  Undo2, Redo2, Search, Replace, AlignLeft,
+  Undo2, Redo2, Search, Replace, AlignLeft, WrapText,
   Columns2, Code2, Eye, PanelLeft, ZoomIn, ZoomOut, Maximize, List,
   Table, ListChecks, Link, Image, Minus,
   Moon, Sun, Palette, Bot, PenLine, Languages,
