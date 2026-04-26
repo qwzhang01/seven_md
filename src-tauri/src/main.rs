@@ -56,6 +56,7 @@ pub fn main() {
             get_recent_documents,
             open_in_terminal,
             reveal_in_finder,
+            create_new_window,
         ])
         .setup(|app| {
             // Initialize logger
@@ -697,4 +698,35 @@ fn get_recent_documents() -> Result<Vec<String>, String> {
     // Recent documents are managed by the frontend using localStorage
     // This command is a placeholder for potential future backend storage
     Ok(vec![])
+}
+
+/// Create a new application window
+#[tauri::command]
+async fn create_new_window(app: tauri::AppHandle) -> Result<String, String> {
+    let _ = log(LogLevel::Info, "Creating new window".to_string(), None, Some("create_new_window".to_string()));
+    
+    let label = format!("window-{}", std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis());
+    
+    let webview_url = tauri::WebviewUrl::App("index.html".into());
+    
+    match tauri::WebviewWindowBuilder::new(&app, &label, webview_url)
+        .title("Seven Markdown")
+        .inner_size(1200.0, 800.0)
+        .center()
+        .resizable(true)
+        .decorations(true)
+        .build()
+    {
+        Ok(_) => {
+            let _ = log(LogLevel::Info, format!("Window created: {}", label), None, Some("create_new_window".to_string()));
+            Ok(label)
+        }
+        Err(e) => {
+            let _ = log(LogLevel::Error, format!("Failed to create window: {}", e), None, Some("create_new_window".to_string()));
+            Err(format!("创建窗口失败: {}", e))
+        }
+    }
 }

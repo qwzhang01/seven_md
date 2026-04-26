@@ -69,31 +69,11 @@ function AppV2() {
   // 创建新窗口
   const createNewWindow = useCallback(async () => {
     try {
-      const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow')
-      const label = `window-${Date.now()}`
-      const webview = new WebviewWindow(label, {
-        title: 'Seven Markdown',
-        width: 1200,
-        height: 800,
-        center: true,
-        resizable: true,
-        decorations: true,
-      })
-      
-      webview.once('tauri://created', () => {
-        console.log('新窗口已创建:', label)
-      })
-      
-      webview.once('tauri://error', (e: unknown) => {
-        console.error('创建窗口失败', e)
-        const errorMsg = typeof e === 'object' && e !== null && 'message' in e 
-          ? String((e as { message: unknown }).message) 
-          : String(e)
-        addNotification({ type: 'error', message: `创建窗口失败: ${errorMsg}`, autoClose: true, duration: 5000 })
-      })
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('create_new_window')
     } catch (e) {
-      console.error('创建新窗口异常:', e)
-      addNotification({ type: 'error', message: `创建新窗口异常: ${e}`, autoClose: true, duration: 5000 })
+      console.error('创建新窗口失败:', e)
+      addNotification({ type: 'error', message: `创建窗口失败: ${e}`, autoClose: true, duration: 5000 })
     }
   }, [addNotification])
 
