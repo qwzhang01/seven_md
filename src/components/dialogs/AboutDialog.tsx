@@ -6,6 +6,22 @@ interface AboutDialogProps {
 }
 
 const APP_VERSION = '1.0.0'
+const APP_NAME = 'Seven Markdown'
+const APP_SLOGAN = 'Write Markdown Like Code'
+
+// ME Logo SVG with blue-purple gradient
+const MELogoSvg = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="meGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4F46E5" />
+        <stop offset="100%" stopColor="#7C3AED" />
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="12" fill="url(#meGradient)" />
+    <text x="24" y="32" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold" fontFamily="system-ui, -apple-system, sans-serif">ME</text>
+  </svg>
+)
 
 export function AboutDialog({ onClose }: AboutDialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -40,7 +56,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
         >
           <div className="flex items-center gap-2">
             <Info size={16} style={{ color: 'var(--accent)' }} />
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>关于 Seven MD</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>关于 {APP_NAME}</span>
           </div>
           <button
             className="flex items-center justify-center w-6 h-6 rounded transition-colors"
@@ -56,10 +72,15 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
         {/* Content */}
         <div className="px-5 py-6 text-center">
           {/* App icon */}
-          <div className="text-4xl mb-3">📝</div>
+          <div className="mb-3 flex justify-center">
+            <MELogoSvg />
+          </div>
 
           {/* App name */}
-          <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Seven MD</h2>
+          <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{APP_NAME}</h2>
+
+          {/* Slogan */}
+          <p className="text-xs mb-4" style={{ color: 'var(--accent)' }}>{APP_SLOGAN}</p>
 
           {/* Version */}
           <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>版本 {APP_VERSION}</p>
@@ -80,7 +101,7 @@ export function AboutDialog({ onClose }: AboutDialogProps) {
 
           {/* License */}
           <p className="text-[11px]" style={{ color: 'var(--text-tertiary, var(--text-secondary))' }}>
-            MIT License © 2024-2026 Seven MD Contributors
+            MIT License © 2024-2026 {APP_NAME} Contributors
           </p>
         </div>
       </div>

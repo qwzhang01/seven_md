@@ -188,15 +188,15 @@ The system SHALL provide a Help menu with documentation links and application in
   - Markdown 指南
   - 快捷键参考
   - Separator
-  - 关于 MD Mate
+  - About Seven Markdown
   - 检查更新
 
-#### Scenario: About dialog shows version info
-- **WHEN** user selects "关于 MD Mate"
+#### Scenario: About dialog shows Seven Markdown branding
+- **WHEN** user selects "About Seven Markdown"
 - **THEN** a modal dialog SHALL display showing:
-  - Application name: "MD Mate"
+  - Application name: "Seven Markdown"
+  - Slogan: "Write Markdown Like Code"
   - Version number
-  - Description: "The Markdown Editor for AI Era"
   - License information (MIT)
 
 ### Requirement: Menus support keyboard navigation
