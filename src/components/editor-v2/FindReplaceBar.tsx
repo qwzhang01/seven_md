@@ -13,9 +13,23 @@ export function FindReplaceBar() {
   const [caseSensitive, setCaseSensitive] = useState(false)
   const [wholeWord, setWholeWord] = useState(false)
   const [useRegex, setUseRegex] = useState(false)
+  // D1: 匹配计数状态
+  const [matchCount, setMatchCount] = useState(0)
+  const [currentMatch, setCurrentMatch] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isReplace = findReplaceMode === 'replace'
+
+  // D1: 监听编辑器发送的匹配结果更新事件
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ total: number; current: number }>).detail
+      setMatchCount(detail.total)
+      setCurrentMatch(detail.current)
+    }
+    window.addEventListener('editor:find-results', handler)
+    return () => window.removeEventListener('editor:find-results', handler)
+  }, [])
 
   // Focus input when opened
   useEffect(() => {
@@ -36,7 +50,7 @@ export function FindReplaceBar() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [findReplaceOpen, query])
+  }, [findReplaceOpen, query, caseSensitive, wholeWord, useRegex])
 
   // Dispatch find to editor
   const dispatchFind = useCallback((q: string) => {
@@ -51,19 +65,25 @@ export function FindReplaceBar() {
   }
 
   const handleNext = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:find-next'))
-  }, [])
+    window.dispatchEvent(new CustomEvent('editor:find-next', {
+      detail: { query, caseSensitive, wholeWord, useRegex }
+    }))
+  }, [query, caseSensitive, wholeWord, useRegex])
 
   const handlePrev = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:find-prev'))
-  }, [])
+    window.dispatchEvent(new CustomEvent('editor:find-prev', {
+      detail: { query, caseSensitive, wholeWord, useRegex }
+    }))
+  }, [query, caseSensitive, wholeWord, useRegex])
 
   const handleReplaceOne = useCallback(() => {
     window.dispatchEvent(new CustomEvent('editor:replace-one', { detail: replaceText }))
   }, [replaceText])
 
   const handleReplaceAll = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:replace-all', { detail: replaceText }))
+    window.dispatchEvent(new CustomEvent('editor:replace-all', {
+      detail: { query, replaceText, caseSensitive, wholeWord, useRegex }
+    }))
   }, [replaceText])
 
   if (!findReplaceOpen) return null
@@ -98,7 +118,13 @@ export function FindReplaceBar() {
             onChange={(e) => handleQueryChange(e.target.value)}
           />
         </div>
+        {/* D1: 匹配计数显示 */}
         <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
+          {query && (
+            matchCount > 0
+              ? `${currentMatch} of ${matchCount}`
+              : '无结果'
+          )}
         </span>
         <button
           className="flex items-center justify-center w-6 h-6 rounded transition-colors"

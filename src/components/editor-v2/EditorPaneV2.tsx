@@ -14,7 +14,7 @@ import { history } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { syntaxHighlighting, HighlightStyle, bracketMatching } from '@codemirror/language'
-import { search, SearchQuery, findNext, findPrevious, setSearchQuery, replaceAll } from '@codemirror/search'
+
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { tags } from '@lezer/highlight'
 import { useEditorStore, useUIStore, useThemeStore, useAIStore } from '../../stores'
@@ -154,8 +154,6 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         highlightActiveLineGutter(),
         markdown({ base: markdownLanguage, codeLanguages: languages }),
         syntaxHighlighting(highlightStyle),
-        // D1: 禁用 search 扩展的内置 UI，只使用自定义的 FindReplaceBar
-        search({ top: false }),
         bracketMatching(),
         // D4: 增强自动配对配置，添加反引号
         closeBrackets({
@@ -348,15 +346,121 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     return () => window.removeEventListener('editor:find-query', handleFindQuery)
   }, [])
 
-  // D1: 处理查找下一个/上一个事件
+  // D1: 处理查找下一个/上一个事件（纯原生实现）
   useEffect(() => {
-    const handleFindNext = () => {
+    const handleFindNext = (e: Event) => {
       if (!viewRef.current) return
-      findNext(viewRef.current)
+      const view = viewRef.current
+      const { query, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail || {}
+
+      if (!query) return
+
+      const docText = view.state.doc.toString()
+      const sel = view.state.selection.main
+
+      // 转义正则特殊字符
+      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      let pattern: RegExp
+      try {
+        if (useRegex) {
+          pattern = new RegExp(query, caseSensitive ? 'g' : 'gi')
+        } else {
+          const escaped = escapeRegex(query)
+          const flags = caseSensitive ? 'g' : 'gi'
+          pattern = wholeWord ? new RegExp(`\\b${escaped}\\b`, flags) : new RegExp(escaped, flags)
+        }
+      } catch {
+        return
+      }
+
+      // 从当前光标位置之后开始查找
+      let match: RegExpExecArray | null
+      let foundMatch = null
+
+      while ((match = pattern.exec(docText)) !== null) {
+        if (match.index > sel.head || (match.index === sel.head && sel.empty)) {
+          foundMatch = match
+          break
+        }
+        if (match.index === pattern.lastIndex) {
+          pattern.lastIndex++
+        }
+      }
+
+      // 如果没找到，从头开始找（循环）
+      if (!foundMatch) {
+        pattern.lastIndex = 0
+        while ((match = pattern.exec(docText)) !== null) {
+          foundMatch = match
+          break
+        }
+      }
+
+      if (foundMatch) {
+        view.dispatch({
+          selection: { anchor: foundMatch.index, head: foundMatch.index + foundMatch[0].length },
+          effects: EditorView.scrollIntoView(foundMatch.index, { y: 'center' }),
+        })
+      }
     }
-    const handleFindPrev = () => {
+
+    const handleFindPrev = (e: Event) => {
       if (!viewRef.current) return
-      findPrevious(viewRef.current)
+      const view = viewRef.current
+      const { query, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail || {}
+
+      if (!query) return
+
+      const docText = view.state.doc.toString()
+      const sel = view.state.selection.main
+
+      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      let pattern: RegExp
+      try {
+        if (useRegex) {
+          pattern = new RegExp(query, caseSensitive ? 'g' : 'gi')
+        } else {
+          const escaped = escapeRegex(query)
+          const flags = caseSensitive ? 'g' : 'gi'
+          pattern = wholeWord ? new RegExp(`\\b${escaped}\\b`, flags) : new RegExp(escaped, flags)
+        }
+      } catch {
+        return
+      }
+
+      // 从当前光标位置之前开始查找（反向）
+      let matches: Array<{ index: number; length: number }> = []
+      let match: RegExpExecArray | null
+
+      while ((match = pattern.exec(docText)) !== null) {
+        matches.push({ index: match.index, length: match[0].length })
+        if (match.index === pattern.lastIndex) {
+          pattern.lastIndex++
+        }
+      }
+
+      // 找到当前匹配之前的一个
+      let prevMatch = null
+      for (let i = matches.length - 1; i >= 0; i--) {
+        if (matches[i].index < sel.head) {
+          prevMatch = matches[i]
+          break
+        }
+      }
+
+      // 如果没找到，从末尾找（循环）
+      if (!prevMatch && matches.length > 0) {
+        prevMatch = matches[matches.length - 1]
+      }
+
+      if (prevMatch) {
+        view.dispatch({
+          selection: { anchor: prevMatch.index, head: prevMatch.index + prevMatch.length },
+          effects: EditorView.scrollIntoView(prevMatch.index, { y: 'center' }),
+        })
+      }
     }
 
     window.addEventListener('editor:find-next', handleFindNext)
@@ -383,14 +487,34 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     const handleReplaceAll = (e: Event) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const replaceText = (e as CustomEvent<string>).detail
-      const state = view.state
-      const sel = state.selection.main
-      if (sel.empty) return
-      const selectedText = state.sliceDoc(sel.from, sel.to)
-      const query = new SearchQuery({ search: selectedText })
-      setSearchQuery(view, query)
-      replaceAll(view, replaceText)
+      const { query, replaceText, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; replaceText: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail
+
+      if (!query) return
+
+      const docText = view.state.doc.toString()
+
+      const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+      try {
+        let pattern: RegExp
+        if (useRegex) {
+          pattern = new RegExp(query, caseSensitive ? 'g' : 'gi')
+        } else {
+          const escaped = escapeRegex(query)
+          const flags = caseSensitive ? 'g' : 'gi'
+          pattern = wholeWord ? new RegExp(`\\b${escaped}\\b`, flags) : new RegExp(escaped, flags)
+        }
+
+        const newText = docText.replace(pattern, replaceText)
+
+        if (newText !== docText) {
+          view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: newText },
+          })
+        }
+      } catch {
+        // 无效的正则表达式
+      }
     }
 
     window.addEventListener('editor:replace-one', handleReplaceOne)
