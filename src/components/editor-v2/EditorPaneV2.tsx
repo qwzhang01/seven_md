@@ -294,43 +294,33 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
 
   // Listen to clipboard events dispatched by the native menu
   // (menu-cut/copy/paste/select-all → editor:cut/copy/paste/select-all)
+  //
+  // All three handlers use document.execCommand() instead of the async
+  // navigator.clipboard API to stay on the native path:
+  //   - navigator.clipboard.readText()  → requires clipboard-read permission → dialog
+  //   - navigator.clipboard.writeText() → in Tauri WebView may append instead of
+  //     overwrite, causing content to be duplicated on repeated copies
+  // execCommand triggers the browser's native clipboard event which CodeMirror
+  // already handles correctly via its defaultKeymap bindings.
   useEffect(() => {
     const handleCopy = () => {
       if (!viewRef.current) return
-      const view = viewRef.current
-      const sel = view.state.selection.main
-      if (sel.empty) return
-      const selectedText = view.state.sliceDoc(sel.from, sel.to)
-      navigator.clipboard.writeText(selectedText).catch(() => {/* silent */})
+      viewRef.current.contentDOM.focus()
+      document.execCommand('copy')
     }
     const handleCut = () => {
       if (!viewRef.current) return
-      const view = viewRef.current
-      const sel = view.state.selection.main
-      if (sel.empty) return
-      const selectedText = view.state.sliceDoc(sel.from, sel.to)
-      navigator.clipboard.writeText(selectedText).catch(() => {/* silent */})
-      view.dispatch({
-        changes: { from: sel.from, to: sel.to, insert: '' },
-        selection: { anchor: sel.from },
-      })
-      view.focus()
+      viewRef.current.contentDOM.focus()
+      document.execCommand('cut')
     }
-    const handlePaste = async () => {
+    const handlePaste = () => {
       if (!viewRef.current) return
-      const view = viewRef.current
-      try {
-        const text = await navigator.clipboard.readText()
-        if (!text) return
-        const { from, to } = view.state.selection.main
-        view.dispatch({
-          changes: { from, to, insert: text },
-          selection: { anchor: from + text.length },
-        })
-        view.focus()
-      } catch {
-        // Silent: do not fallback to execCommand('paste') which triggers browser paste UI
-      }
+      // Use document.execCommand('paste') instead of navigator.clipboard.readText()
+      // because readText() requires the clipboard-read permission which triggers a
+      // browser permission dialog in Tauri's WebView. execCommand('paste') triggers
+      // the native paste event directly without a permission prompt.
+      viewRef.current.contentDOM.focus()
+      document.execCommand('paste')
     }
     const handleSelectAll = () => {
       if (!viewRef.current) return

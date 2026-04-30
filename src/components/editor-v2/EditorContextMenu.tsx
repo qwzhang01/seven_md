@@ -82,9 +82,9 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
   ]
 
   const menuItems: MenuItem[] = [
-    { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => document.execCommand('cut') },
-    { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => document.execCommand('copy') },
-    { label: '粘贴', icon: <FileText size={14} />, shortcut: 'Ctrl+V', action: () => document.execCommand('paste') },
+    { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => window.dispatchEvent(new CustomEvent('editor:cut')) },
+    { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => window.dispatchEvent(new CustomEvent('editor:copy')) },
+    { label: '粘贴', icon: <FileText size={14} />, shortcut: 'Ctrl+V', action: () => window.dispatchEvent(new CustomEvent('editor:paste')) },
     { separator: true },
     { label: '插入', icon: <Plus size={14} />, submenu: insertItems },
     { separator: true },

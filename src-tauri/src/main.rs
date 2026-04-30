@@ -9,6 +9,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Manager, Emitter};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 
+/// Holds the app handle so commands can update the native menu.
+struct AppHandleState {
+    handle: tauri::AppHandle,
+}
+
 /// Holds the active file system watcher thread's stop flag.
 struct WatcherState {
     stop_flag: Option<Arc<AtomicBool>>,
@@ -54,6 +59,7 @@ pub fn main() {
             add_recent_document,
             clear_recent_documents,
             get_recent_documents,
+            update_recent_menu,
             open_in_terminal,
             reveal_in_finder,
             create_new_window,
@@ -78,9 +84,44 @@ pub fn main() {
             let open_folder = MenuItem::with_id(app, "open_folder", "打开文件夹", true, None::<&str>)?;
             let close_folder = MenuItem::with_id(app, "close_folder", "关闭文件夹", true, None::<&str>)?;
 
-            // Recent documents submenu
+            // Recent documents submenu — load from file on startup for dynamic menu
             let clear_recent = MenuItem::with_id(app, "clear_recent", "清除菜单", true, None::<&str>)?;
-            let recent_submenu = Submenu::with_items(app, "最近文档", true, &[&clear_recent])?;
+
+            // Load persisted recent documents from app_data_dir/recent_documents.json
+            let recent_paths: Vec<String> = {
+                let data_dir = app.handle().path().app_data_dir()
+                    .unwrap_or_default();
+                let file_path = data_dir.join("recent_documents.json");
+                fs::read_to_string(&file_path)
+                    .ok()
+                    .and_then(|s| serde_json::from_str(&s).ok())
+                    .unwrap_or_default()
+            };
+
+            // Build recent submenu items dynamically
+            let recent_submenu = {
+                let mut recent_items: Vec<Box<dyn tauri::menu::IsMenuItem<tauri::Wry>>> = Vec::new();
+                for path in recent_paths.iter().take(10) {
+                    let name = path.split('/').last().unwrap_or(path.as_str()).to_string();
+                    let id = format!("recent_doc_{}", path);
+                    if let Ok(item) = MenuItem::with_id(app, id, name, true, None::<&str>) {
+                        recent_items.push(Box::new(item));
+                    }
+                }
+                let sep = PredefinedMenuItem::separator(app)?;
+                let mut all_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = recent_items
+                    .iter()
+                    .map(|b| b.as_ref() as &dyn tauri::menu::IsMenuItem<tauri::Wry>)
+                    .collect();
+                if !recent_paths.is_empty() {
+                    all_refs.push(&sep);
+                }
+                all_refs.push(&clear_recent);
+                Submenu::with_items(app, "最近文档", true, &all_refs)?
+            };
+
+            // Store app handle for later use by update_recent_menu command
+            app.manage(AppHandleState { handle: app.handle().clone() });
 
             let save = MenuItem::with_id(app, "save", "保存", true, Some("CmdOrCtrl+S"))?;
             let save_all = MenuItem::with_id(app, "save_all", "全部保存", true, Some("CmdOrCtrl+Alt+S"))?;
@@ -422,6 +463,11 @@ pub fn main() {
                     "open_folder" => { let _ = app_handle.emit("menu-open-folder", ()); }
                     "close_folder" => { let _ = app_handle.emit("menu-close-folder", ()); }
                     "clear_recent" => { let _ = app_handle.emit("menu-clear-recent", ()); }
+                    id if id.starts_with("recent_doc_") => {
+                        // Extract the path encoded after the prefix
+                        let path = id.trim_start_matches("recent_doc_").to_string();
+                        let _ = app_handle.emit("menu-open-recent-doc", path);
+                    }
                     "save" => { let _ = app_handle.emit("menu-save", ()); }
                     "save_all" => { let _ = app_handle.emit("menu-save-all", ()); }
                     "save_as" => { let _ = app_handle.emit("menu-save-as", ()); }
@@ -677,6 +723,29 @@ fn stop_fs_watch(
     state.stop();
 
     let _ = log(LogLevel::Info, "fs watch stopped".to_string(), None, Some("stop_fs_watch".to_string()));
+    Ok(())
+}
+
+/// Persist recent documents to app_data_dir/recent_documents.json
+/// and emit an event so all windows stay in sync.
+/// The native menu is rebuilt on next app launch from this file.
+#[tauri::command]
+fn update_recent_menu(
+    state: tauri::State<AppHandleState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let app = &state.handle;
+
+    // Persist to file so the menu is correct on next app launch
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let file_path = data_dir.join("recent_documents.json");
+    let json = serde_json::to_string(&paths).map_err(|e| e.to_string())?;
+    fs::write(&file_path, json).map_err(|e| e.to_string())?;
+
+    // Emit so all windows stay in sync
+    let _ = app.emit("menu-recent-docs-updated", &paths);
+
     Ok(())
 }
 

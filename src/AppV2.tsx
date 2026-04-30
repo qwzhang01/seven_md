@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 // Keyboard shortcuts hook
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -52,6 +53,9 @@ function addRecentDocument(path: string, type: 'file' | 'folder') {
     // Add to top
     const updated = [{ path, name, lastOpened: Date.now(), type }, ...filtered].slice(0, MAX_RECENT_DOCS)
     localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(updated))
+    // Sync paths to Rust backend so the native menu is updated on next launch
+    const paths = updated.map((f) => f.path)
+    invoke('update_recent_menu', { paths }).catch((e) => console.warn('update_recent_menu failed:', e))
   } catch (e) {
     console.error('Failed to save recent document', e)
   }
@@ -141,7 +145,22 @@ function AppV2() {
     }
   }, [activeTab, setTabDirty, addNotification])
 
+  // Stable refs so the menu-listener useEffect (dep=[]) can always call the
+  // latest version of these callbacks without re-registering listeners.
+  const handleOpenFileRef = useRef(handleOpenFile)
+  const handleSaveFileRef = useRef(handleSaveFile)
+  const openTabRef = useRef(openTab)
+  const addNotificationRef = useRef(addNotification)
+  const createNewWindowRef = useRef(createNewWindow)
+  useEffect(() => { handleOpenFileRef.current = handleOpenFile }, [handleOpenFile])
+  useEffect(() => { handleSaveFileRef.current = handleSaveFile }, [handleSaveFile])
+  useEffect(() => { openTabRef.current = openTab }, [openTab])
+  useEffect(() => { addNotificationRef.current = addNotification }, [addNotification])
+  useEffect(() => { createNewWindowRef.current = createNewWindow }, [createNewWindow])
+
   // 监听原生菜单事件 + 文件系统变更事件
+  // IMPORTANT: dep=[] so listeners are registered exactly once.
+  // Callbacks are accessed via refs to always use the latest version.
   useEffect(() => {
     const unlisteners: Array<() => void> = []
 
@@ -172,7 +191,21 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-clear-recent', () => {
         localStorage.removeItem('recent-documents')
+        // Sync cleared list to backend
+        invoke('update_recent_menu', { paths: [] }).catch(() => {})
         addNotification({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
+      }))
+      // Handle native menu click on a recent document item
+      unlisteners.push(await listen<string>('menu-open-recent-doc', async (event) => {
+        const path = event.payload
+        if (!path) return
+        try {
+          const content = await readFile(path)
+          openTab(path, content)
+          addRecentDocument(path, 'file')
+        } catch (err) {
+          addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
+        }
       }))
       unlisteners.push(await listen('menu-save', () => handleSaveFile()))
       unlisteners.push(await listen('menu-save-all', () => {

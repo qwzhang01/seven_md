@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: File operations support extended actions including export
-The system SHALL provide comprehensive file operations including create, open, save, export, and manage.
+The system SHALL provide comprehensive file operations including create, open, save, export, and manage. Opening a file or folder SHALL also record it in the recent documents list.
 
 #### Scenario: Create new file (enhanced)
 - **WHEN** user selects "新建文件" (Ctrl+N)
@@ -14,11 +14,18 @@ The system SHALL provide comprehensive file operations including create, open, s
 - **THEN** a completely new MD Mate application window SHALL be opened
 - **AND** the new window SHALL be independent (separate state)
 
-#### Scenario: Open folder populates workspace
+#### Scenario: Open file records to recent documents
+- **WHEN** user selects "打开文件" (Ctrl+O) and selects a file
+- **AND** the file is successfully read from disk
+- **THEN** the file SHALL be opened in a new editor tab
+- **AND** the file path SHALL be recorded in `localStorage` under key `recent-documents`
+- **AND** the entry SHALL appear at the top of the recent documents list
+
+#### Scenario: Open folder records to recent documents
 - **WHEN** user selects "打开文件夹" from File menu
 - **THEN** a native folder picker dialog SHALL appear
 - **AND** upon selection, the folder contents SHALL populate the explorer's workspace tree view
-- **AND** this becomes the root workspace for file browsing
+- **AND** the folder path SHALL be recorded in `localStorage` under key `recent-documents`
 
 #### Scenario: Save As creates new copy
 - **WHEN** user selects "另存为" (Ctrl+Shift+S)
