@@ -1,0 +1,188 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - build
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build for ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            arch: aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos
+            arch: x64
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - platform: windows
+            arch: x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: linux
+            arch: x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-cargo-
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="build-${GITHUB_SHA::7}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using version: ${VERSION}"
+
+      - name: Build application
+        run: npx tauri build --target ${{ matrix.target }}
+
+      - name: Collect and rename artifacts (Unix)
+        if: matrix.platform != 'windows'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -eux
+          mkdir -p dist
+          BUNDLE_DIR="src-tauri/target/${TARGET}/release/bundle"
+
+          # macOS: dmg
+          if [[ "${PLATFORM}" == "macos" ]]; then
+            for f in "${BUNDLE_DIR}"/dmg/*.dmg; do
+              [ -e "$f" ] || continue
+              cp "$f" "dist/SevenMarkdown-${VERSION}-${PLATFORM}-${ARCH}.dmg"
+            done
+          fi
+
+          # Linux: deb + AppImage
+          if [[ "${PLATFORM}" == "linux" ]]; then
+            for f in "${BUNDLE_DIR}"/deb/*.deb; do
+              [ -e "$f" ] || continue
+              cp "$f" "dist/SevenMarkdown-${VERSION}-${PLATFORM}-${ARCH}.deb"
+            done
+            for f in "${BUNDLE_DIR}"/appimage/*.AppImage; do
+              [ -e "$f" ] || continue
+              cp "$f" "dist/SevenMarkdown-${VERSION}-${PLATFORM}-${ARCH}.AppImage"
+            done
+          fi
+
+          echo "Collected artifacts:"
+          ls -la dist/
+
+      - name: Collect and rename artifacts (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          ARCH: ${{ matrix.arch }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $bundleDir = "src-tauri/target/$env:TARGET/release/bundle"
+
+          Get-ChildItem -Path "$bundleDir/msi" -Filter *.msi -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName -Destination "dist/SevenMarkdown-$env:VERSION-$env:PLATFORM-$env:ARCH.msi"
+          }
+          Get-ChildItem -Path "$bundleDir/nsis" -Filter *-setup.exe -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName -Destination "dist/SevenMarkdown-$env:VERSION-$env:PLATFORM-$env:ARCH-setup.exe"
+          }
+
+          Write-Host "Collected artifacts:"
+          Get-ChildItem dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SevenMarkdown-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-and-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -la artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

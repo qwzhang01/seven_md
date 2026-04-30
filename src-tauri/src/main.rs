@@ -2,7 +2,9 @@ mod logger;
 mod commands;
 
 use logger::{init_logger, write_log, read_logs, get_log_dates, log, LogLevel};
-use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal, reveal_in_finder};
+use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal};
+#[cfg(target_os = "macos")]
+use commands::reveal_in_finder;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -61,6 +63,7 @@ pub fn main() {
             get_recent_documents,
             update_recent_menu,
             open_in_terminal,
+            #[cfg(target_os = "macos")]
             reveal_in_finder,
             create_new_window,
         ])

@@ -153,6 +153,16 @@ npm run tauri:build
 
 构建产物位于 `src-tauri/target/release/bundle/`。Windows 用户可参阅 [Windows 安装指南](docs/windows-installation-guide.md)。
 
+### GitHub Actions 自动构建
+
+项目配置了 GitHub Actions 自动构建流程，支持多平台发布：
+
+- **触发条件**: 推送 `v*` 格式的标签（如 `v1.0.0`）
+- **支持平台**: macOS、Windows、Linux
+- **构建产物**: 自动创建 GitHub Release 并上传安装包
+
+详细使用说明请参阅 [GitHub Actions 文档](.github/workflows/README.md)。
+
 ### 常用命令
 
 | 命令 | 说明 |
