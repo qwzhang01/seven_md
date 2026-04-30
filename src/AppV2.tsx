@@ -176,9 +176,9 @@ function AppV2() {
       }))
 
       // --- File 菜单事件 ---
-      unlisteners.push(await listen('menu-new-file', () => openTab(null, '')))
-      unlisteners.push(await listen('menu-new-window', () => createNewWindow()))
-      unlisteners.push(await listen('menu-open-file', () => handleOpenFile()))
+      unlisteners.push(await listen('menu-new-file', () => openTabRef.current(null, '')))
+      unlisteners.push(await listen('menu-new-window', () => createNewWindowRef.current()))
+      unlisteners.push(await listen('menu-open-file', () => handleOpenFileRef.current()))
       unlisteners.push(await listen('menu-open-folder', async () => {
         await useWorkspaceStore.getState().openFolder()
         const folderPath = useWorkspaceStore.getState().folderPath
@@ -193,21 +193,49 @@ function AppV2() {
         localStorage.removeItem('recent-documents')
         // Sync cleared list to backend
         invoke('update_recent_menu', { paths: [] }).catch(() => {})
-        addNotification({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
+        addNotificationRef.current({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
       }))
       // Handle native menu click on a recent document item
       unlisteners.push(await listen<string>('menu-open-recent-doc', async (event) => {
         const path = event.payload
         if (!path) return
+        // Look up the type from localStorage recent-documents list
+        let itemType: 'file' | 'folder' = 'file'
         try {
-          const content = await readFile(path)
-          openTab(path, content)
-          addRecentDocument(path, 'file')
+          const stored = localStorage.getItem('recent-documents')
+          if (stored) {
+            const docs = JSON.parse(stored) as Array<{ path: string; type?: 'file' | 'folder' }>
+            const found = docs.find((d) => d.path === path)
+            if (found?.type === 'folder') itemType = 'folder'
+          }
+        } catch {
+          // ignore parse errors, default to 'file'
+        }
+        try {
+          if (itemType === 'folder') {
+            const { readDirectory, startFsWatch } = await import('./tauriCommands')
+            const nodes = await readDirectory(path)
+            const newTree = new Map<string, import('./types').FileTreeNode[]>()
+            newTree.set(path, nodes)
+            useWorkspaceStore.setState({
+              folderPath: path,
+              folderTree: newTree,
+              expandedDirs: new Set(),
+              rootNodes: nodes,
+              isLoading: false,
+            })
+            await startFsWatch(path)
+            addRecentDocument(path, 'folder')
+          } else {
+            const content = await readFile(path)
+            openTabRef.current(path, content)
+            addRecentDocument(path, 'file')
+          }
         } catch (err) {
-          addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
+          addNotificationRef.current({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
         }
       }))
-      unlisteners.push(await listen('menu-save', () => handleSaveFile()))
+      unlisteners.push(await listen('menu-save', () => handleSaveFileRef.current()))
       unlisteners.push(await listen('menu-save-all', () => {
         // 保存所有已修改的文件
         const tabs = useFileStore.getState().tabs
@@ -217,7 +245,7 @@ function AppV2() {
             useFileStore.getState().setTabDirty(tab.id, false)
           }
         })
-        addNotification({ type: 'success', message: '所有文件已保存', autoClose: true, duration: 2000 })
+        addNotificationRef.current({ type: 'success', message: '所有文件已保存', autoClose: true, duration: 2000 })
       }))
       unlisteners.push(await listen('menu-save-as', () => {
         // 另存为：与 handleSaveFile 类似但总是弹出保存对话框
@@ -232,10 +260,10 @@ function AppV2() {
           if (selected) {
             await saveFile(selected as string, activeTab.content)
             useFileStore.getState().updateTabPath(activeTab.id, selected as string)
-            addNotification({ type: 'success', message: '文件已保存', autoClose: true, duration: 2000 })
+            addNotificationRef.current({ type: 'success', message: '文件已保存', autoClose: true, duration: 2000 })
           }
         }).catch((e) => {
-          addNotification({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
+          addNotificationRef.current({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
         })
       }))
       unlisteners.push(await listen('menu-export-pdf', () => {
@@ -432,19 +460,19 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-check-update', async () => {
         try {
-          addNotification({ type: 'info', message: '正在检查更新...', autoClose: false, duration: 0 })
+          addNotificationRef.current({ type: 'info', message: '正在检查更新...', autoClose: false, duration: 0 })
           // 获取当前版本
           const currentVersion = '0.1.0'
           // 简单实现：显示当前版本信息
           // 后期可接入真正的版本检查 API
-          addNotification({
+          addNotificationRef.current({
             type: 'success',
             message: `当前已是最新版本 v${currentVersion}`,
             autoClose: true,
             duration: 3000
           })
         } catch (e) {
-          addNotification({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
+          addNotificationRef.current({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
         }
       }))
     }
@@ -457,7 +485,8 @@ function AppV2() {
         clearTimeout(refreshTimerRef.current)
       }
     }
-  }, [handleOpenFile, handleSaveFile, openTab, addNotification, createNewWindow])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle export-pdf via window.print()
   useEffect(() => {
@@ -495,15 +524,34 @@ function AppV2() {
     }
   }, [openTab, handleOpenFile, addNotification])
 
-  // Handle app:open-recent — open a file from the recent documents list
+  // Handle app:open-recent — open a file or folder from the recent documents list
   useEffect(() => {
     const handler = async (e: Event) => {
-      const path = (e as CustomEvent<string>).detail
+      const detail = (e as CustomEvent<{ path: string; type: 'file' | 'folder' } | string>).detail
+      // Support both new { path, type } format and legacy string format
+      const path = typeof detail === 'string' ? detail : detail?.path
+      const type = typeof detail === 'string' ? 'file' : (detail?.type ?? 'file')
       if (!path) return
       try {
-        const content = await readFile(path)
-        openTab(path, content)
-        addRecentDocument(path, 'file')
+        if (type === 'folder') {
+          const { readDirectory, startFsWatch } = await import('./tauriCommands')
+          const nodes = await readDirectory(path)
+          const newTree = new Map<string, import('./types').FileTreeNode[]>()
+          newTree.set(path, nodes)
+          useWorkspaceStore.setState({
+            folderPath: path,
+            folderTree: newTree,
+            expandedDirs: new Set(),
+            rootNodes: nodes,
+            isLoading: false,
+          })
+          await startFsWatch(path)
+          addRecentDocument(path, 'folder')
+        } else {
+          const content = await readFile(path)
+          openTab(path, content)
+          addRecentDocument(path, 'file')
+        }
       } catch (err) {
         addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
       }

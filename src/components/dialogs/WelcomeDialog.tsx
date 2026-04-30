@@ -16,6 +16,7 @@ interface RecentDoc {
   path: string
   name: string
   lastOpened: number
+  type: 'file' | 'folder'
 }
 
 // 获取最近文档
@@ -104,8 +105,8 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
   }
 
   // 打开最近文档
-  const handleOpenRecent = (path: string) => {
-    window.dispatchEvent(new CustomEvent('app:open-recent', { detail: path }))
+  const handleOpenRecent = (path: string, type: 'file' | 'folder') => {
+    window.dispatchEvent(new CustomEvent('app:open-recent', { detail: { path, type } }))
     onClose()
   }
 
@@ -123,7 +124,7 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
-    
+
     if (minutes < 1) return '刚刚'
     if (minutes < 60) return `${minutes} 分钟前`
     if (hours < 24) return `${hours} 小时前`
@@ -195,8 +196,8 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
             <div className="grid grid-cols-3 gap-2">
               <button
                 className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors"
-                style={{ 
-                  background: 'var(--bg-secondary)', 
+                style={{
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-primary)',
                   cursor: 'pointer'
                 }}
@@ -209,8 +210,8 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
               </button>
               <button
                 className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors"
-                style={{ 
-                  background: 'var(--bg-secondary)', 
+                style={{
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-primary)',
                   cursor: 'pointer'
                 }}
@@ -223,8 +224,8 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
               </button>
               <button
                 className="flex flex-col items-center gap-1.5 p-3 rounded-lg transition-colors"
-                style={{ 
-                  background: 'var(--bg-secondary)', 
+                style={{
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-primary)',
                   cursor: 'pointer'
                 }}
@@ -252,16 +253,19 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
                   <button
                     key={doc.path}
                     className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
-                    style={{ 
+                    style={{
                       background: 'var(--bg-secondary)',
                       borderBottom: index < recentDocs.length - 1 ? '1px solid var(--border-primary)' : 'none',
                       cursor: 'pointer'
                     }}
-                    onClick={() => handleOpenRecent(doc.path)}
+                    onClick={() => handleOpenRecent(doc.path, doc.type)}
                     onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
                   >
-                    <FileText size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                    {doc.type === 'folder'
+                      ? <FolderOpen size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                      : <FileText size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                    }
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                         {doc.name}
