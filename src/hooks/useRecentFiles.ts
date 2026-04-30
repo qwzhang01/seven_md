@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('useRecentFiles');
-const STORAGE_KEY = 'seven-md:recent-files';
+const STORAGE_KEY = 'recent-documents';
 const MAX_RECENT_FILES = 10;
 
 export interface RecentFile {
@@ -33,16 +33,18 @@ export const useRecentFiles = () => {
   useEffect(() => {
     if (recentFiles.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(recentFiles));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
     }
   }, [recentFiles]);
 
   const addRecentFile = useCallback((path: string, type: 'file' | 'folder') => {
     const name = path.split('/').pop() || path;
-    
+
     setRecentFiles(prev => {
       // Remove if already exists
       const filtered = prev.filter(f => f.path !== path);
-      
+
       // Add new file at the beginning
       const newFile: RecentFile = {
         path,
@@ -50,7 +52,7 @@ export const useRecentFiles = () => {
         lastOpened: Date.now(),
         type
       };
-      
+
       // Keep only the last MAX_RECENT_FILES
       return [newFile, ...filtered].slice(0, MAX_RECENT_FILES);
     });

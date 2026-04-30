@@ -30,6 +30,8 @@ interface FileState {
   closeOtherTabs: (tabId: string) => void
   closeTabsToLeft: (tabId: string) => void
   closeTabsToRight: (tabId: string) => void
+  switchToNextTab: () => void
+  switchToPrevTab: () => void
   getActiveTab: () => FileTab | null
 }
 
@@ -189,6 +191,22 @@ export const useFileStore = create<FileState>()((set, get) => ({
     if (idx === -1 || idx === state.tabs.length - 1) return
     const toClose = state.tabs.slice(idx + 1)
     toClose.forEach((t) => get().closeTab(t.id))
+  },
+
+  switchToNextTab: () => {
+    const state = get()
+    if (state.tabs.length <= 1) return
+    const idx = state.tabs.findIndex((t) => t.id === state.activeTabId)
+    const nextIdx = (idx + 1) % state.tabs.length
+    set({ activeTabId: state.tabs[nextIdx].id })
+  },
+
+  switchToPrevTab: () => {
+    const state = get()
+    if (state.tabs.length <= 1) return
+    const idx = state.tabs.findIndex((t) => t.id === state.activeTabId)
+    const prevIdx = (idx - 1 + state.tabs.length) % state.tabs.length
+    set({ activeTabId: state.tabs[prevIdx].id })
   },
 
   getActiveTab: () => {

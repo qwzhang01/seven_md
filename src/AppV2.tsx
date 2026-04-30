@@ -36,6 +36,27 @@ import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEdito
 import type { ThemeId } from './stores/useThemeStore'
 import { readFile, saveFile } from './tauriCommands'
 
+// ---- Recent Documents Utility ----
+const RECENT_DOCS_KEY = 'recent-documents'
+const MAX_RECENT_DOCS = 10
+
+function addRecentDocument(path: string, type: 'file' | 'folder') {
+  try {
+    const name = path.split('/').pop() || path
+    const stored = localStorage.getItem(RECENT_DOCS_KEY)
+    const existing: Array<{ path: string; name: string; lastOpened: number; type: string }> = stored
+      ? JSON.parse(stored)
+      : []
+    // Remove duplicate
+    const filtered = existing.filter((f) => f.path !== path)
+    // Add to top
+    const updated = [{ path, name, lastOpened: Date.now(), type }, ...filtered].slice(0, MAX_RECENT_DOCS)
+    localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(updated))
+  } catch (e) {
+    console.error('Failed to save recent document', e)
+  }
+}
+
 // Commands registration
 import { registerAllCommands } from './commands'
 
@@ -44,7 +65,7 @@ const MAX_EDITOR_WIDTH_RATIO = 0.85
 
 function AppV2() {
   const ui = useUIStore()
-  const { tabs, openTab, closeTab, updateTabContent, setTabDirty, getActiveTab } = useFileStore()
+  const { tabs, openTab, closeTab, updateTabContent, setTabDirty, getActiveTab, switchToNextTab, switchToPrevTab } = useFileStore()
   const theme = useThemeStore((s) => s.currentTheme)
   const { addNotification } = useNotificationStore()
   const editorStore = useEditorStore()
@@ -87,6 +108,7 @@ function AppV2() {
       if (selected) {
         const content = await readFile(selected as string)
         openTab(selected as string, content)
+        addRecentDocument(selected as string, 'file')
       }
     } catch (e) {
       addNotification({ type: 'error', message: `打开文件失败: ${e}`, autoClose: true, duration: 5000 })
@@ -138,8 +160,12 @@ function AppV2() {
       unlisteners.push(await listen('menu-new-file', () => openTab(null, '')))
       unlisteners.push(await listen('menu-new-window', () => createNewWindow()))
       unlisteners.push(await listen('menu-open-file', () => handleOpenFile()))
-      unlisteners.push(await listen('menu-open-folder', () => {
-        useWorkspaceStore.getState().openFolder()
+      unlisteners.push(await listen('menu-open-folder', async () => {
+        await useWorkspaceStore.getState().openFolder()
+        const folderPath = useWorkspaceStore.getState().folderPath
+        if (folderPath) {
+          addRecentDocument(folderPath, 'folder')
+        }
       }))
       unlisteners.push(await listen('menu-close-folder', () => {
         useWorkspaceStore.getState().closeFolder()
@@ -295,6 +321,12 @@ function AppV2() {
         const isFullscreen = await win.isFullscreen()
         await win.setFullscreen(!isFullscreen)
       }))
+      unlisteners.push(await listen('menu-next-tab', () => {
+        useFileStore.getState().switchToNextTab()
+      }))
+      unlisteners.push(await listen('menu-prev-tab', () => {
+        useFileStore.getState().switchToPrevTab()
+      }))
 
       // --- Insert 菜单事件 ---
       const insertMap: Record<string, string> = {
@@ -402,6 +434,50 @@ function AppV2() {
     window.addEventListener('app:export-pdf', handler)
     return () => window.removeEventListener('app:export-pdf', handler)
   }, [])
+
+  // Handle WelcomeDialog quick-action events
+  useEffect(() => {
+    // app:new-file — create a new empty tab
+    const onNewFile = () => openTab(null, '')
+
+    // app:open-file — open file picker dialog (reuse the existing handleOpenFile callback)
+    const onOpenFile = () => handleOpenFile()
+
+    // app:open-folder — open folder picker dialog
+    const onOpenFolder = async () => {
+      await useWorkspaceStore.getState().openFolder()
+      const folderPath = useWorkspaceStore.getState().folderPath
+      if (folderPath) {
+        addRecentDocument(folderPath, 'folder')
+      }
+    }
+
+    window.addEventListener('app:new-file', onNewFile)
+    window.addEventListener('app:open-file', onOpenFile)
+    window.addEventListener('app:open-folder', onOpenFolder)
+    return () => {
+      window.removeEventListener('app:new-file', onNewFile)
+      window.removeEventListener('app:open-file', onOpenFile)
+      window.removeEventListener('app:open-folder', onOpenFolder)
+    }
+  }, [openTab, handleOpenFile, addNotification])
+
+  // Handle app:open-recent — open a file from the recent documents list
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const path = (e as CustomEvent<string>).detail
+      if (!path) return
+      try {
+        const content = await readFile(path)
+        openTab(path, content)
+        addRecentDocument(path, 'file')
+      } catch (err) {
+        addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
+      }
+    }
+    window.addEventListener('app:open-recent', handler)
+    return () => window.removeEventListener('app:open-recent', handler)
+  }, [openTab, addNotification])
 
   // Handle window resize: auto-adjust sidebar and layout
   useEffect(() => {
@@ -540,7 +616,23 @@ function AppV2() {
       description: '关闭面板',
       preventDefault: false,
     },
-  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen, createNewWindow])
+
+    // === 标签页导航 ===
+    { key: 'Tab', ctrlKey: true, action: () => switchToNextTab(), description: '下一个标签页', preventDefault: true },
+    { key: 'Tab', ctrlKey: true, shiftKey: true, action: () => switchToPrevTab(), description: '上一个标签页', preventDefault: true },
+    {
+      key: 'ArrowLeft', altKey: true,
+      action: () => { if (!ui.editorFocused) switchToPrevTab() },
+      description: '上一个标签页（非编辑器焦点）',
+      preventDefault: false,
+    },
+    {
+      key: 'ArrowRight', altKey: true,
+      action: () => { if (!ui.editorFocused) switchToNextTab() },
+      description: '下一个标签页（非编辑器焦点）',
+      preventDefault: false,
+    },
+  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen, createNewWindow, switchToNextTab, switchToPrevTab])
 
   useKeyboardShortcuts(shortcuts)
 

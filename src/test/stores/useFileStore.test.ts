@@ -251,4 +251,99 @@ describe('useFileStore', () => {
     })
   })
 
+  // ── Tab navigation ───────────────────────────────────────────────────────
+
+  describe('switchToNextTab', () => {
+    it('切换到下一个标签页', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      // activeTabId is idC (last opened)
+      act(() => { useFileStore.getState().switchTab(idA) })
+      act(() => { useFileStore.getState().switchToNextTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idB)
+    })
+
+    it('从最后一个标签循环到第一个', () => {
+      let idA!: string, idB!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+      })
+      // activeTabId is idB
+      act(() => { useFileStore.getState().switchToNextTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idA)
+    })
+
+    it('只有一个标签时不切换', () => {
+      let idA!: string
+      act(() => { idA = useFileStore.getState().openTab(null, 'a') })
+      act(() => { useFileStore.getState().switchToNextTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idA)
+    })
+
+    it('没有标签时不报错', () => {
+      expect(() => {
+        act(() => { useFileStore.getState().switchToNextTab() })
+      }).not.toThrow()
+    })
+  })
+
+  describe('switchToPrevTab', () => {
+    it('切换到上一个标签页', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      // activeTabId is idC
+      act(() => { useFileStore.getState().switchToPrevTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idB)
+    })
+
+    it('从第一个标签循环到最后一个', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      act(() => { useFileStore.getState().switchTab(idA) })
+      act(() => { useFileStore.getState().switchToPrevTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idC)
+    })
+
+    it('只有一个标签时不切换', () => {
+      let idA!: string
+      act(() => { idA = useFileStore.getState().openTab(null, 'a') })
+      act(() => { useFileStore.getState().switchToPrevTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idA)
+    })
+
+    it('没有标签时不报错', () => {
+      expect(() => {
+        act(() => { useFileStore.getState().switchToPrevTab() })
+      }).not.toThrow()
+    })
+  })
+
+  describe('switchToNextTab + switchToPrevTab 互为逆操作', () => {
+    it('next 后 prev 回到原始标签', () => {
+      let idA!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        useFileStore.getState().openTab(null, 'b')
+        useFileStore.getState().openTab(null, 'c')
+      })
+      act(() => { useFileStore.getState().switchTab(idA) })
+      act(() => { useFileStore.getState().switchToNextTab() })
+      act(() => { useFileStore.getState().switchToPrevTab() })
+      expect(useFileStore.getState().activeTabId).toBe(idA)
+    })
+  })
+
 })

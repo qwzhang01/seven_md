@@ -295,15 +295,26 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
   // Listen to clipboard events dispatched by the native menu
   // (menu-cut/copy/paste/select-all → editor:cut/copy/paste/select-all)
   useEffect(() => {
-    const handleCut = () => {
-      if (!viewRef.current) return
-      viewRef.current.focus()
-      viewRef.current.dom.dispatchEvent(new ClipboardEvent('cut', { bubbles: true, cancelable: true }))
-    }
     const handleCopy = () => {
       if (!viewRef.current) return
-      viewRef.current.focus()
-      viewRef.current.dom.dispatchEvent(new ClipboardEvent('copy', { bubbles: true, cancelable: true }))
+      const view = viewRef.current
+      const sel = view.state.selection.main
+      if (sel.empty) return
+      const selectedText = view.state.sliceDoc(sel.from, sel.to)
+      navigator.clipboard.writeText(selectedText).catch(() => {/* silent */})
+    }
+    const handleCut = () => {
+      if (!viewRef.current) return
+      const view = viewRef.current
+      const sel = view.state.selection.main
+      if (sel.empty) return
+      const selectedText = view.state.sliceDoc(sel.from, sel.to)
+      navigator.clipboard.writeText(selectedText).catch(() => {/* silent */})
+      view.dispatch({
+        changes: { from: sel.from, to: sel.to, insert: '' },
+        selection: { anchor: sel.from },
+      })
+      view.focus()
     }
     const handlePaste = async () => {
       if (!viewRef.current) return
@@ -318,9 +329,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         })
         view.focus()
       } catch {
-        // Fallback: focus the editor and let the browser handle paste natively
-        view.focus()
-        document.execCommand('paste')
+        // Silent: do not fallback to execCommand('paste') which triggers browser paste UI
       }
     }
     const handleSelectAll = () => {

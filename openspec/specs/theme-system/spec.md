@@ -1,23 +1,7 @@
-## ADDED Requirements
-
-### Requirement: System provides seven built-in color themes
-The system SHALL ship with seven built-in color themes for the entire application.
-
-#### Scenario: Available themes
-- **WHEN** the theme settings are accessed (via Theme menu or command palette)
-- **THEN** the following themes SHALL be available:
-  | ID | Name | Style | Background |
-  |----|------|-------|------------|
-  | dark | Dark | 深色 (默认) | #1e1e1e |
-  | light | Light | 浅色 | #ffffff |
-  | monokai | Monokai | 经典深色 | #272822 |
-  | solarized | Solarized | 暖色调 Dark: #002b36 / Light: #fdf6e3 |
-  | nord | Nord | 冷色调 | #2e3440 |
-  | dracula | Dracula | 紫色调 | #282a36 |
-  | github | GitHub | 浅色简洁 | #ffffff |
+## MODIFIED Requirements
 
 ### Requirement: Theme switching applies globally and immediately
-The system SHALL apply the selected theme to all UI components instantly.
+The system SHALL apply the selected theme to all UI components instantly, including the CodeMirror editor area.
 
 #### Scenario: Switch theme from menu
 - **WHEN** user selects a theme from the Theme menu or command palette
@@ -27,7 +11,7 @@ The system SHALL apply the selected theme to all UI components instantly.
   - Toolbar (background, button states)
   - Activity bar (icons, active indicators)
   - Sidebar (background, text, borders)
-  - Editor area (background, gutter, syntax colors)
+  - **Editor area (background, gutter background, gutter text, cursor, line highlight, selection, syntax highlighting colors)**
   - Preview area (background, heading colors, code blocks)
   - Status bar (background, text)
   - All panels, modals, dialogs
@@ -37,20 +21,6 @@ The system SHALL apply the selected theme to all UI components instantly.
 - **THEN** a smooth transition animation of ~200ms duration SHALL play
 - **AND** the animation SHALL use ease timing function
 - **AND** only color properties shall transition (no layout changes)
-
-### Requirement: Theme preference is persisted
-The system SHALL remember the user's theme choice across sessions.
-
-#### Scenario: Save theme on change
-- **WHEN** a new theme is selected
-- **THEN** the theme identifier SHALL be saved to localStorage under key "md-mate-theme"
-- **OR** via Tauri app data storage if available
-
-#### Scenario: Restore theme on launch
-- **WHEN** the application starts
-- **THEN** it SHALL check for a previously saved theme preference
-- **IF** a saved preference exists, that theme SHALL be applied as the default
-- **IF** no preference exists, the "dark" theme SHALL be used as default
 
 ### Requirement: Themes are implemented via CSS custom properties
 The system SHALL implement themes using CSS custom properties (variables) for runtime switching.
@@ -63,11 +33,11 @@ The system SHALL implement themes using CSS custom properties (variables) for ru
 
 #### Scenario: Core CSS variables required
 - **WHEN** any theme is active
-- **THEN** at minimum these CSS variable categories MUST be defined:
+- **THEN** at minimum these CSS variable categories MUST be defined for ALL 7 themes:
   - `--bg-primary`, `--bg-secondary`, `--bg-tertiary`, `--bg-hover`, `--bg-active`
   - `--text-primary`, `--text-secondary`, `--text-disabled`, `--text-accent`
   - `--accent-color`, `--accent-hover`
   - `--border-default`, `--border-active`
   - `--success-color`, `--warning-color`, `--error-color`, `--info-color`
-  - Editor-specific: `--editor-bg`, `--editor-fg`, `--editor-gutter-bg`, `--editor-line-highlight`, `--editor-selection`
+  - Editor-specific (ALL 7 themes): `--editor-bg`, `--editor-fg`, `--editor-gutter-bg`, `--editor-gutter-fg`, `--editor-line-highlight`, `--editor-selection`, `--editor-cursor`
   - Syntax highlighting colors for each Markdown element type

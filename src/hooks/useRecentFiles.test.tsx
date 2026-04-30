@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useRecentFiles } from './useRecentFiles'
 
@@ -121,6 +121,45 @@ describe('useRecentFiles', () => {
     expect(result.current.recentFiles).toHaveLength(0)
   })
 
+  it('should remove localStorage key when list becomes empty via removeRecentFile', async () => {
+    const { result } = renderHook(() => useRecentFiles())
+
+    act(() => {
+      result.current.addRecentFile('/path/to/file.md', 'file')
+    })
+
+    await waitFor(() => {
+      expect(localStorage.getItem('recent-documents')).toBeTruthy()
+    })
+
+    act(() => {
+      result.current.removeRecentFile('/path/to/file.md')
+    })
+
+    await waitFor(() => {
+      expect(localStorage.getItem('recent-documents')).toBeNull()
+    })
+  })
+
+  it('should remove localStorage key when clearRecentFiles is called', async () => {
+    const { result } = renderHook(() => useRecentFiles())
+
+    act(() => {
+      result.current.addRecentFile('/path/to/file1.md', 'file')
+      result.current.addRecentFile('/path/to/file2.md', 'file')
+    })
+
+    await waitFor(() => {
+      expect(localStorage.getItem('recent-documents')).toBeTruthy()
+    })
+
+    act(() => {
+      result.current.clearRecentFiles()
+    })
+
+    expect(localStorage.getItem('recent-documents')).toBeNull()
+  })
+
   it('should persist recent files to localStorage', async () => {
     const { result } = renderHook(() => useRecentFiles())
 
@@ -130,11 +169,11 @@ describe('useRecentFiles', () => {
 
     // Wait for useEffect to run
     await waitFor(() => {
-      const stored = localStorage.getItem('seven-md:recent-files')
+      const stored = localStorage.getItem('recent-documents')
       expect(stored).toBeTruthy()
     })
 
-    const stored = localStorage.getItem('seven-md:recent-files')
+    const stored = localStorage.getItem('recent-documents')
     const parsed = JSON.parse(stored!)
     expect(parsed).toHaveLength(1)
     expect(parsed[0].path).toBe('/path/to/file.md')
@@ -150,7 +189,7 @@ describe('useRecentFiles', () => {
       },
     ]
 
-    localStorage.setItem('seven-md:recent-files', JSON.stringify(mockData))
+    localStorage.setItem('recent-documents', JSON.stringify(mockData))
 
     const { result } = renderHook(() => useRecentFiles())
 
@@ -161,7 +200,7 @@ describe('useRecentFiles', () => {
   })
 
   it('should handle invalid localStorage data', () => {
-    localStorage.setItem('seven-md:recent-files', 'invalid-json')
+    localStorage.setItem('recent-documents', 'invalid-json')
 
     const consoleError = vi.spyOn(console, 'error')
     consoleError.mockImplementation(() => {})

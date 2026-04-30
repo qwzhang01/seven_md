@@ -23,6 +23,7 @@ export function Sidebar({ content }: SidebarProps) {
     startWidth.current = sidebarWidth
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
+    document.documentElement.setAttribute('data-resizing', '')
 
     const handleMouseMove = (ev: MouseEvent) => {
       if (!isResizing.current) return
@@ -32,6 +33,7 @@ export function Sidebar({ content }: SidebarProps) {
 
     const handleMouseUp = () => {
       isResizing.current = false
+      document.documentElement.removeAttribute('data-resizing')
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
       document.removeEventListener('mousemove', handleMouseMove)
