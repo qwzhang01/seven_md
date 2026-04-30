@@ -137,18 +137,26 @@ interface TreeNodeItemProps {
   node: FileTreeNode
   depth: number
   activeFile: string | null
+  selectedFolderPath: string | null
   onFileClick: (path: string) => void
+  onFolderSelect: (path: string) => void
   onContextMenu: (e: React.MouseEvent, node: FileTreeNode) => void
+  onDrop: (sourcePath: string, targetFolderPath: string) => void
 }
 
 /**
  * 递归树节点组件
  * 目录的展开/折叠状态和子节点数据来自 useWorkspaceStore
  */
-function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: TreeNodeItemProps) {
+function TreeNodeItem({ node, depth, activeFile, selectedFolderPath, onFileClick, onFolderSelect, onContextMenu, onDrop }: TreeNodeItemProps) {
   const expandedDirs = useWorkspaceStore((s) => s.expandedDirs)
   const folderTree = useWorkspaceStore((s) => s.folderTree)
   const toggleDirectory = useWorkspaceStore((s) => s.toggleDirectory)
+
+  // 拖拽悬停计数器（避免子元素 onDragLeave 误触发）
+  const dragCounterRef = useRef(0)
+  const [dragState, setDragState] = useState<'none' | 'over' | 'invalid'>('none')
+  const [isDragging, setIsDragging] = useState(false)
 
   // 后端返回 type: "directory"，统一处理
   const isDir = node.type === 'directory'
@@ -156,14 +164,94 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: T
   if (isDir) {
     const expanded = expandedDirs.has(node.path)
     const children = folderTree.get(node.path) || []
+    const isSelected = selectedFolderPath === node.path
+
+    const handleDragStart = (e: React.DragEvent) => {
+      e.stopPropagation()
+      e.dataTransfer.setData('text/plain', node.path)
+      e.dataTransfer.effectAllowed = 'move'
+      setIsDragging(true)
+    }
+
+    const handleDragEnd = () => {
+      setIsDragging(false)
+    }
+
+    const isValidDropTarget = (sourcePath: string) => {
+      // 不能拖入自身或子孙
+      return sourcePath !== node.path && !node.path.startsWith(sourcePath + '/')
+    }
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const sourcePath = e.dataTransfer.getData('text/plain')
+      if (sourcePath && !isValidDropTarget(sourcePath)) {
+        e.dataTransfer.dropEffect = 'none'
+        setDragState('invalid')
+      } else {
+        e.dataTransfer.dropEffect = 'move'
+        setDragState('over')
+      }
+    }
+
+    const handleDragEnter = (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      dragCounterRef.current += 1
+      setDragState('over')
+    }
+
+    const handleDragLeave = (e: React.DragEvent) => {
+      e.stopPropagation()
+      dragCounterRef.current -= 1
+      if (dragCounterRef.current === 0) {
+        setDragState('none')
+      }
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      dragCounterRef.current = 0
+      setDragState('none')
+      const sourcePath = e.dataTransfer.getData('text/plain')
+      if (sourcePath && isValidDropTarget(sourcePath)) {
+        onDrop(sourcePath, node.path)
+      }
+    }
+
+    const getDragStyle = (): React.CSSProperties => {
+      if (dragState === 'over') return { outline: '1px solid var(--accent)', background: 'var(--bg-hover)' }
+      if (dragState === 'invalid') return { outline: '1px solid #ef4444' }
+      if (isSelected) return { background: 'var(--bg-active)' }
+      return {}
+    }
 
     return (
-      <div>
+      <div data-tree-node>
         <div
           className="flex items-center cursor-pointer transition-colors hover:bg-[var(--bg-hover)]"
-          style={{ paddingLeft: `${8 + depth * 12}px`, height: '24px', color: 'var(--text-secondary)' }}
-          onClick={() => toggleDirectory(node.path)}
+          style={{
+            paddingLeft: `${8 + depth * 12}px`,
+            height: '24px',
+            color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+            opacity: isDragging ? 0.4 : 1,
+            ...getDragStyle(),
+          }}
+          draggable
+          onClick={(e) => {
+            e.stopPropagation()
+            onFolderSelect(node.path)
+            toggleDirectory(node.path)
+          }}
           onContextMenu={(e) => onContextMenu(e, node)}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           <span className="flex-shrink-0 mr-1" style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -179,8 +267,11 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: T
             node={child}
             depth={depth + 1}
             activeFile={activeFile}
+            selectedFolderPath={selectedFolderPath}
             onFileClick={onFileClick}
+            onFolderSelect={onFolderSelect}
             onContextMenu={onContextMenu}
+            onDrop={onDrop}
           />
         ))}
       </div>
@@ -189,6 +280,18 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: T
 
   // 文件节点
   const isActive = activeFile === node.path
+
+  const handleFileDragStart = (e: React.DragEvent) => {
+    e.stopPropagation()
+    e.dataTransfer.setData('text/plain', node.path)
+    e.dataTransfer.effectAllowed = 'move'
+    setIsDragging(true)
+  }
+
+  const handleFileDragEnd = () => {
+    setIsDragging(false)
+  }
+
   return (
     <div
       className="flex items-center cursor-pointer transition-colors"
@@ -197,9 +300,16 @@ function TreeNodeItem({ node, depth, activeFile, onFileClick, onContextMenu }: T
         height: '24px',
         background: isActive ? 'var(--bg-active)' : 'transparent',
         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        opacity: isDragging ? 0.4 : 1,
       }}
-      onClick={() => onFileClick(node.path)}
+      draggable
+      onClick={() => {
+        onFolderSelect('')  // 点击文件时清除文件夹选中
+        onFileClick(node.path)
+      }}
       onContextMenu={(e) => onContextMenu(e, node)}
+      onDragStart={handleFileDragStart}
+      onDragEnd={handleFileDragEnd}
       onMouseEnter={(e) => {
         if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)'
       }}
@@ -226,12 +336,18 @@ export function ExplorerPanel() {
     loadDirectory,
     createFile: wsCreateFile,
     createDirectory: wsCreateDirectory,
+    moveItem,
+    toggleDirectory,
+    expandedDirs,
   } = useWorkspaceStore()
 
   const [openSections, setOpenSections] = useState({ openFiles: true, workspace: true })
 
   // 内联新建状态: 'file' | 'folder' | null
   const [inlineCreate, setInlineCreate] = useState<'file' | 'folder' | null>(null)
+
+  // 当前选中的文件夹路径（用于感知新建目标）
+  const [selectedFolderPath, setSelectedFolderPath] = useState<string | null>(null)
 
   // 右键菜单状态
   const [contextMenu, setContextMenu] = useState<{
@@ -269,6 +385,16 @@ export function ExplorerPanel() {
     },
     [tabs, switchTab, openTab]
   )
+
+  // 处理文件夹选中
+  const handleFolderSelect = useCallback((path: string) => {
+    setSelectedFolderPath(path || null)
+  }, [])
+
+  // 处理拖拽移动
+  const handleDrop = useCallback(async (sourcePath: string, targetFolderPath: string) => {
+    await moveItem(sourcePath, targetFolderPath)
+  }, [moveItem])
 
   // 获取父目录路径
   const getParentPath = (node: FileTreeNode): string => {
@@ -435,29 +561,41 @@ export function ExplorerPanel() {
 
   // 新建文件提交
   const handleCreateFile = useCallback(async (name: string) => {
-    const parentDir = folderPath
+    // 优先使用选中文件夹，否则使用根目录
+    const parentDir = selectedFolderPath || folderPath
     if (!parentDir) return
     try {
       // 确保以 .md 结尾
       const fileName = name.endsWith('.md') || name.endsWith('.markdown') ? name : `${name}.md`
       await wsCreateFile(parentDir, fileName)
+      // 确保目标文件夹展开
+      if (selectedFolderPath && !expandedDirs.has(selectedFolderPath)) {
+        await toggleDirectory(selectedFolderPath)
+      }
     } catch (error) {
       console.error('新建文件失败:', error)
     }
     setInlineCreate(null)
-  }, [folderPath, wsCreateFile])
+    // 保持 selectedFolderPath 不变
+  }, [selectedFolderPath, folderPath, wsCreateFile, expandedDirs, toggleDirectory])
 
   // 新建文件夹提交
   const handleCreateDirectory = useCallback(async (name: string) => {
-    const parentDir = folderPath
+    // 优先使用选中文件夹，否则使用根目录
+    const parentDir = selectedFolderPath || folderPath
     if (!parentDir) return
     try {
       await wsCreateDirectory(parentDir, name)
+      // 确保目标文件夹展开
+      if (selectedFolderPath && !expandedDirs.has(selectedFolderPath)) {
+        await toggleDirectory(selectedFolderPath)
+      }
     } catch (error) {
       console.error('新建文件夹失败:', error)
     }
     setInlineCreate(null)
-  }, [folderPath, wsCreateDirectory])
+    // 保持 selectedFolderPath 不变
+  }, [selectedFolderPath, folderPath, wsCreateDirectory, expandedDirs, toggleDirectory])
 
   const hasWorkspace = !!folderPath
   const folderName = folderPath?.split('/').pop() || '工作区'
@@ -613,16 +751,33 @@ export function ExplorerPanel() {
 
             {hasWorkspace ? (
               rootNodes.length > 0 ? (
-                rootNodes.map((node) => (
-                  <TreeNodeItem
-                    key={node.path}
-                    node={node}
-                    depth={0}
-                    activeFile={activeTab?.path ?? null}
-                    onFileClick={handleFileClick}
-                    onContextMenu={handleContextMenu}
-                  />
-                ))
+                <div
+                  className="min-h-full"
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                  onDrop={(e) => {
+                    // 只处理直接投入根区域的拖拽（非文件夹节点上）
+                    if ((e.target as HTMLElement).closest('[data-tree-node]')) return
+                    e.preventDefault()
+                    const sourcePath = e.dataTransfer.getData('text/plain')
+                    if (sourcePath && folderPath) {
+                      handleDrop(sourcePath, folderPath)
+                    }
+                  }}
+                >
+                  {rootNodes.map((node) => (
+                    <TreeNodeItem
+                      key={node.path}
+                      node={node}
+                      depth={0}
+                      activeFile={activeTab?.path ?? null}
+                      selectedFolderPath={selectedFolderPath}
+                      onFileClick={handleFileClick}
+                      onFolderSelect={handleFolderSelect}
+                      onContextMenu={handleContextMenu}
+                      onDrop={handleDrop}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="px-6 py-4 text-xs text-center" style={{ color: 'var(--text-tertiary)' }}>
                   {isLoading ? '加载中...' : '文件夹为空'}

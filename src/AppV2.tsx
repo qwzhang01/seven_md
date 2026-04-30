@@ -372,11 +372,11 @@ function AppV2() {
           const currentVersion = '0.1.0'
           // 简单实现：显示当前版本信息
           // 后期可接入真正的版本检查 API
-          addNotification({ 
-            type: 'success', 
-            message: `当前已是最新版本 v${currentVersion}`, 
-            autoClose: true, 
-            duration: 3000 
+          addNotification({
+            type: 'success',
+            message: `当前已是最新版本 v${currentVersion}`,
+            autoClose: true,
+            duration: 3000
           })
         } catch (e) {
           addNotification({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
@@ -465,6 +465,10 @@ function AppV2() {
   }, [activeTab, updateTabContent, editorStore])
 
   // Keyboard shortcuts — 使用统一 hook 替代内联 keydown 处理
+  // IMPORTANT: Do NOT register Cmd/Ctrl+C, X, V, Z, A here.
+  // These are native OS/browser clipboard and undo shortcuts handled by
+  // CodeMirror's defaultKeymap and historyKeymap. Registering them here
+  // would call preventDefault() and break CodeMirror's built-in handling.
   const shortcuts: ShortcutConfig[] = useMemo(() => [
     // === 文件操作 ===
     { key: 's', ctrlKey: true, action: () => handleSaveFile(), description: '保存文件' },

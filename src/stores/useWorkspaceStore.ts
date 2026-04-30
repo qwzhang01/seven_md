@@ -7,7 +7,10 @@ import {
   stopFsWatch,
   createFile as tauriCreateFile,
   createDirectory as tauriCreateDirectory,
+  renamePath,
 } from '../tauriCommands'
+import { useNotificationStore } from './useNotificationStore'
+import { useFileStore } from './useFileStore'
 
 interface WorkspaceState {
   /** 当前打开的文件夹根路径 */
@@ -29,6 +32,7 @@ interface WorkspaceState {
   refreshTree: () => Promise<void>
   createFile: (parentDir: string, fileName: string) => Promise<void>
   createDirectory: (parentDir: string, dirName: string) => Promise<void>
+  moveItem: (sourcePath: string, targetFolderPath: string) => Promise<void>
   collapseAll: () => void
 }
 
@@ -167,6 +171,62 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     } catch (error) {
       console.error(`创建目录失败 [${fullPath}]:`, error)
       throw error
+    }
+  },
+
+  moveItem: async (sourcePath: string, targetFolderPath: string) => {
+    const state = get()
+
+    // 获取源文件/文件夹名称
+    const sourceName = sourcePath.split('/').pop() || ''
+    const separator = targetFolderPath.endsWith('/') ? '' : '/'
+    const destPath = `${targetFolderPath}${separator}${sourceName}`
+
+    // 校验：不能移动到自身或子孙目录
+    if (destPath === sourcePath || targetFolderPath.startsWith(sourcePath + '/') || targetFolderPath === sourcePath) {
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        message: '不能将文件夹移动到自身或其子文件夹中',
+        autoClose: true,
+        duration: 3000,
+      })
+      return
+    }
+
+    // 校验：源文件的父目录与目标目录相同，无需移动
+    const sourceParent = sourcePath.substring(0, sourcePath.lastIndexOf('/'))
+    if (sourceParent === targetFolderPath) return
+
+    try {
+      await renamePath(sourcePath, destPath)
+
+      // 刷新源目录和目标目录
+      await get().loadDirectory(sourceParent)
+      await get().loadDirectory(targetFolderPath)
+
+      // 如果根目录是受影响的目录之一，同步 rootNodes
+      if (state.folderPath) {
+        if (sourceParent === state.folderPath || targetFolderPath === state.folderPath) {
+          await get().loadDirectory(state.folderPath)
+        }
+      }
+
+      // 更新已打开 Tab 中匹配旧路径的条目
+      const fileStore = useFileStore.getState()
+      fileStore.tabs.forEach((tab) => {
+        if (tab.path && (tab.path === sourcePath || tab.path.startsWith(sourcePath + '/'))) {
+          const newTabPath = tab.path.replace(sourcePath, destPath)
+          fileStore.updateTabPath(tab.id, newTabPath)
+        }
+      })
+    } catch (error) {
+      console.error(`移动失败 [${sourcePath} -> ${destPath}]:`, error)
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        message: `移动失败：${sourceName}`,
+        autoClose: true,
+        duration: 3000,
+      })
     }
   },
 

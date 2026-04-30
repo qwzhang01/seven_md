@@ -6,6 +6,8 @@ import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
 import { useEditorStore, useUIStore } from '../../stores'
+import { useThemeStore } from '../../stores/useThemeStore'
+import { MermaidBlock } from './MermaidBlock'
 
 interface PreviewPaneV2Props {
   content: string
@@ -20,6 +22,8 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
   const scrollRatio = useEditorStore((s) => s.scrollRatio)
   const scrollSyncEnabled = useEditorStore((s) => s.scrollSyncEnabled)
   const viewMode = useUIStore((s) => s.viewMode)
+  const currentTheme = useThemeStore((s) => s.currentTheme)
+  const mermaidTheme = currentTheme === 'dark' || currentTheme === 'monokai' || currentTheme === 'dracula' || currentTheme === 'nord' ? 'dark' : 'default'
 
   useEffect(() => {
     if (!scrollSyncEnabled || viewMode !== 'split' || !previewRef.current) return
@@ -106,7 +110,7 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
-          rehypePlugins={[rehypeHighlight, rehypeKatex]}
+          rehypePlugins={[[rehypeHighlight, { plainText: ['mermaid'] }], rehypeKatex]}
           components={{
             h1: ({ children }) => <h1 style={{ color: 'var(--markdown-h1)', borderBottom: '1px solid var(--border-primary)', paddingBottom: '0.3em', marginBottom: '0.8em', fontSize: '2em', fontWeight: 700 }}>{children}</h1>,
             h2: ({ children }) => <h2 style={{ color: 'var(--markdown-h2)', borderBottom: '1px solid var(--border-primary)', paddingBottom: '0.3em', marginBottom: '0.6em', fontSize: '1.5em', fontWeight: 600 }}>{children}</h2>,
@@ -118,7 +122,23 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
               if (isBlock) return <code className={className}>{children}</code>
               return <code style={{ color: 'var(--markdown-code)', background: 'var(--bg-tertiary)', padding: '2px 5px', borderRadius: '3px', fontFamily: 'var(--font-mono, monospace)', fontSize: '0.9em' }}>{children}</code>
             },
-            pre: ({ children }) => <pre style={{ background: 'var(--bg-tertiary)', padding: '12px 16px', borderRadius: '6px', overflowX: 'auto', marginBottom: '1em' }}>{children}</pre>,
+            pre: ({ node, children, ...props }) => {
+              // Use hast node to detect mermaid: pre > code.language-mermaid
+              const codeNode = node?.children?.[0]
+              const isMermaid =
+                codeNode?.type === 'element' &&
+                codeNode.tagName === 'code' &&
+                Array.isArray(codeNode.properties?.className) &&
+                (codeNode.properties.className as string[]).includes('language-mermaid')
+
+              if (isMermaid) {
+                // Extract raw text from hast code node
+                const textNode = codeNode.children?.[0]
+                const code = (textNode?.type === 'text' ? (textNode as { value: string }).value : '').replace(/\n$/, '')
+                return <MermaidBlock code={code} theme={mermaidTheme} />
+              }
+              return <pre style={{ background: 'var(--bg-tertiary)', padding: '12px 16px', borderRadius: '6px', overflowX: 'auto', marginBottom: '1em' }} {...props}>{children}</pre>
+            },
             blockquote: ({ children }) => <blockquote style={{ borderLeft: `4px solid var(--markdown-quote)`, padding: '6px 16px', margin: '1em 0', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: '0 4px 4px 0' }}>{children}</blockquote>,
             table: ({ children }) => <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: '1em' }}>{children}</table>,
             th: ({ children }) => <th style={{ border: '1px solid var(--border-primary)', padding: '8px 12px', textAlign: 'left', background: 'var(--bg-tertiary)', fontWeight: 600 }}>{children}</th>,

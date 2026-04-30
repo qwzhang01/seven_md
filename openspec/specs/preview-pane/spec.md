@@ -22,6 +22,7 @@ The system SHALL display a rendered preview of the current document's Markdown c
   - Tables (GFM)
   - Links (clickable) and images
   - Math expressions (LaTeX via KaTeX)
+  - Mermaid diagrams (fenced blocks tagged `mermaid`)
 
 ### Requirement: Preview pane has header toolbar
 The system SHALL provide a toolbar at the top of the preview pane.
