@@ -97,7 +97,7 @@ describe('useFileStore', () => {
     expect(tabs[0].content).toBe('restored')
   })
 
-  it('closeAllTabs 清空所有标签页', () => {
+  it('closeAllTabs 清空所有标签页并移入 recentlyClosed', () => {
     act(() => {
       useFileStore.getState().openTab(null, 'a')
       useFileStore.getState().openTab(null, 'b')
@@ -105,13 +105,150 @@ describe('useFileStore', () => {
     act(() => { useFileStore.getState().closeAllTabs() })
     expect(useFileStore.getState().tabs).toHaveLength(0)
     expect(useFileStore.getState().activeTabId).toBeNull()
+    expect(useFileStore.getState().recentlyClosed).toHaveLength(2)
+  })
+
+  it('closeAllTabs 含脏标签时脏标签也被移入 recentlyClosed', () => {
+    const ids: string[] = []
+    act(() => {
+      ids.push(useFileStore.getState().openTab(null, 'a'))
+      ids.push(useFileStore.getState().openTab(null, 'b'))
+      useFileStore.getState().setTabDirty(ids[0], true)
+    })
+    act(() => { useFileStore.getState().closeAllTabs() })
+    const { tabs, recentlyClosed } = useFileStore.getState()
+    expect(tabs).toHaveLength(0)
+    expect(recentlyClosed).toHaveLength(2)
   })
 
   it('getActiveTab 返回当前活跃标签页', () => {
-    let tabId!: string
-    act(() => { tabId = useFileStore.getState().openTab('/path/file.md', '# content') })
+    act(() => { useFileStore.getState().openTab('/path/file.md', '# content') })
     const tab = useFileStore.getState().getActiveTab()
     expect(tab).not.toBeNull()
     expect(tab!.path).toBe('/path/file.md')
   })
+
+  // ── Batch close actions ──────────────────────────────────────────────────
+
+  describe('closeOtherTabs', () => {
+    it('关闭除指定标签外的所有标签', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      act(() => { useFileStore.getState().closeOtherTabs(idB) })
+      const { tabs } = useFileStore.getState()
+      expect(tabs).toHaveLength(1)
+      expect(tabs[0].id).toBe(idB)
+      // idA and idC should be in recentlyClosed
+      expect(useFileStore.getState().recentlyClosed.map((t) => t.id)).toContain(idA)
+      expect(useFileStore.getState().recentlyClosed.map((t) => t.id)).toContain(idC)
+    })
+
+    it('仅一个标签时无操作', () => {
+      let idA!: string
+      act(() => { idA = useFileStore.getState().openTab(null, 'a') })
+      act(() => { useFileStore.getState().closeOtherTabs(idA) })
+      expect(useFileStore.getState().tabs).toHaveLength(1)
+    })
+
+    it('含脏标签时仍能关闭（脏标签被移入 recentlyClosed）', () => {
+    const ids: string[] = []
+      act(() => {
+        ids.push(useFileStore.getState().openTab(null, 'a'))
+        ids.push(useFileStore.getState().openTab(null, 'b'))
+        ids.push(useFileStore.getState().openTab(null, 'c'))
+        useFileStore.getState().setTabDirty(ids[0], true)
+        useFileStore.getState().setTabDirty(ids[2], true)
+      })
+      act(() => { useFileStore.getState().closeOtherTabs(ids[1]) })
+      const { tabs, recentlyClosed } = useFileStore.getState()
+      expect(tabs).toHaveLength(1)
+      expect(tabs[0].id).toBe(ids[1])
+      expect(recentlyClosed).toHaveLength(2)
+    })
+  })
+
+  describe('closeTabsToLeft', () => {
+    it('关闭指定标签左侧的所有标签', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      act(() => { useFileStore.getState().closeTabsToLeft(idC) })
+      const { tabs } = useFileStore.getState()
+      expect(tabs.map((t) => t.id)).not.toContain(idA)
+      expect(tabs.map((t) => t.id)).not.toContain(idB)
+      expect(tabs.map((t) => t.id)).toContain(idC)
+    })
+
+    it('最左侧标签时无操作', () => {
+      let idA!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        useFileStore.getState().openTab(null, 'b')
+      })
+      act(() => { useFileStore.getState().closeTabsToLeft(idA) })
+      expect(useFileStore.getState().tabs).toHaveLength(2)
+    })
+
+    it('含脏标签时左侧脏标签被移入 recentlyClosed', () => {
+    const ids: string[] = []
+      act(() => {
+        ids.push(useFileStore.getState().openTab(null, 'a'))
+        ids.push(useFileStore.getState().openTab(null, 'b'))
+        ids.push(useFileStore.getState().openTab(null, 'c'))
+        useFileStore.getState().setTabDirty(ids[0], true)
+      })
+      act(() => { useFileStore.getState().closeTabsToLeft(ids[2]) })
+      const { tabs, recentlyClosed } = useFileStore.getState()
+      expect(tabs).toHaveLength(1)
+      expect(recentlyClosed.some((t) => t.id === ids[0])).toBe(true)
+    })
+  })
+
+  describe('closeTabsToRight', () => {
+    it('关闭指定标签右侧的所有标签', () => {
+      let idA!: string, idB!: string, idC!: string
+      act(() => {
+        idA = useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+        idC = useFileStore.getState().openTab(null, 'c')
+      })
+      act(() => { useFileStore.getState().closeTabsToRight(idA) })
+      const { tabs } = useFileStore.getState()
+      expect(tabs.map((t) => t.id)).toContain(idA)
+      expect(tabs.map((t) => t.id)).not.toContain(idB)
+      expect(tabs.map((t) => t.id)).not.toContain(idC)
+    })
+
+    it('最右侧标签时无操作', () => {
+      let idB!: string
+      act(() => {
+        useFileStore.getState().openTab(null, 'a')
+        idB = useFileStore.getState().openTab(null, 'b')
+      })
+      act(() => { useFileStore.getState().closeTabsToRight(idB) })
+      expect(useFileStore.getState().tabs).toHaveLength(2)
+    })
+
+    it('含脏标签时右侧脏标签被移入 recentlyClosed', () => {
+    const ids: string[] = []
+      act(() => {
+        ids.push(useFileStore.getState().openTab(null, 'a'))
+        ids.push(useFileStore.getState().openTab(null, 'b'))
+        ids.push(useFileStore.getState().openTab(null, 'c'))
+        useFileStore.getState().setTabDirty(ids[2], true)
+      })
+      act(() => { useFileStore.getState().closeTabsToRight(ids[0]) })
+      const { tabs, recentlyClosed } = useFileStore.getState()
+      expect(tabs).toHaveLength(1)
+      expect(recentlyClosed.some((t) => t.id === ids[2])).toBe(true)
+    })
+  })
+
 })

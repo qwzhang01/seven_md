@@ -1,10 +1,17 @@
 import { memo, useState, useCallback } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { TabItem } from './TabItem'
+import { TabContextMenu } from './TabContextMenu'
 import { useFileStore } from '../../stores'
 
 interface TabBarProps {
   onCloseTab?: (tabId: string) => void
+}
+
+interface ContextMenuState {
+  tabId: string
+  x: number
+  y: number
 }
 
 export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
@@ -12,6 +19,7 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
   const [dragFromIndex, setDragFromIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [showOverflow, setShowOverflow] = useState(false)
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDragFromIndex(index)
@@ -53,6 +61,18 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
     [onCloseTab]
   )
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, tabId: string) => {
+      e.preventDefault()
+      setContextMenu({ tabId, x: e.clientX, y: e.clientY })
+    },
+    []
+  )
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
+
   return (
     <div
       className="flex-1 flex items-stretch h-full overflow-hidden"
@@ -86,6 +106,7 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
+              onContextMenu={(e) => handleContextMenu(e, tab.id)}
             />
           </div>
         ))}
@@ -125,6 +146,16 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Tab context menu */}
+      {contextMenu && (
+        <TabContextMenu
+          tabId={contextMenu.tabId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={handleCloseContextMenu}
+          onCloseTab={handleClose}
+        />
       )}
     </div>
   )
