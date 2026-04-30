@@ -14,6 +14,7 @@ export function Gutter({ onResize }: GutterProps) {
       startX.current = e.clientX
       document.body.style.cursor = 'col-resize'
       document.body.style.userSelect = 'none'
+      document.documentElement.setAttribute('data-resizing', '')
 
       const handleMouseMove = (ev: MouseEvent) => {
         if (!isDragging.current) return
@@ -24,6 +25,7 @@ export function Gutter({ onResize }: GutterProps) {
 
       const handleMouseUp = () => {
         isDragging.current = false
+        document.documentElement.removeAttribute('data-resizing')
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
         document.removeEventListener('mousemove', handleMouseMove)

@@ -27,6 +27,11 @@ interface FileState {
   reorderTabs: (fromIndex: number, toIndex: number) => void
   reopenClosedTab: () => void
   closeAllTabs: () => void
+  closeOtherTabs: (tabId: string) => void
+  closeTabsToLeft: (tabId: string) => void
+  closeTabsToRight: (tabId: string) => void
+  switchToNextTab: () => void
+  switchToPrevTab: () => void
   getActiveTab: () => FileTab | null
 }
 
@@ -157,7 +162,52 @@ export const useFileStore = create<FileState>()((set, get) => ({
       }
     }),
 
-  closeAllTabs: () => set({ tabs: [], activeTabId: null }),
+  closeAllTabs: () => {
+    const toClose = [...get().tabs]
+    toClose.forEach((t) => get().closeTab(t.id))
+  },
+
+  closeOtherTabs: (tabId) => {
+    const state = get()
+    const toClose = state.tabs.filter((t) => t.id !== tabId)
+    toClose.forEach((t) => get().closeTab(t.id))
+    // Ensure the target tab is active after closing others
+    if (get().tabs.some((t) => t.id === tabId)) {
+      set({ activeTabId: tabId })
+    }
+  },
+
+  closeTabsToLeft: (tabId) => {
+    const state = get()
+    const idx = state.tabs.findIndex((t) => t.id === tabId)
+    if (idx <= 0) return
+    const toClose = state.tabs.slice(0, idx)
+    toClose.forEach((t) => get().closeTab(t.id))
+  },
+
+  closeTabsToRight: (tabId) => {
+    const state = get()
+    const idx = state.tabs.findIndex((t) => t.id === tabId)
+    if (idx === -1 || idx === state.tabs.length - 1) return
+    const toClose = state.tabs.slice(idx + 1)
+    toClose.forEach((t) => get().closeTab(t.id))
+  },
+
+  switchToNextTab: () => {
+    const state = get()
+    if (state.tabs.length <= 1) return
+    const idx = state.tabs.findIndex((t) => t.id === state.activeTabId)
+    const nextIdx = (idx + 1) % state.tabs.length
+    set({ activeTabId: state.tabs[nextIdx].id })
+  },
+
+  switchToPrevTab: () => {
+    const state = get()
+    if (state.tabs.length <= 1) return
+    const idx = state.tabs.findIndex((t) => t.id === state.activeTabId)
+    const prevIdx = (idx - 1 + state.tabs.length) % state.tabs.length
+    set({ activeTabId: state.tabs[prevIdx].id })
+  },
 
   getActiveTab: () => {
     const state = get()

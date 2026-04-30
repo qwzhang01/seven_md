@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 // Keyboard shortcuts hook
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -36,6 +37,30 @@ import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEdito
 import type { ThemeId } from './stores/useThemeStore'
 import { readFile, saveFile } from './tauriCommands'
 
+// ---- Recent Documents Utility ----
+const RECENT_DOCS_KEY = 'recent-documents'
+const MAX_RECENT_DOCS = 10
+
+function addRecentDocument(path: string, type: 'file' | 'folder') {
+  try {
+    const name = path.split('/').pop() || path
+    const stored = localStorage.getItem(RECENT_DOCS_KEY)
+    const existing: Array<{ path: string; name: string; lastOpened: number; type: string }> = stored
+      ? JSON.parse(stored)
+      : []
+    // Remove duplicate
+    const filtered = existing.filter((f) => f.path !== path)
+    // Add to top
+    const updated = [{ path, name, lastOpened: Date.now(), type }, ...filtered].slice(0, MAX_RECENT_DOCS)
+    localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(updated))
+    // Sync paths to Rust backend so the native menu is updated on next launch
+    const paths = updated.map((f) => f.path)
+    invoke('update_recent_menu', { paths }).catch((e) => console.warn('update_recent_menu failed:', e))
+  } catch (e) {
+    console.error('Failed to save recent document', e)
+  }
+}
+
 // Commands registration
 import { registerAllCommands } from './commands'
 
@@ -44,7 +69,7 @@ const MAX_EDITOR_WIDTH_RATIO = 0.85
 
 function AppV2() {
   const ui = useUIStore()
-  const { tabs, openTab, closeTab, updateTabContent, setTabDirty, getActiveTab } = useFileStore()
+  const { tabs, openTab, closeTab, updateTabContent, setTabDirty, getActiveTab, switchToNextTab, switchToPrevTab } = useFileStore()
   const theme = useThemeStore((s) => s.currentTheme)
   const { addNotification } = useNotificationStore()
   const editorStore = useEditorStore()
@@ -87,6 +112,7 @@ function AppV2() {
       if (selected) {
         const content = await readFile(selected as string)
         openTab(selected as string, content)
+        addRecentDocument(selected as string, 'file')
       }
     } catch (e) {
       addNotification({ type: 'error', message: `打开文件失败: ${e}`, autoClose: true, duration: 5000 })
@@ -119,7 +145,22 @@ function AppV2() {
     }
   }, [activeTab, setTabDirty, addNotification])
 
+  // Stable refs so the menu-listener useEffect (dep=[]) can always call the
+  // latest version of these callbacks without re-registering listeners.
+  const handleOpenFileRef = useRef(handleOpenFile)
+  const handleSaveFileRef = useRef(handleSaveFile)
+  const openTabRef = useRef(openTab)
+  const addNotificationRef = useRef(addNotification)
+  const createNewWindowRef = useRef(createNewWindow)
+  useEffect(() => { handleOpenFileRef.current = handleOpenFile }, [handleOpenFile])
+  useEffect(() => { handleSaveFileRef.current = handleSaveFile }, [handleSaveFile])
+  useEffect(() => { openTabRef.current = openTab }, [openTab])
+  useEffect(() => { addNotificationRef.current = addNotification }, [addNotification])
+  useEffect(() => { createNewWindowRef.current = createNewWindow }, [createNewWindow])
+
   // 监听原生菜单事件 + 文件系统变更事件
+  // IMPORTANT: dep=[] so listeners are registered exactly once.
+  // Callbacks are accessed via refs to always use the latest version.
   useEffect(() => {
     const unlisteners: Array<() => void> = []
 
@@ -135,20 +176,66 @@ function AppV2() {
       }))
 
       // --- File 菜单事件 ---
-      unlisteners.push(await listen('menu-new-file', () => openTab(null, '')))
-      unlisteners.push(await listen('menu-new-window', () => createNewWindow()))
-      unlisteners.push(await listen('menu-open-file', () => handleOpenFile()))
-      unlisteners.push(await listen('menu-open-folder', () => {
-        useWorkspaceStore.getState().openFolder()
+      unlisteners.push(await listen('menu-new-file', () => openTabRef.current(null, '')))
+      unlisteners.push(await listen('menu-new-window', () => createNewWindowRef.current()))
+      unlisteners.push(await listen('menu-open-file', () => handleOpenFileRef.current()))
+      unlisteners.push(await listen('menu-open-folder', async () => {
+        await useWorkspaceStore.getState().openFolder()
+        const folderPath = useWorkspaceStore.getState().folderPath
+        if (folderPath) {
+          addRecentDocument(folderPath, 'folder')
+        }
       }))
       unlisteners.push(await listen('menu-close-folder', () => {
         useWorkspaceStore.getState().closeFolder()
       }))
       unlisteners.push(await listen('menu-clear-recent', () => {
         localStorage.removeItem('recent-documents')
-        addNotification({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
+        // Sync cleared list to backend
+        invoke('update_recent_menu', { paths: [] }).catch(() => {})
+        addNotificationRef.current({ type: 'info', message: '已清除最近文档', autoClose: true, duration: 2000 })
       }))
-      unlisteners.push(await listen('menu-save', () => handleSaveFile()))
+      // Handle native menu click on a recent document item
+      unlisteners.push(await listen<string>('menu-open-recent-doc', async (event) => {
+        const path = event.payload
+        if (!path) return
+        // Look up the type from localStorage recent-documents list
+        let itemType: 'file' | 'folder' = 'file'
+        try {
+          const stored = localStorage.getItem('recent-documents')
+          if (stored) {
+            const docs = JSON.parse(stored) as Array<{ path: string; type?: 'file' | 'folder' }>
+            const found = docs.find((d) => d.path === path)
+            if (found?.type === 'folder') itemType = 'folder'
+          }
+        } catch {
+          // ignore parse errors, default to 'file'
+        }
+        try {
+          if (itemType === 'folder') {
+            const { readDirectory, startFsWatch } = await import('./tauriCommands')
+            const nodes = await readDirectory(path)
+            const newTree = new Map<string, import('./types').FileTreeNode[]>()
+            newTree.set(path, nodes)
+            useWorkspaceStore.setState({
+              folderPath: path,
+              folderTree: newTree,
+              expandedDirs: new Set(),
+              rootNodes: nodes,
+              isLoading: false,
+            })
+            await startFsWatch(path)
+            addRecentDocument(path, 'folder')
+          } else {
+            const content = await readFile(path)
+            openTabRef.current(path, content)
+            addRecentDocument(path, 'file')
+          }
+        } catch (err) {
+          addNotificationRef.current({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
+        }
+      }))
+      unlisteners.push(await listen('menu-save', () => handleSaveFileRef.current()))
       unlisteners.push(await listen('menu-save-all', () => {
         // 保存所有已修改的文件
         const tabs = useFileStore.getState().tabs
@@ -158,7 +245,7 @@ function AppV2() {
             useFileStore.getState().setTabDirty(tab.id, false)
           }
         })
-        addNotification({ type: 'success', message: '所有文件已保存', autoClose: true, duration: 2000 })
+        addNotificationRef.current({ type: 'success', message: '所有文件已保存', autoClose: true, duration: 2000 })
       }))
       unlisteners.push(await listen('menu-save-as', () => {
         // 另存为：与 handleSaveFile 类似但总是弹出保存对话框
@@ -173,10 +260,10 @@ function AppV2() {
           if (selected) {
             await saveFile(selected as string, activeTab.content)
             useFileStore.getState().updateTabPath(activeTab.id, selected as string)
-            addNotification({ type: 'success', message: '文件已保存', autoClose: true, duration: 2000 })
+            addNotificationRef.current({ type: 'success', message: '文件已保存', autoClose: true, duration: 2000 })
           }
         }).catch((e) => {
-          addNotification({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
+          addNotificationRef.current({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
         })
       }))
       unlisteners.push(await listen('menu-export-pdf', () => {
@@ -295,6 +382,12 @@ function AppV2() {
         const isFullscreen = await win.isFullscreen()
         await win.setFullscreen(!isFullscreen)
       }))
+      unlisteners.push(await listen('menu-next-tab', () => {
+        useFileStore.getState().switchToNextTab()
+      }))
+      unlisteners.push(await listen('menu-prev-tab', () => {
+        useFileStore.getState().switchToPrevTab()
+      }))
 
       // --- Insert 菜单事件 ---
       const insertMap: Record<string, string> = {
@@ -367,19 +460,19 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-check-update', async () => {
         try {
-          addNotification({ type: 'info', message: '正在检查更新...', autoClose: false, duration: 0 })
+          addNotificationRef.current({ type: 'info', message: '正在检查更新...', autoClose: false, duration: 0 })
           // 获取当前版本
           const currentVersion = '0.1.0'
           // 简单实现：显示当前版本信息
           // 后期可接入真正的版本检查 API
-          addNotification({ 
-            type: 'success', 
-            message: `当前已是最新版本 v${currentVersion}`, 
-            autoClose: true, 
-            duration: 3000 
+          addNotificationRef.current({
+            type: 'success',
+            message: `当前已是最新版本 v${currentVersion}`,
+            autoClose: true,
+            duration: 3000
           })
         } catch (e) {
-          addNotification({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
+          addNotificationRef.current({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
         }
       }))
     }
@@ -392,7 +485,8 @@ function AppV2() {
         clearTimeout(refreshTimerRef.current)
       }
     }
-  }, [handleOpenFile, handleSaveFile, openTab, addNotification, createNewWindow])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle export-pdf via window.print()
   useEffect(() => {
@@ -402,6 +496,69 @@ function AppV2() {
     window.addEventListener('app:export-pdf', handler)
     return () => window.removeEventListener('app:export-pdf', handler)
   }, [])
+
+  // Handle WelcomeDialog quick-action events
+  useEffect(() => {
+    // app:new-file — create a new empty tab
+    const onNewFile = () => openTab(null, '')
+
+    // app:open-file — open file picker dialog (reuse the existing handleOpenFile callback)
+    const onOpenFile = () => handleOpenFile()
+
+    // app:open-folder — open folder picker dialog
+    const onOpenFolder = async () => {
+      await useWorkspaceStore.getState().openFolder()
+      const folderPath = useWorkspaceStore.getState().folderPath
+      if (folderPath) {
+        addRecentDocument(folderPath, 'folder')
+      }
+    }
+
+    window.addEventListener('app:new-file', onNewFile)
+    window.addEventListener('app:open-file', onOpenFile)
+    window.addEventListener('app:open-folder', onOpenFolder)
+    return () => {
+      window.removeEventListener('app:new-file', onNewFile)
+      window.removeEventListener('app:open-file', onOpenFile)
+      window.removeEventListener('app:open-folder', onOpenFolder)
+    }
+  }, [openTab, handleOpenFile, addNotification])
+
+  // Handle app:open-recent — open a file or folder from the recent documents list
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent<{ path: string; type: 'file' | 'folder' } | string>).detail
+      // Support both new { path, type } format and legacy string format
+      const path = typeof detail === 'string' ? detail : detail?.path
+      const type = typeof detail === 'string' ? 'file' : (detail?.type ?? 'file')
+      if (!path) return
+      try {
+        if (type === 'folder') {
+          const { readDirectory, startFsWatch } = await import('./tauriCommands')
+          const nodes = await readDirectory(path)
+          const newTree = new Map<string, import('./types').FileTreeNode[]>()
+          newTree.set(path, nodes)
+          useWorkspaceStore.setState({
+            folderPath: path,
+            folderTree: newTree,
+            expandedDirs: new Set(),
+            rootNodes: nodes,
+            isLoading: false,
+          })
+          await startFsWatch(path)
+          addRecentDocument(path, 'folder')
+        } else {
+          const content = await readFile(path)
+          openTab(path, content)
+          addRecentDocument(path, 'file')
+        }
+      } catch (err) {
+        addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
+      }
+    }
+    window.addEventListener('app:open-recent', handler)
+    return () => window.removeEventListener('app:open-recent', handler)
+  }, [openTab, addNotification])
 
   // Handle window resize: auto-adjust sidebar and layout
   useEffect(() => {
@@ -465,6 +622,10 @@ function AppV2() {
   }, [activeTab, updateTabContent, editorStore])
 
   // Keyboard shortcuts — 使用统一 hook 替代内联 keydown 处理
+  // IMPORTANT: Do NOT register Cmd/Ctrl+C, X, V, Z, A here.
+  // These are native OS/browser clipboard and undo shortcuts handled by
+  // CodeMirror's defaultKeymap and historyKeymap. Registering them here
+  // would call preventDefault() and break CodeMirror's built-in handling.
   const shortcuts: ShortcutConfig[] = useMemo(() => [
     // === 文件操作 ===
     { key: 's', ctrlKey: true, action: () => handleSaveFile(), description: '保存文件' },
@@ -536,7 +697,23 @@ function AppV2() {
       description: '关闭面板',
       preventDefault: false,
     },
-  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen, createNewWindow])
+
+    // === 标签页导航 ===
+    { key: 'Tab', ctrlKey: true, action: () => switchToNextTab(), description: '下一个标签页', preventDefault: true },
+    { key: 'Tab', ctrlKey: true, shiftKey: true, action: () => switchToPrevTab(), description: '上一个标签页', preventDefault: true },
+    {
+      key: 'ArrowLeft', altKey: true,
+      action: () => { if (!ui.editorFocused) switchToPrevTab() },
+      description: '上一个标签页（非编辑器焦点）',
+      preventDefault: false,
+    },
+    {
+      key: 'ArrowRight', altKey: true,
+      action: () => { if (!ui.editorFocused) switchToNextTab() },
+      description: '下一个标签页（非编辑器焦点）',
+      preventDefault: false,
+    },
+  ], [handleSaveFile, handleOpenFile, openTab, ui, getActiveTab, handleCloseTab, isMobile, mobileSidebarOpen, setMobileSidebarOpen, createNewWindow, switchToNextTab, switchToPrevTab])
 
   useKeyboardShortcuts(shortcuts)
 

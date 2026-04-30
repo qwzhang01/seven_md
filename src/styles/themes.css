@@ -193,6 +193,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #ffffff;
+  --editor-fg: #1f2937;
+  --editor-line-highlight: #f3f4f6;
+  --editor-selection: #add6ff;
+  --editor-gutter-bg: #ffffff;
+  --editor-gutter-fg: #6b7280;
+  --editor-cursor: #1f2937;
 }
 
 /* ---- Monokai ---- */
@@ -260,6 +269,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #272822;
+  --editor-fg: #f8f8f2;
+  --editor-line-highlight: #3e3d32;
+  --editor-selection: #49483e;
+  --editor-gutter-bg: #272822;
+  --editor-gutter-fg: #75715e;
+  --editor-cursor: #f8f8f0;
 }
 
 /* ---- Solarized ---- */
@@ -327,6 +345,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #002b36;
+  --editor-fg: #839496;
+  --editor-line-highlight: #073642;
+  --editor-selection: #073642;
+  --editor-gutter-bg: #002b36;
+  --editor-gutter-fg: #586e75;
+  --editor-cursor: #839496;
 }
 
 /* ---- Nord ---- */
@@ -394,6 +421,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #2e3440;
+  --editor-fg: #d8dee9;
+  --editor-line-highlight: #3b4252;
+  --editor-selection: #434c5e;
+  --editor-gutter-bg: #2e3440;
+  --editor-gutter-fg: #4c566a;
+  --editor-cursor: #d8dee9;
 }
 
 /* ---- Dracula ---- */
@@ -461,6 +497,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #282a36;
+  --editor-fg: #f8f8f2;
+  --editor-line-highlight: #44475a;
+  --editor-selection: #44475a;
+  --editor-gutter-bg: #282a36;
+  --editor-gutter-fg: #6272a4;
+  --editor-cursor: #f8f8f2;
 }
 
 /* ---- GitHub ---- */
@@ -528,6 +573,15 @@
   --heading-h2: var(--markdown-h2);
   --heading-h3: var(--markdown-h3);
   --heading-h4: var(--markdown-h4);
+
+  /* Editor */
+  --editor-bg: #ffffff;
+  --editor-fg: #24292e;
+  --editor-line-highlight: #f6f8fa;
+  --editor-selection: #c8e1ff;
+  --editor-gutter-bg: #ffffff;
+  --editor-gutter-fg: #959da5;
+  --editor-cursor: #24292e;
 }
 
 /* ---- Global theme transition ---- */

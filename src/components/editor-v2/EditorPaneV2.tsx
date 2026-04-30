@@ -9,7 +9,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { EditorState } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, keymap, KeyBinding } from '@codemirror/view'
-import { undo, redo, indentWithTab, defaultKeymap, historyKeymap } from '@codemirror/commands'
+import { undo, redo, selectAll, indentWithTab, defaultKeymap, historyKeymap } from '@codemirror/commands'
 import { history } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
@@ -18,6 +18,8 @@ import { syntaxHighlighting, HighlightStyle, bracketMatching } from '@codemirror
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { tags } from '@lezer/highlight'
 import { useEditorStore, useUIStore, useThemeStore, useAIStore } from '../../stores'
+import { getThemeById } from '../../themes'
+import type { ThemeId } from '../../stores/useThemeStore'
 import { EditorContextMenu } from './EditorContextMenu'
 
 /**
@@ -72,27 +74,29 @@ function listContinuation(): KeyBinding[] {
   }]
 }
 
-// Build highlight style from current CSS variables
-function buildHighlightStyle(isDark: boolean) {
+// Build highlight style from the active theme's syntax color palette
+function buildHighlightStyle(themeId: ThemeId) {
+  const theme = getThemeById(themeId)
+  const s = theme.syntax
   return HighlightStyle.define([
-    { tag: tags.heading1, fontWeight: 'bold', fontSize: '1.5em' },
-    { tag: tags.heading2, fontWeight: 'bold', fontSize: '1.3em' },
-    { tag: tags.heading3, fontWeight: 'bold', fontSize: '1.15em' },
-    { tag: tags.heading4, fontWeight: 'bold', fontSize: '1.05em' },
-    { tag: tags.strong, fontWeight: 'bold', color: isDark ? '#cc6699' : '#e50000' },
-    { tag: tags.emphasis, fontStyle: 'italic', color: isDark ? '#c586c0' : '#af00db' },
-    { tag: tags.strikethrough, textDecoration: 'line-through', color: isDark ? '#858585' : '#6b7280' },
-    { tag: tags.link, color: isDark ? '#3794ff' : '#0066cc', textDecoration: 'underline' },
-    { tag: tags.url, color: isDark ? '#3794ff' : '#0066cc' },
-    { tag: tags.monospace, fontFamily: '"SF Mono", Menlo, Monaco, Consolas, monospace', backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', borderRadius: '3px', padding: '0 3px' },
-    { tag: tags.quote, color: isDark ? '#6a9955' : '#059669' },
-    { tag: tags.list, color: isDark ? '#569cd6' : '#0066cc' },
-    { tag: tags.meta, color: isDark ? '#9cdcfe' : '#6b7280' },
-    { tag: tags.processingInstruction, color: isDark ? '#9cdcfe' : '#6b7280' },
-    { tag: tags.comment, color: isDark ? '#6a9955' : '#008000', fontStyle: 'italic' },
-    { tag: tags.keyword, color: isDark ? '#569cd6' : '#0000ff' },
-    { tag: tags.string, color: isDark ? '#ce9178' : '#a31515' },
-    { tag: tags.number, color: isDark ? '#b5cea8' : '#098658' },
+    { tag: tags.heading1, fontWeight: 'bold', fontSize: '1.5em', color: s.heading },
+    { tag: tags.heading2, fontWeight: 'bold', fontSize: '1.3em', color: s.heading2 },
+    { tag: tags.heading3, fontWeight: 'bold', fontSize: '1.15em', color: s.heading3 },
+    { tag: tags.heading4, fontWeight: 'bold', fontSize: '1.05em', color: s.heading4 },
+    { tag: tags.strong, fontWeight: 'bold', color: s.bold },
+    { tag: tags.emphasis, fontStyle: 'italic', color: s.italic },
+    { tag: tags.strikethrough, textDecoration: 'line-through', color: s.strikethrough },
+    { tag: tags.link, color: s.link, textDecoration: 'underline' },
+    { tag: tags.url, color: s.link },
+    { tag: tags.monospace, fontFamily: '"SF Mono", Menlo, Monaco, Consolas, monospace', backgroundColor: s.codeBackground, borderRadius: '3px', padding: '0 3px', color: s.code },
+    { tag: tags.quote, color: s.quote },
+    { tag: tags.list, color: s.list },
+    { tag: tags.meta, color: s.heading4 },
+    { tag: tags.processingInstruction, color: s.heading4 },
+    { tag: tags.comment, color: s.quote, fontStyle: 'italic' },
+    { tag: tags.keyword, color: s.heading },
+    { tag: tags.string, color: s.code },
+    { tag: tags.number, color: s.taskComplete },
   ])
 }
 
@@ -110,8 +114,6 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
   const { setCursorPosition } = useEditorStore()
   const { zoomLevel } = useUIStore()
   const currentTheme = useThemeStore((s) => s.currentTheme)
-
-  const isDark = !['light', 'github'].includes(currentTheme)
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
@@ -144,7 +146,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
   useEffect(() => {
     if (!containerRef.current) return
 
-    const highlightStyle = buildHighlightStyle(isDark)
+    const highlightStyle = buildHighlightStyle(currentTheme)
 
     const startState = EditorState.create({
       doc: content,
@@ -235,7 +237,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       view.destroy()
       viewRef.current = null
     }
-  }, [isDark, zoomLevel]) // Re-create when theme/zoom changes
+  }, [currentTheme, zoomLevel]) // Re-create when theme/zoom changes
 
   // Sync external content
   useEffect(() => {
@@ -287,6 +289,88 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     return () => {
       window.removeEventListener('editor:undo', handleUndo)
       window.removeEventListener('editor:redo', handleRedo)
+    }
+  }, [])
+
+  // Listen to clipboard events dispatched by the native menu
+  // (menu-cut/copy/paste/select-all → editor:cut/copy/paste/select-all)
+  //
+  // IMPORTANT: Do NOT use document.execCommand('copy'/'cut'/'paste') here.
+  // When Tauri binds CmdOrCtrl+V to the native menu item, pressing Cmd+V fires:
+  //   1. The Tauri menu event  → editor:paste → execCommand('paste')
+  //      → triggers a native paste DOM event → CodeMirror inserts (1st time)
+  //   2. The WebView native Cmd+V → CodeMirror's defaultKeymap handles it (2nd time)
+  // Result: content is pasted TWICE.
+  //
+  // Fix: bypass execCommand entirely. Instead, read/write the clipboard directly
+  // via navigator.clipboard and dispatch changes through CodeMirror's own API.
+  // This way the menu handler inserts exactly once and never fires a DOM
+  // clipboard event that CodeMirror would also pick up.
+  useEffect(() => {
+    const handleCopy = () => {
+      const view = viewRef.current
+      if (!view) return
+      const { from, to } = view.state.selection.main
+      if (from === to) return
+      const text = view.state.sliceDoc(from, to)
+      navigator.clipboard.writeText(text).catch(() => {
+        // fallback: focus + execCommand as last resort
+        view.contentDOM.focus()
+        document.execCommand('copy')
+      })
+    }
+
+    const handleCut = () => {
+      const view = viewRef.current
+      if (!view) return
+      const { from, to } = view.state.selection.main
+      if (from === to) return
+      const text = view.state.sliceDoc(from, to)
+      navigator.clipboard.writeText(text).then(() => {
+        // Delete the selected text after writing to clipboard
+        view.dispatch({
+          changes: { from, to, insert: '' },
+          selection: { anchor: from },
+        })
+        view.focus()
+      }).catch(() => {
+        view.contentDOM.focus()
+        document.execCommand('cut')
+      })
+    }
+
+    const handlePaste = () => {
+      const view = viewRef.current
+      if (!view) return
+      navigator.clipboard.readText().then((text) => {
+        if (!text) return
+        const { from, to } = view.state.selection.main
+        view.dispatch({
+          changes: { from, to, insert: text },
+          selection: { anchor: from + text.length },
+        })
+        view.focus()
+      }).catch(() => {
+        // fallback: focus + execCommand as last resort
+        view.contentDOM.focus()
+        document.execCommand('paste')
+      })
+    }
+
+    const handleSelectAll = () => {
+      if (!viewRef.current) return
+      selectAll(viewRef.current)
+      viewRef.current.focus()
+    }
+    window.addEventListener('editor:cut', handleCut)
+    window.addEventListener('editor:copy', handleCopy)
+    window.addEventListener('editor:paste', handlePaste as EventListener)
+    window.addEventListener('editor:select-all', handleSelectAll)
+    return () => {
+      window.removeEventListener('editor:cut', handleCut)
+      window.removeEventListener('editor:copy', handleCopy)
+      window.removeEventListener('editor:paste', handlePaste as EventListener)
+      window.removeEventListener('editor:select-all', handleSelectAll)
     }
   }, [])
 

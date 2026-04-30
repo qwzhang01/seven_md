@@ -2,12 +2,19 @@ mod logger;
 mod commands;
 
 use logger::{init_logger, write_log, read_logs, get_log_dates, log, LogLevel};
-use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal, reveal_in_finder};
+use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal};
+#[cfg(target_os = "macos")]
+use commands::reveal_in_finder;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{Manager, Emitter};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+
+/// Holds the app handle so commands can update the native menu.
+struct AppHandleState {
+    handle: tauri::AppHandle,
+}
 
 /// Holds the active file system watcher thread's stop flag.
 struct WatcherState {
@@ -54,7 +61,9 @@ pub fn main() {
             add_recent_document,
             clear_recent_documents,
             get_recent_documents,
+            update_recent_menu,
             open_in_terminal,
+            #[cfg(target_os = "macos")]
             reveal_in_finder,
             create_new_window,
         ])
@@ -64,9 +73,9 @@ pub fn main() {
             let log_dir = app_handle.path().app_data_dir()
                 .expect("Failed to get app data dir")
                 .join("logs");
-            
+
             init_logger(log_dir).expect("Failed to initialize logger");
-            
+
             // ==========================================
             // Menu items — 100% coverage of frontend menus
             // ==========================================
@@ -77,11 +86,46 @@ pub fn main() {
             let open_file = MenuItem::with_id(app, "open_file", "打开文件...", true, Some("CmdOrCtrl+O"))?;
             let open_folder = MenuItem::with_id(app, "open_folder", "打开文件夹", true, None::<&str>)?;
             let close_folder = MenuItem::with_id(app, "close_folder", "关闭文件夹", true, None::<&str>)?;
-            
-            // Recent documents submenu
+
+            // Recent documents submenu — load from file on startup for dynamic menu
             let clear_recent = MenuItem::with_id(app, "clear_recent", "清除菜单", true, None::<&str>)?;
-            let recent_submenu = Submenu::with_items(app, "最近文档", true, &[&clear_recent])?;
-            
+
+            // Load persisted recent documents from app_data_dir/recent_documents.json
+            let recent_paths: Vec<String> = {
+                let data_dir = app.handle().path().app_data_dir()
+                    .unwrap_or_default();
+                let file_path = data_dir.join("recent_documents.json");
+                fs::read_to_string(&file_path)
+                    .ok()
+                    .and_then(|s| serde_json::from_str(&s).ok())
+                    .unwrap_or_default()
+            };
+
+            // Build recent submenu items dynamically
+            let recent_submenu = {
+                let mut recent_items: Vec<Box<dyn tauri::menu::IsMenuItem<tauri::Wry>>> = Vec::new();
+                for path in recent_paths.iter().take(10) {
+                    let name = path.split('/').last().unwrap_or(path.as_str()).to_string();
+                    let id = format!("recent_doc_{}", path);
+                    if let Ok(item) = MenuItem::with_id(app, id, name, true, None::<&str>) {
+                        recent_items.push(Box::new(item));
+                    }
+                }
+                let sep = PredefinedMenuItem::separator(app)?;
+                let mut all_refs: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = recent_items
+                    .iter()
+                    .map(|b| b.as_ref() as &dyn tauri::menu::IsMenuItem<tauri::Wry>)
+                    .collect();
+                if !recent_paths.is_empty() {
+                    all_refs.push(&sep);
+                }
+                all_refs.push(&clear_recent);
+                Submenu::with_items(app, "最近文档", true, &all_refs)?
+            };
+
+            // Store app handle for later use by update_recent_menu command
+            app.manage(AppHandleState { handle: app.handle().clone() });
+
             let save = MenuItem::with_id(app, "save", "保存", true, Some("CmdOrCtrl+S"))?;
             let save_all = MenuItem::with_id(app, "save_all", "全部保存", true, Some("CmdOrCtrl+Alt+S"))?;
             let save_as = MenuItem::with_id(app, "save_as", "另存为...", true, Some("CmdOrCtrl+Shift+S"))?;
@@ -114,7 +158,7 @@ pub fn main() {
             let toggle_sidebar = MenuItem::with_id(app, "toggle_sidebar", "切换侧边栏", true, Some("CmdOrCtrl+B"))?;
             let toggle_outline = MenuItem::with_id(app, "toggle_outline", "切换大纲面板", true, Some("CmdOrCtrl+Shift+O"))?;
             let toggle_explorer = MenuItem::with_id(app, "toggle_explorer", "切换资源管理器", true, Some("CmdOrCtrl+Shift+E"))?;
-            
+
             // Display options submenu
             let show_line_numbers = MenuItem::with_id(app, "show_line_numbers", "显示行号", true, None::<&str>)?;
             let show_minimap = MenuItem::with_id(app, "show_minimap", "显示迷你地图", true, None::<&str>)?;
@@ -124,11 +168,11 @@ pub fn main() {
                 &show_minimap,
                 &word_wrap,
             ])?;
-            
+
             let zoom_in = MenuItem::with_id(app, "zoom_in", "放大", true, Some("CmdOrCtrl+="))?;
             let zoom_out = MenuItem::with_id(app, "zoom_out", "缩小", true, Some("CmdOrCtrl+-"))?;
             let reset_zoom = MenuItem::with_id(app, "reset_zoom", "重置缩放", true, Some("CmdOrCtrl+0"))?;
-            
+
             // Editor view submenu
             let view_editor_only = MenuItem::with_id(app, "view_editor_only", "仅编辑器", true, Some("CmdOrCtrl+Alt+1"))?;
             let view_preview_only = MenuItem::with_id(app, "view_preview_only", "仅预览", true, Some("CmdOrCtrl+Alt+2"))?;
@@ -138,8 +182,10 @@ pub fn main() {
                 &view_preview_only,
                 &view_split,
             ])?;
-            
+
             let toggle_fullscreen = MenuItem::with_id(app, "toggle_fullscreen", "全屏", true, Some("F11"))?;
+            let next_tab = MenuItem::with_id(app, "next_tab", "下一个标签页", true, Some("Ctrl+Tab"))?;
+            let prev_tab = MenuItem::with_id(app, "prev_tab", "上一个标签页", true, Some("Ctrl+Shift+Tab"))?;
 
             // --- Insert menu items ---
             // Heading submenu
@@ -157,7 +203,7 @@ pub fn main() {
                 &insert_h5,
                 &insert_h6,
             ])?;
-            
+
             let insert_bold = MenuItem::with_id(app, "insert_bold", "加粗", true, Some("CmdOrCtrl+B"))?;
             let insert_italic = MenuItem::with_id(app, "insert_italic", "斜体", true, Some("CmdOrCtrl+I"))?;
             let insert_strikethrough = MenuItem::with_id(app, "insert_strikethrough", "删除线", true, Some("CmdOrCtrl+Shift+X"))?;
@@ -178,7 +224,7 @@ pub fn main() {
             let format_bold = MenuItem::with_id(app, "format_bold", "加粗", true, Some("CmdOrCtrl+B"))?;
             let format_italic = MenuItem::with_id(app, "format_italic", "斜体", true, Some("CmdOrCtrl+I"))?;
             let format_strikethrough = MenuItem::with_id(app, "format_strikethrough", "删除线", true, Some("CmdOrCtrl+Shift+X"))?;
-            
+
             // Format heading submenu
             let format_h1 = MenuItem::with_id(app, "format_h1", "标题 1", true, Some("Cmd+1"))?;
             let format_h2 = MenuItem::with_id(app, "format_h2", "标题 2", true, Some("Cmd+2"))?;
@@ -194,7 +240,7 @@ pub fn main() {
                 &format_h5,
                 &format_h6,
             ])?;
-            
+
             let format_code = MenuItem::with_id(app, "format_code", "代码", true, None::<&str>)?;
             let format_link = MenuItem::with_id(app, "format_link", "链接", true, None::<&str>)?;
             let fmt_clear = MenuItem::with_id(app, "clear_format", "清除格式", true, Some("CmdOrCtrl+\\"))?;
@@ -276,6 +322,9 @@ pub fn main() {
                 &editor_view_submenu,
                 &PredefinedMenuItem::separator(app)?,
                 &toggle_fullscreen,
+                &PredefinedMenuItem::separator(app)?,
+                &next_tab,
+                &prev_tab,
             ])?;
 
             let insert_menu = Submenu::with_items(app, "插入", true, &[
@@ -348,7 +397,7 @@ pub fn main() {
                 let hide_others = PredefinedMenuItem::hide_others(app, Some("隐藏其他"))?;
                 let show_all = PredefinedMenuItem::show_all(app, Some("显示全部"))?;
                 let quit_mac = PredefinedMenuItem::quit(app, Some("退出 Seven Markdown"))?;
-                
+
                 let apple_menu = Submenu::with_items(app, "Seven Markdown", true, &[
                     &about_item,
                     &PredefinedMenuItem::separator(app)?,
@@ -364,7 +413,7 @@ pub fn main() {
                 let window_minimize = MenuItem::with_id(app, "window_minimize", "最小化", true, Some("Cmd+M"))?;
                 let window_zoom = MenuItem::with_id(app, "window_zoom", "缩放", true, None::<&str>)?;
                 let window_front = MenuItem::with_id(app, "window_front", "全部置于前面", true, None::<&str>)?;
-                
+
                 let window_menu = Submenu::with_items(app, "窗口", true, &[
                     &window_minimize,
                     &window_zoom,
@@ -417,6 +466,11 @@ pub fn main() {
                     "open_folder" => { let _ = app_handle.emit("menu-open-folder", ()); }
                     "close_folder" => { let _ = app_handle.emit("menu-close-folder", ()); }
                     "clear_recent" => { let _ = app_handle.emit("menu-clear-recent", ()); }
+                    id if id.starts_with("recent_doc_") => {
+                        // Extract the path encoded after the prefix
+                        let path = id.trim_start_matches("recent_doc_").to_string();
+                        let _ = app_handle.emit("menu-open-recent-doc", path);
+                    }
                     "save" => { let _ = app_handle.emit("menu-save", ()); }
                     "save_all" => { let _ = app_handle.emit("menu-save-all", ()); }
                     "save_as" => { let _ = app_handle.emit("menu-save-as", ()); }
@@ -455,6 +509,8 @@ pub fn main() {
                     "view_preview_only" => { let _ = app_handle.emit("menu-view-preview-only", ()); }
                     "view_split" => { let _ = app_handle.emit("menu-view-split", ()); }
                     "toggle_fullscreen" => { let _ = app_handle.emit("menu-toggle-fullscreen", ()); }
+                    "next_tab" => { let _ = app_handle.emit("menu-next-tab", ()); }
+                    "prev_tab" => { let _ = app_handle.emit("menu-prev-tab", ()); }
 
                     // Insert menu
                     "insert_h1" => { let _ = app_handle.emit("menu-insert-h1", ()); }
@@ -511,7 +567,7 @@ pub fn main() {
                     _ => {}
                 }
             });
-            
+
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -521,59 +577,59 @@ pub fn main() {
 #[tauri::command]
 async fn open_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let _ = log(LogLevel::Debug, "Opening folder dialog".to_string(), None, Some("open_folder".to_string()));
-    
+
     use tauri_plugin_dialog::DialogExt;
     use tokio::sync::oneshot;
-    
+
     // Create a one-shot channel to receive the dialog result
     let (tx, rx) = oneshot::channel();
-    
+
     // Use callback-based pick_folder
     app.dialog()
         .file()
         .pick_folder(move |result| {
             let _ = tx.send(result);
         });
-    
+
     // Wait for the result asynchronously
     let folder_path = rx.await.map_err(|e| format!("Receive error: {}", e))?;
-    
+
     match &folder_path {
         Some(path) => {
-            let _ = log(LogLevel::Info, "Folder selected".to_string(), 
-                Some(serde_json::json!({"path": path.to_string()})), 
+            let _ = log(LogLevel::Info, "Folder selected".to_string(),
+                Some(serde_json::json!({"path": path.to_string()})),
                 Some("open_folder".to_string()));
         }
         None => {
             let _ = log(LogLevel::Debug, "Folder selection cancelled".to_string(), None, Some("open_folder".to_string()));
         }
     }
-    
+
     Ok(folder_path.map(|p| p.to_string()))
 }
 
 #[tauri::command]
 fn get_store_path(app: tauri::AppHandle) -> Result<String, String> {
     let _ = log(LogLevel::Debug, "Getting store path".to_string(), None, Some("get_store_path".to_string()));
-    
+
     match app.path().app_data_dir() {
         Ok(app_dir) => {
             if let Err(e) = fs::create_dir_all(&app_dir) {
-                let _ = log(LogLevel::Error, format!("Failed to create app data dir: {}", e), 
-                    Some(serde_json::json!({"error": e.to_string()})), 
+                let _ = log(LogLevel::Error, format!("Failed to create app data dir: {}", e),
+                    Some(serde_json::json!({"error": e.to_string()})),
                     Some("get_store_path".to_string()));
                 return Err(format!("Failed to create app data dir: {}", e));
             }
-            
+
             let path = app_dir.to_string_lossy().to_string();
-            let _ = log(LogLevel::Debug, "Store path retrieved".to_string(), 
-                Some(serde_json::json!({"path": path})), 
+            let _ = log(LogLevel::Debug, "Store path retrieved".to_string(),
+                Some(serde_json::json!({"path": path})),
                 Some("get_store_path".to_string()));
             Ok(path)
         }
         Err(e) => {
-            let _ = log(LogLevel::Error, format!("Failed to get app data dir: {}", e), 
-                Some(serde_json::json!({"error": e.to_string()})), 
+            let _ = log(LogLevel::Error, format!("Failed to get app data dir: {}", e),
+                Some(serde_json::json!({"error": e.to_string()})),
                 Some("get_store_path".to_string()));
             Err(format!("Failed to get app data dir: {}", e))
         }
@@ -673,13 +729,36 @@ fn stop_fs_watch(
     Ok(())
 }
 
+/// Persist recent documents to app_data_dir/recent_documents.json
+/// and emit an event so all windows stay in sync.
+/// The native menu is rebuilt on next app launch from this file.
+#[tauri::command]
+fn update_recent_menu(
+    state: tauri::State<AppHandleState>,
+    paths: Vec<String>,
+) -> Result<(), String> {
+    let app = &state.handle;
+
+    // Persist to file so the menu is correct on next app launch
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let file_path = data_dir.join("recent_documents.json");
+    let json = serde_json::to_string(&paths).map_err(|e| e.to_string())?;
+    fs::write(&file_path, json).map_err(|e| e.to_string())?;
+
+    // Emit so all windows stay in sync
+    let _ = app.emit("menu-recent-docs-updated", &paths);
+
+    Ok(())
+}
+
 /// Add a file path to the recent documents list
 #[tauri::command]
 fn add_recent_document(_app: tauri::AppHandle, path: String) -> Result<(), String> {
-    let _ = log(LogLevel::Debug, "Adding recent document".to_string(), 
-        Some(serde_json::json!({"path": path.clone()})), 
+    let _ = log(LogLevel::Debug, "Adding recent document".to_string(),
+        Some(serde_json::json!({"path": path.clone()})),
         Some("add_recent_document".to_string()));
-    
+
     // Recent documents are managed by the frontend using localStorage
     // This command is a placeholder for potential future backend storage
     Ok(())
@@ -704,14 +783,14 @@ fn get_recent_documents() -> Result<Vec<String>, String> {
 #[tauri::command]
 async fn create_new_window(app: tauri::AppHandle) -> Result<String, String> {
     let _ = log(LogLevel::Info, "Creating new window".to_string(), None, Some("create_new_window".to_string()));
-    
+
     let label = format!("window-{}", std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis());
-    
+
     let webview_url = tauri::WebviewUrl::App("index.html".into());
-    
+
     match tauri::WebviewWindowBuilder::new(&app, &label, webview_url)
         .title("Seven Markdown")
         .inner_size(1200.0, 800.0)

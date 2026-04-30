@@ -42,10 +42,8 @@ describe('TabItem', () => {
     expect(accentBar).toBeInTheDocument()
   })
 
-  it('hover 时显示关闭按钮', () => {
+  it('始终显示关闭按钮（无需 hover）', () => {
     render(<TabItem {...defaultProps} />)
-    const tab = screen.getByRole('tab')
-    fireEvent.mouseEnter(tab)
     const closeBtn = screen.getByLabelText('关闭 readme.md')
     expect(closeBtn).toBeInTheDocument()
   })
@@ -53,8 +51,6 @@ describe('TabItem', () => {
   it('点击关闭按钮调用 onClose', () => {
     const onClose = vi.fn()
     render(<TabItem {...defaultProps} onClose={onClose} />)
-    const tab = screen.getByRole('tab')
-    fireEvent.mouseEnter(tab)
     const closeBtn = screen.getByLabelText('关闭 readme.md')
     fireEvent.click(closeBtn)
     expect(onClose).toHaveBeenCalledWith('tab-1')

@@ -22,7 +22,7 @@ The system SHALL support three view modes for arranging the editor and preview a
 - **AND** the change SHALL include a smooth transition animation (~200ms)
 
 ### Requirement: Gutter allows resizing editor/preview ratio
-The system SHALL allow users to drag the divider between editor and preview to resize their relative widths.
+The system SHALL allow users to drag the divider between editor and preview to resize their relative widths. During dragging, the window drag region SHALL be disabled to prevent accidental window movement.
 
 #### Scenario: Drag gutter to resize
 - **WHEN** user clicks and drags the vertical gutter between editor and preview
@@ -39,6 +39,15 @@ The system SHALL allow users to drag the divider between editor and preview to r
 #### Scenario: Hover effect on gutter
 - **WHEN** user hovers over the gutter without clicking
 - **THEN** the gutter SHALL subtly highlight (2px wider, accent color tint)
+
+#### Scenario: Window drag region disabled during gutter drag
+- **WHEN** user presses mouse button down on the gutter to start resizing
+- **THEN** the `data-resizing` attribute SHALL be set on `document.documentElement`
+- **AND** all `data-tauri-drag-region` elements SHALL have `-webkit-app-region: no-drag` applied via CSS
+- **AND** moving the mouse over the TitleBar SHALL NOT trigger window movement
+- **WHEN** user releases the mouse button
+- **THEN** the `data-resizing` attribute SHALL be removed from `document.documentElement`
+- **AND** the TitleBar SHALL resume functioning as a window drag region
 
 ### Requirement: View mode transitions are animated
 The system SHALL provide smooth animations when switching view modes.
