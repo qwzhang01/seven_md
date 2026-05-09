@@ -2,7 +2,9 @@ import { memo, useState, useCallback } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { TabItem } from './TabItem'
 import { TabContextMenu } from './TabContextMenu'
+import { TabBarContextMenu } from './TabBarContextMenu'
 import { useFileStore } from '../../stores'
+import { readFile } from '../../tauriCommands'
 
 interface TabBarProps {
   onCloseTab?: (tabId: string) => void
@@ -20,6 +22,7 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [showOverflow, setShowOverflow] = useState(false)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [barContextMenu, setBarContextMenu] = useState<{ x: number; y: number } | null>(null)
 
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDragFromIndex(index)
@@ -64,6 +67,8 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, tabId: string) => {
       e.preventDefault()
+      e.stopPropagation()
+      ;(e.nativeEvent as any).__contextMenuHandled = true
       setContextMenu({ tabId, x: e.clientX, y: e.clientY })
     },
     []
@@ -73,11 +78,39 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
     setContextMenu(null)
   }, [])
 
+  // 标签栏空白处右键
+  const handleBarContextMenu = useCallback((e: React.MouseEvent) => {
+    // 只在空白区域生效（不在标签上）
+    if ((e.target as HTMLElement).closest('[role="tab"]')) return
+    e.preventDefault()
+    e.stopPropagation()
+    ;(e.nativeEvent as any).__contextMenuHandled = true
+    setBarContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
+
+  // 冲突解决：重新加载文件
+  const handleReloadTab = useCallback(async (tabId: string) => {
+    const tab = useFileStore.getState().tabs.find((t) => t.id === tabId)
+    if (!tab?.path) return
+    try {
+      const newContent = await readFile(tab.path)
+      useFileStore.getState().reloadTabContent(tabId, newContent)
+    } catch {
+      // 文件可能已删除
+    }
+  }, [])
+
+  // 冲突解决：保留本地修改
+  const handleKeepLocal = useCallback((tabId: string) => {
+    useFileStore.getState().markTabExternalConflict(tabId, false)
+  }, [])
+
   return (
     <div
       className="flex-1 flex items-stretch h-full overflow-hidden"
       role="tablist"
       aria-label="打开的文件"
+      onContextMenu={handleBarContextMenu}
     >
       {/* Scrollable tab list */}
       <div
@@ -99,9 +132,12 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
               name={tab.name}
               isDirty={tab.isDirty}
               isActive={tab.id === activeTabId}
+              hasExternalConflict={tab.hasExternalConflict}
               index={index}
               onActivate={switchTab}
               onClose={handleClose}
+              onReloadTab={handleReloadTab}
+              onKeepLocal={handleKeepLocal}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
@@ -155,6 +191,15 @@ export const TabBar = memo(function TabBar({ onCloseTab }: TabBarProps) {
           position={{ x: contextMenu.x, y: contextMenu.y }}
           onClose={handleCloseContextMenu}
           onCloseTab={handleClose}
+        />
+      )}
+
+      {/* Tab bar blank area context menu */}
+      {barContextMenu && (
+        <TabBarContextMenu
+          x={barContextMenu.x}
+          y={barContextMenu.y}
+          onClose={() => setBarContextMenu(null)}
         />
       )}
     </div>

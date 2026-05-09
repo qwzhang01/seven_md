@@ -407,6 +407,7 @@ export function ExplorerPanel() {
     (e: React.MouseEvent, node: FileTreeNode) => {
       e.preventDefault()
       e.stopPropagation()
+      ;(e.nativeEvent as any).__contextMenuHandled = true
 
       const isDir = node.type === 'directory'
       const parentPath = getParentPath(node)

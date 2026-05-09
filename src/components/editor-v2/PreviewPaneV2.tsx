@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex'
 import { useEditorStore, useUIStore } from '../../stores'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { MermaidBlock } from './MermaidBlock'
+import { PreviewContextMenu } from './PreviewContextMenu'
 
 interface PreviewPaneV2Props {
   content: string
@@ -17,6 +18,19 @@ interface PreviewPaneV2Props {
 export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = '' }: PreviewPaneV2Props) {
   const previewRef = useRef<HTMLDivElement>(null)
   const isExternalScroll = useRef(false)
+
+  // 右键菜单状态
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [hasSelection, setHasSelection] = useState(false)
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    ;(e.nativeEvent as any).__contextMenuHandled = true
+    const selection = window.getSelection()
+    setHasSelection(!!(selection && selection.toString().trim().length > 0))
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
 
   // 滚动同步：订阅 scrollRatio
   const scrollRatio = useEditorStore((s) => s.scrollRatio)
@@ -39,6 +53,26 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
       isExternalScroll.current = false
     })
   }, [scrollRatio, scrollSyncEnabled, viewMode])
+
+  // 监听 preview:scroll-to-heading 事件，滚动到对应的标题
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const headingText = (e as CustomEvent<string>).detail
+      if (!headingText || !previewRef.current) return
+
+      // 在预览面板中查找匹配的 heading 元素
+      const headings = previewRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      for (const el of headings) {
+        const text = (el as HTMLElement).textContent?.trim()
+        if (text === headingText) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          return
+        }
+      }
+    }
+    window.addEventListener('preview:scroll-to-heading', handler)
+    return () => window.removeEventListener('preview:scroll-to-heading', handler)
+  }, [])
 
   const handleOpenExternal = useCallback(() => {
     // Open preview in a new window
@@ -107,6 +141,7 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
           lineHeight: '1.7',
           fontFamily: 'var(--font-primary)',
         }}
+        onContextMenu={handleContextMenu}
       >
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
@@ -152,6 +187,16 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
           {content}
         </ReactMarkdown>
       </div>
+
+      {/* Preview context menu */}
+      {contextMenu && (
+        <PreviewContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          hasSelection={hasSelection}
+        />
+      )}
     </div>
   )
 })

@@ -263,18 +263,26 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
 
   // Listen to editor:jump-to-line
   useEffect(() => {
-    const handler = (e: Event) => {
-      const lineNum = (e as CustomEvent<number>).detail
-      if (!viewRef.current) return
+    const jumpToLine = (lineNum: number) => {
+      if (!viewRef.current) return false
       const view = viewRef.current
       const doc = view.state.doc
-      if (lineNum < 1 || lineNum > doc.lines) return
+      if (lineNum < 1 || lineNum > doc.lines) return false
       const line = doc.line(lineNum)
       view.dispatch({
         selection: { anchor: line.from },
         effects: EditorView.scrollIntoView(line.from, { y: 'center' }),
       })
       view.focus()
+      return true
+    }
+
+    const handler = (e: Event) => {
+      const lineNum = (e as CustomEvent<number>).detail
+      // 如果编辑器尚未初始化，延迟 100ms 重试一次
+      if (!jumpToLine(lineNum)) {
+        setTimeout(() => jumpToLine(lineNum), 100)
+      }
     }
     window.addEventListener('editor:jump-to-line', handler)
     return () => window.removeEventListener('editor:jump-to-line', handler)
@@ -695,6 +703,8 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
   // Right-click context menu
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    ;(e.nativeEvent as any).__contextMenuHandled = true
     setContextMenu({ x: e.clientX, y: e.clientY })
   }, [])
 

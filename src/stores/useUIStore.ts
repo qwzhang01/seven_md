@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type DialogType = 'shortcut-reference' | 'about' | 'welcome' | null
 
@@ -14,6 +15,7 @@ interface UIState {
   zoomLevel: number
   dialogType: DialogType
   editorFocused: boolean // 编辑器是否获得焦点
+  editorWidth: number | null // 编辑器像素宽度（null = flex:1 自动 50/50）
 
   // Actions
   toggleSidebar: () => void
@@ -31,6 +33,7 @@ interface UIState {
   zoomOut: () => void
   setDialogType: (type: DialogType) => void
   setEditorFocused: (focused: boolean) => void
+  setEditorWidth: (width: number | null) => void
 }
 
 const MIN_ZOOM = 10
@@ -39,38 +42,55 @@ const ZOOM_STEP = 2
 const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 500
 
-export const useUIStore = create<UIState>()((set) => ({
-  sidebarVisible: true,
-  sidebarWidth: 260,
-  activeSidebarPanel: 'explorer',
-  viewMode: 'split',
-  commandPaletteOpen: false,
-  aiPanelOpen: false,
-  findReplaceOpen: false,
-  findReplaceMode: 'find',
-  zoomLevel: 14,
-  dialogType: null,
-  editorFocused: false,
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      sidebarVisible: true,
+      sidebarWidth: 260,
+      activeSidebarPanel: 'explorer',
+      viewMode: 'split',
+      commandPaletteOpen: false,
+      aiPanelOpen: false,
+      findReplaceOpen: false,
+      findReplaceMode: 'find',
+      zoomLevel: 14,
+      dialogType: null,
+      editorFocused: false,
+      editorWidth: null,
 
-  toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
-  setSidebarVisible: (visible) => set({ sidebarVisible: visible }),
-  setSidebarWidth: (width) =>
-    set({ sidebarWidth: Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, width)) }),
-  setActiveSidebarPanel: (panel) =>
-    set((s) => ({
-      activeSidebarPanel: panel,
-      // If clicking the same panel, toggle sidebar visibility
-      sidebarVisible: s.activeSidebarPanel === panel ? !s.sidebarVisible : true,
-    })),
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
-  toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
-  setAIPanelOpen: (open) => set({ aiPanelOpen: open }),
-  setFindReplaceOpen: (open) => set({ findReplaceOpen: open }),
-  setFindReplaceMode: (mode) => set({ findReplaceMode: mode, findReplaceOpen: true }),
-  setZoomLevel: (level) => set({ zoomLevel: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level)) }),
-  zoomIn: () => set((s) => ({ zoomLevel: Math.min(s.zoomLevel + ZOOM_STEP, MAX_ZOOM) })),
-  zoomOut: () => set((s) => ({ zoomLevel: Math.max(s.zoomLevel - ZOOM_STEP, MIN_ZOOM) })),
-  setDialogType: (type) => set({ dialogType: type }),
-  setEditorFocused: (focused) => set({ editorFocused: focused }),
-}))
+      toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
+      setSidebarVisible: (visible) => set({ sidebarVisible: visible }),
+      setSidebarWidth: (width) =>
+        set({ sidebarWidth: Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, width)) }),
+      setActiveSidebarPanel: (panel) =>
+        set((s) => ({
+          activeSidebarPanel: panel,
+          // If clicking the same panel, toggle sidebar visibility
+          sidebarVisible: s.activeSidebarPanel === panel ? !s.sidebarVisible : true,
+        })),
+      setViewMode: (mode) => set({ viewMode: mode }),
+      setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+      toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+      setAIPanelOpen: (open) => set({ aiPanelOpen: open }),
+      setFindReplaceOpen: (open) => set({ findReplaceOpen: open }),
+      setFindReplaceMode: (mode) => set({ findReplaceMode: mode, findReplaceOpen: true }),
+      setZoomLevel: (level) => set({ zoomLevel: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level)) }),
+      zoomIn: () => set((s) => ({ zoomLevel: Math.min(s.zoomLevel + ZOOM_STEP, MAX_ZOOM) })),
+      zoomOut: () => set((s) => ({ zoomLevel: Math.max(s.zoomLevel - ZOOM_STEP, MIN_ZOOM) })),
+      setDialogType: (type) => set({ dialogType: type }),
+      setEditorFocused: (focused) => set({ editorFocused: focused }),
+      setEditorWidth: (width) => set({ editorWidth: width }),
+    }),
+    {
+      name: 'md-mate-ui',
+      partialize: (state) => ({
+        sidebarVisible: state.sidebarVisible,
+        sidebarWidth: state.sidebarWidth,
+        activeSidebarPanel: state.activeSidebarPanel,
+        viewMode: state.viewMode,
+        zoomLevel: state.zoomLevel,
+        editorWidth: state.editorWidth,
+      }),
+    }
+  )
+)

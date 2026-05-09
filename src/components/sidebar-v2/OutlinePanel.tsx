@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react'
 import { List } from 'lucide-react'
+import { useUIStore } from '../../stores'
 
 interface Heading {
   level: number
@@ -62,7 +63,21 @@ export function OutlinePanel({ content }: OutlinePanelProps) {
 
   const handleHeadingClick = useCallback((heading: Heading) => {
     setActiveHeading(heading.line)
-    window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: heading.line }))
+    const viewMode = useUIStore.getState().viewMode
+
+    // editor-only: 只发射编辑器跳转事件
+    if (viewMode === 'editor-only') {
+      window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: heading.line }))
+    }
+    // preview-only: 只发射预览面板滚动事件
+    else if (viewMode === 'preview-only') {
+      window.dispatchEvent(new CustomEvent('preview:scroll-to-heading', { detail: heading.text }))
+    }
+    // split: 同时发射两个事件
+    else {
+      window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: heading.line }))
+      window.dispatchEvent(new CustomEvent('preview:scroll-to-heading', { detail: heading.text }))
+    }
   }, [])
 
   return (

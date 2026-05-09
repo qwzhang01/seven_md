@@ -7,6 +7,24 @@
   -webkit-app-region: no-drag;
 }
 
+/* Smooth transition for editor/preview pane resize and mode switch */
+#md-mate-editor-preview > [data-component="editor-pane"],
+#md-mate-editor-preview > [data-component="preview-pane"] {
+  transition: flex 0.25s ease, opacity 0.2s ease, min-width 0.25s ease;
+}
+
+/* Disable transition during gutter drag for instant feedback */
+[data-resizing] #md-mate-editor-preview > * {
+  transition: none !important;
+}
+
+/* Disable text selection everywhere during gutter drag */
+[data-resizing] * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
 @layer base {
   html {
     overscroll-behavior: none;
@@ -18,6 +36,24 @@
     overscroll-behavior: none;
     background: var(--bg-primary, #1e1e1e);
     @apply text-gray-900 dark:text-gray-100;
+  }
+
+  /* 全局禁止非内容区域文本选择，消除拖拽全选效果 */
+  #root {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* 编辑器内容区恢复文本选择 (CodeMirror) */
+  .cm-editor {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* 预览面板正文区恢复文本选择 */
+  .markdown-preview {
+    -webkit-user-select: text;
+    user-select: text;
   }
 }
 

@@ -31,6 +31,7 @@ import { AboutDialog } from './components/dialogs/AboutDialog'
 import { WelcomeDialog } from './components/dialogs/WelcomeDialog'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { DefaultContextMenu } from './components/shared/DefaultContextMenu'
 
 // Stores
 import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore, useWorkspaceStore } from './stores'
@@ -78,14 +79,43 @@ function AppV2() {
   // 移动端侧边栏 overlay 状态
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
+  // 全局兜底右键菜单状态
+  const [defaultContextMenu, setDefaultContextMenu] = useState<{ x: number; y: number } | null>(null)
+
+  // 全局 contextmenu 拦截：阻止浏览器默认右键菜单
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      // 始终阻止浏览器默认右键菜单
+      e.preventDefault()
+
+      // 如果事件已被子组件处理（通过自定义标记），不显示兜底菜单
+      if ((e as any).__contextMenuHandled) return
+
+      // 检查目标是否在"静默区域"（工具栏、状态栏、活动栏）
+      const target = e.target as HTMLElement
+      const isSilentZone = !!(
+        target.closest('[data-component="activitybar"]') ||
+        target.closest('[data-component="toolbar"]') ||
+        target.closest('[data-component="statusbar"]')
+      )
+
+      if (!isSilentZone) {
+        setDefaultContextMenu({ x: e.clientX, y: e.clientY })
+      }
+    }
+    document.addEventListener('contextmenu', handler)
+    return () => document.removeEventListener('contextmenu', handler)
+  }, [])
+
   const activeTab = getActiveTab()
   const activeContent = activeTab?.content ?? ''
 
   // 防抖 refreshTree 用的 timer ref
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Editor pixel width state (null = flex:1, auto split)
-  const [editorWidth, setEditorWidth] = useState<number | null>(null)
+  // Editor pixel width from store (null = flex:1, auto split)
+  const editorWidth = ui.editorWidth
+  const setEditorWidth = ui.setEditorWidth
 
   // Dirty tab modal
   const [dirtyTabId, setDirtyTabId] = useState<string | null>(null)
@@ -170,8 +200,38 @@ function AppV2() {
         if (refreshTimerRef.current) {
           clearTimeout(refreshTimerRef.current)
         }
-        refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = setTimeout(async () => {
+          // 刷新目录树
           useWorkspaceStore.getState().refreshTree()
+
+          // 热重载已打开的 Tab 文件内容
+          const { tabs } = useFileStore.getState()
+          const tabsWithPath = tabs.filter((t) => t.path)
+
+          // 限制并发数量为 5
+          const BATCH_SIZE = 5
+          for (let i = 0; i < tabsWithPath.length; i += BATCH_SIZE) {
+            const batch = tabsWithPath.slice(i, i + BATCH_SIZE)
+            await Promise.allSettled(
+              batch.map(async (tab) => {
+                if (!tab.path) return
+                try {
+                  const newContent = await readFile(tab.path)
+                  if (newContent === tab.content) return // 内容没变，跳过
+
+                  if (!tab.isDirty) {
+                    // 没有未保存修改：静默更新
+                    useFileStore.getState().reloadTabContent(tab.id, newContent)
+                  } else {
+                    // 有未保存修改：标记外部冲突
+                    useFileStore.getState().markTabExternalConflict(tab.id, true)
+                  }
+                } catch {
+                  // 文件可能已被删除，忽略读取错误
+                }
+              })
+            )
+          }
         }, 500)
       }))
 
@@ -592,15 +652,20 @@ function AppV2() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
+  // 用 ref 保持 editorWidth 最新值，避免 handleGutterResize 频繁重建
+  const editorWidthRef = useRef(editorWidth)
+  editorWidthRef.current = editorWidth
+
   // Handle gutter resize
   const handleGutterResize = useCallback((dx: number) => {
     const mainEl = document.getElementById('md-mate-editor-preview')
     if (!mainEl) return
     const total = mainEl.offsetWidth
-    const currentEditorW = editorWidth ?? total / 2
-    const newW = Math.max(MIN_EDITOR_WIDTH, Math.min(total * MAX_EDITOR_WIDTH_RATIO, currentEditorW + dx))
+    const currentEditorW = editorWidthRef.current ?? total / 2
+    const maxW = Math.min(total - MIN_EDITOR_WIDTH, total * MAX_EDITOR_WIDTH_RATIO)
+    const newW = Math.max(MIN_EDITOR_WIDTH, Math.min(maxW, currentEditorW + dx))
     setEditorWidth(newW)
-  }, [editorWidth])
+  }, [setEditorWidth])
 
   // Handle tab close with dirty check
   const handleCloseTab = useCallback((tabId: string) => {
@@ -735,7 +800,9 @@ function AppV2() {
       data-theme={theme}
     >
       {/* === TOOLBAR === */}
-      <Toolbar />
+      <div data-component="toolbar">
+        <Toolbar />
+      </div>
 
       {/* === MAIN AREA === */}
       <div className="flex flex-1 overflow-hidden relative">
@@ -794,17 +861,20 @@ function AppV2() {
           <div
             id="md-mate-editor-preview"
             data-component="editor-preview"
-            className="flex-1 flex overflow-hidden relative transition-all duration-250"
+            className="flex-1 flex overflow-hidden relative"
           >
-            {/* Editor Pane */}
-            {showEditor && tabs.length > 0 && (
+            {/* Editor Pane - 始终渲染，通过 flex 控制显隐以获得统一动画 */}
+            {tabs.length > 0 && (
               <div
                 data-component="editor-pane"
                 className="relative flex-col flex overflow-hidden"
                 style={{
-                  flex: isMobile ? '1 1 50%' : (editorWidth ? `0 0 ${editorWidth}px` : 1),
-                  minHeight: isMobile ? '50%' : 'auto',
-                  transition: 'flex 0.25s ease',
+                  flex: showEditor
+                    ? (isMobile ? '1 1 50%' : (showGutter && editorWidth ? `0 0 ${editorWidth}px` : 1))
+                    : '0 0 0px',
+                  minHeight: isMobile && showEditor ? '50%' : 'auto',
+                  opacity: showEditor ? 1 : 0,
+                  pointerEvents: showEditor ? 'auto' : 'none',
                 }}
               >
                 <ErrorBoundary boundaryName="Editor">
@@ -819,11 +889,9 @@ function AppV2() {
               </div>
             )}
 
-            {/* Desktop Gutter (vertical divider) - 移动端隐藏 */}
+            {/* Desktop Gutter (vertical divider) - 仅 split 模式显示 */}
             {!isMobile && showGutter && tabs.length > 0 && (
-              <div data-component="gutter">
-                <Gutter onResize={handleGutterResize} />
-              </div>
+              <Gutter onResize={handleGutterResize} onReset={() => setEditorWidth(null)} />
             )}
 
             {/* Mobile Horizontal Divider - 仅移动端显示 */}
@@ -840,16 +908,19 @@ function AppV2() {
               </div>
             )}
 
-            {/* Preview Pane */}
-            {showPreview && tabs.length > 0 && (
+            {/* Preview Pane - 始终渲染，通过 flex 控制显隐以获得统一动画 */}
+            {tabs.length > 0 && (
               <div
                 data-component="preview-pane"
                 style={{
-                  flex: isMobile ? '1 1 50%' : 1,
-                  minHeight: isMobile ? '50%' : MIN_EDITOR_WIDTH,
+                  flex: showPreview
+                    ? (isMobile ? '1 1 50%' : 1)
+                    : '0 0 0px',
+                  minHeight: isMobile && showPreview ? '50%' : 0,
                   overflow: 'hidden',
-                  minWidth: MIN_EDITOR_WIDTH,
-                  transition: 'flex 0.25s ease',
+                  minWidth: showPreview ? MIN_EDITOR_WIDTH : 0,
+                  opacity: showPreview ? 1 : 0,
+                  pointerEvents: showPreview ? 'auto' : 'none',
                 }}
               >
                 <ErrorBoundary boundaryName="Preview">
@@ -880,11 +951,22 @@ function AppV2() {
       </div>
 
       {/* === STATUS BAR === */}
-      <StatusBarV2 />
+      <div data-component="statusbar">
+        <StatusBarV2 />
+      </div>
 
       {/* === OVERLAYS === */}
       <CommandPalette />
       <NotificationContainer />
+
+      {/* 全局兜底右键菜单 */}
+      {defaultContextMenu && (
+        <DefaultContextMenu
+          x={defaultContextMenu.x}
+          y={defaultContextMenu.y}
+          onClose={() => setDefaultContextMenu(null)}
+        />
+      )}
 
       {/* Dialogs */}
       {ui.dialogType === 'shortcut-reference' && (

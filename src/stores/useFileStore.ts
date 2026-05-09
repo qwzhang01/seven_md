@@ -6,6 +6,7 @@ interface FileTab {
   name: string
   content: string
   isDirty: boolean
+  hasExternalConflict: boolean
   cursorLine: number
   cursorColumn: number
   scrollPosition: number
@@ -33,6 +34,8 @@ interface FileState {
   switchToNextTab: () => void
   switchToPrevTab: () => void
   getActiveTab: () => FileTab | null
+  reloadTabContent: (tabId: string, content: string) => void
+  markTabExternalConflict: (tabId: string, flag: boolean) => void
 }
 
 let tabIdCounter = 0
@@ -64,6 +67,7 @@ export const useFileStore = create<FileState>()((set, get) => ({
       name: tabName,
       content,
       isDirty: false,
+      hasExternalConflict: false,
       cursorLine: 1,
       cursorColumn: 1,
       scrollPosition: 0,
@@ -213,4 +217,18 @@ export const useFileStore = create<FileState>()((set, get) => ({
     const state = get()
     return state.tabs.find((t) => t.id === state.activeTabId) ?? null
   },
+
+  reloadTabContent: (tabId, content) =>
+    set((s) => ({
+      tabs: s.tabs.map((t) =>
+        t.id === tabId ? { ...t, content, isDirty: false, hasExternalConflict: false } : t
+      ),
+    })),
+
+  markTabExternalConflict: (tabId, flag) =>
+    set((s) => ({
+      tabs: s.tabs.map((t) =>
+        t.id === tabId ? { ...t, hasExternalConflict: flag } : t
+      ),
+    })),
 }))
