@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: 'If you use this software, please cite it as below.'
-title: 'Seven Markdown - A Modern Markdown Reader for macOS'
+title: 'Seven Markdown - An AI-Powered Markdown Writing Workstation'
 version: 0.1.0
 date-released: 2024-01-01
 authors:
@@ -10,14 +10,18 @@ authors:
     affiliation: 'Independent Developer'
 repository-code: 'https://github.com/qwzhang01/seven_md'
 url: 'https://github.com/qwzhang01/seven_md'
-abstract: 'Seven Markdown is a modern, open-source Markdown reader specifically designed for macOS. Built with Tauri v2, React 19, and TypeScript, it provides a native desktop experience with real-time preview, syntax highlighting, math formula support, and dark/light theme switching.'
+abstract: 'Seven Markdown is a modern, open-source Markdown writing workstation for macOS and Windows. Built with Tauri v2, React 19, and TypeScript, it provides a native desktop experience with real-time preview, AI-powered writing assistance, multi-window support, syntax highlighting, math formula support, and theme switching.'
 keywords:
   - 'markdown'
-  - 'reader'
+  - 'editor'
+  - 'writing-workstation'
   - 'macos'
+  - 'windows'
   - 'tauri'
   - 'react'
   - 'typescript'
   - 'desktop-app'
+  - 'ai-assistant'
+  - 'multi-window'
 license: MIT
 doi: 10.5281/zenodo.xxxxxxx

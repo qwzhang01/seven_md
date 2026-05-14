@@ -16,6 +16,7 @@ interface UIState {
   dialogType: DialogType
   editorFocused: boolean // 编辑器是否获得焦点
   editorWidth: number | null // 编辑器像素宽度（null = flex:1 自动 50/50）
+  isFullscreen: boolean // 全屏状态（运行时状态，不持久化）
 
   // Actions
   toggleSidebar: () => void
@@ -34,6 +35,7 @@ interface UIState {
   setDialogType: (type: DialogType) => void
   setEditorFocused: (focused: boolean) => void
   setEditorWidth: (width: number | null) => void
+  setIsFullscreen: (fullscreen: boolean) => void
 }
 
 const MIN_ZOOM = 10
@@ -57,6 +59,7 @@ export const useUIStore = create<UIState>()(
       dialogType: null,
       editorFocused: false,
       editorWidth: null,
+      isFullscreen: false,
 
       toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
       setSidebarVisible: (visible) => set({ sidebarVisible: visible }),
@@ -80,6 +83,7 @@ export const useUIStore = create<UIState>()(
       setDialogType: (type) => set({ dialogType: type }),
       setEditorFocused: (focused) => set({ editorFocused: focused }),
       setEditorWidth: (width) => set({ editorWidth: width }),
+      setIsFullscreen: (fullscreen) => set({ isFullscreen: fullscreen }),
     }),
     {
       name: 'md-mate-ui',

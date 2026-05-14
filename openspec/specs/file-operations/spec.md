@@ -11,8 +11,16 @@ The system SHALL provide comprehensive file operations including create, open, s
 
 #### Scenario: Create new window
 - **WHEN** user selects "新建窗口" (Ctrl+Shift+N)
-- **THEN** a completely new MD Mate application window SHALL be opened
+- **THEN** a completely new Seven Markdown application window SHALL be opened
 - **AND** the new window SHALL be independent (separate state)
+- **AND** the `create_new_window` command SHALL accept an optional `initial_folder` parameter
+
+#### Scenario: Open folder in new window
+- **WHEN** user selects "在新窗口中打开文件夹" from File menu
+- **THEN** a native folder picker dialog SHALL appear
+- **AND** upon selection, a new window SHALL be created with the selected folder path as `initial_folder`
+- **AND** the new window SHALL automatically open and display the folder's directory tree
+- **AND** the new window SHALL be independent from the current window
 
 #### Scenario: Open file records to recent documents
 - **WHEN** user selects "打开文件" (Ctrl+O) and selects a file

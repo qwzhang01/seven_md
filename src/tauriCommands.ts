@@ -82,3 +82,18 @@ export const openInTerminal = async (path: string): Promise<void> => {
 export const revealInFinder = async (path: string): Promise<void> => {
   return await invoke('reveal_in_finder', { path })
 }
+
+/**
+ * 创建新窗口
+ * @param initialFolder 可选的初始文件夹路径，新窗口会自动打开该目录
+ */
+export const createNewWindow = async (initialFolder?: string): Promise<string> => {
+  return await invoke('create_new_window', { initialFolder: initialFolder || null })
+}
+
+/**
+ * 在系统默认浏览器中打开外部 URL
+ */
+export const openExternalUrl = async (url: string): Promise<void> => {
+  return await invoke('open_external_url', { url })
+}

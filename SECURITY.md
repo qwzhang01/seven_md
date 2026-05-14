@@ -53,7 +53,7 @@ When using Seven MD:
 Seven MD is designed with security in mind:
 
 - 🔒 **Local Processing**: All files are processed locally on your machine
-- 🚫 **No Network Calls**: The app does not make any network requests
+- 🚫 **No Network Calls**: The app does not make any network requests on its own. External links clicked in the preview pane are opened via the system default browser, not within the app
 - 📁 **Sandboxed**: The app runs in a sandboxed environment
 - ✅ **Code Signing**: Releases are code-signed for macOS
 

@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 // Keyboard shortcuts hook
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -36,7 +37,7 @@ import { DefaultContextMenu } from './components/shared/DefaultContextMenu'
 // Stores
 import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore, useWorkspaceStore } from './stores'
 import type { ThemeId } from './stores/useThemeStore'
-import { readFile, saveFile } from './tauriCommands'
+import { readFile, saveFile, createNewWindow as tauriCreateNewWindow } from './tauriCommands'
 
 // ---- Recent Documents Utility ----
 const RECENT_DOCS_KEY = 'recent-documents'
@@ -124,8 +125,7 @@ function AppV2() {
   // 创建新窗口
   const createNewWindow = useCallback(async () => {
     try {
-      const { invoke } = await import('@tauri-apps/api/core')
-      await invoke('create_new_window')
+      await tauriCreateNewWindow()
     } catch (e) {
       console.error('创建新窗口失败:', e)
       addNotification({ type: 'error', message: `创建窗口失败: ${e}`, autoClose: true, duration: 5000 })
@@ -248,6 +248,18 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-close-folder', () => {
         useWorkspaceStore.getState().closeFolder()
+      }))
+      unlisteners.push(await listen('menu-open-folder-new-window', async () => {
+        // 弹出文件夹选择器，选择后在新窗口打开
+        try {
+          const { openFolderDialog } = await import('./tauriCommands')
+          const selectedPath = await openFolderDialog()
+          if (selectedPath) {
+            await tauriCreateNewWindow(selectedPath)
+          }
+        } catch (e) {
+          addNotificationRef.current({ type: 'error', message: `打开文件夹失败: ${e}`, autoClose: true, duration: 5000 })
+        }
       }))
       unlisteners.push(await listen('menu-clear-recent', () => {
         localStorage.removeItem('recent-documents')
@@ -535,9 +547,37 @@ function AppV2() {
           addNotificationRef.current({ type: 'error', message: `检查更新失败: ${e}`, autoClose: true, duration: 5000 })
         }
       }))
+
+      // --- 全屏状态检测 ---
+      // 初始化时检测全屏状态（支持 HMR 热重载场景）
+      const appWindow = getCurrentWindow()
+      appWindow.isFullscreen().then((fs) => {
+        useUIStore.getState().setIsFullscreen(fs)
+      }).catch(() => {})
+
+      // 监听 resize 事件，延迟检测全屏状态变化
+      unlisteners.push(await listen('tauri://resize', () => {
+        setTimeout(() => {
+          appWindow.isFullscreen().then((fs) => {
+            useUIStore.getState().setIsFullscreen(fs)
+          }).catch(() => {})
+        }, 50)
+      }))
     }
 
     setup()
+
+    // Task 4.1-4.3: 窗口初始化时读取 URL 参数，自动打开文件夹
+    // 放在 setup() 之后确保所有事件监听都已注册
+    const urlParams = new URLSearchParams(window.location.search)
+    const folderParam = urlParams.get('folder')
+    if (folderParam) {
+      const decodedPath = decodeURIComponent(folderParam)
+      // 延迟一帧确保 store 已就绪
+      requestAnimationFrame(() => {
+        useWorkspaceStore.getState().openFolderByPath(decodedPath)
+      })
+    }
 
     return () => {
       unlisteners.forEach((fn) => fn())
@@ -790,15 +830,19 @@ function AppV2() {
 
   return (
     <div
-      className="h-screen flex flex-col overflow-hidden"
+      className="flex flex-col overflow-hidden"
       style={{
         fontFamily: 'var(--font-primary, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
         background: 'var(--bg-primary)',
         color: 'var(--text-primary)',
         fontSize: ui.zoomLevel,
+        height: '100%',
       }}
       data-theme={theme}
     >
+      {/* === TITLEBAR (窗口拖拽区域，全屏时自动隐藏) === */}
+      <TitleBar />
+
       {/* === TOOLBAR === */}
       <div data-component="toolbar">
         <Toolbar />

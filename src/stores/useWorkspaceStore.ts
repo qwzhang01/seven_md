@@ -26,6 +26,7 @@ interface WorkspaceState {
 
   // Actions
   openFolder: () => Promise<void>
+  openFolderByPath: (path: string) => Promise<void>
   closeFolder: () => Promise<void>
   loadDirectory: (path: string) => Promise<void>
   toggleDirectory: (path: string) => Promise<void>
@@ -68,6 +69,45 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     } catch (error) {
       console.error('打开文件夹失败:', error)
       set({ isLoading: false })
+    }
+  },
+
+  openFolderByPath: async (path: string) => {
+    try {
+      // 如果已有文件夹打开，先关闭
+      const currentPath = get().folderPath
+      if (currentPath) {
+        await get().closeFolder()
+      }
+
+      set({ isLoading: true })
+
+      // 直接加载指定路径的目录内容
+      const nodes = await readDirectory(path)
+      const newTree = new Map<string, FileTreeNode[]>()
+      newTree.set(path, nodes)
+
+      set({
+        folderPath: path,
+        folderTree: newTree,
+        expandedDirs: new Set(),
+        rootNodes: nodes,
+        isLoading: false,
+      })
+
+      // 启动文件系统监控
+      await startFsWatch(path)
+    } catch (error) {
+      console.error('打开文件夹失败:', error)
+      set({ isLoading: false })
+
+      // 显示通知
+      useNotificationStore.getState().addNotification({
+        type: 'error',
+        message: `无法打开文件夹: ${path}`,
+        autoClose: true,
+        duration: 3000,
+      })
     }
   },
 

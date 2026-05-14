@@ -21,6 +21,20 @@ The system SHALL provide a `useWorkspaceStore` Zustand store that manages worksp
 - **THEN** `folderPath` SHALL remain unchanged
 - **AND** no directory loading or file watching SHALL be initiated
 
+#### Scenario: openFolderByPath opens a folder by absolute path without dialog
+- **WHEN** `openFolderByPath(path)` action is called with an absolute folder path
+- **THEN** if a folder is already open, `closeFolder()` SHALL be called first
+- **AND** `isLoading` SHALL be set to `true`
+- **AND** `readDirectory(path)` SHALL be called to load the root-level contents
+- **AND** `folderPath` SHALL be set to the given path
+- **AND** `startFsWatch(path)` SHALL be called to begin file system monitoring
+- **AND** `isLoading` SHALL be set to `false`
+
+#### Scenario: openFolderByPath handles errors gracefully
+- **WHEN** `openFolderByPath(path)` is called and the directory read fails
+- **THEN** `isLoading` SHALL be set to `false`
+- **AND** an error notification SHALL be displayed to the user with the path information
+
 #### Scenario: closeFolder clears workspace state
 - **WHEN** `closeFolder()` action is called
 - **THEN** `folderPath` SHALL be set to `null`

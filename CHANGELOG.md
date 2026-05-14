@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Multi-Window Independent Workspaces**: Each window can now bind to its own independent folder
+  - `create_new_window` Rust command supports `initial_folder` parameter for URL query context passing
+  - New menu item "在新窗口中打开文件夹" (Open Folder in New Window) in File menu
+  - Window auto-opens folder on startup via `?folder=` URL parameter
+- **Markdown Link Smart Navigation**: Preview pane link click interception
+  - Internal `.md` links open in a new editor tab (via `openFileByPath`)
+  - External `http(s)://` links open in system default browser (via `open_external_url` Rust command)
+  - Anchor `#heading` links smooth-scroll within the preview pane
+  - Unknown/unresolvable links show user-friendly notification
+- **New Store Actions**:
+  - `useFileStore.openFileByPath(absolutePath)` — read file and create/activate tab
+  - `useWorkspaceStore.openFolderByPath(path)` — open folder without dialog, with error handling
+- **New Utility Module**: `src/utils/linkNavigation.ts` — link classification (`classifyLink`) and relative path resolution (`resolveMarkdownLink`)
+- **New Tauri Commands**: `open_external_url` (cross-platform browser launch), `createNewWindow` wrapper with optional `initialFolder`
 - **V2 Editor Overhaul**: Complete UI rewrite with professional-grade components
   - Custom title bar with traffic lights and tab bar (drag-to-reorder, close, dirty indicator)
   - Full menu bar (File/Edit/View/Insert/Format/Theme/Help) with keyboard navigation
@@ -31,11 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - NSIS and MSI installer packaging
 - **Testing**: 82 unit tests (Vitest) + 5 E2E test specs (Playwright)
 
+### Fixed
+- **Preview Link Click White Screen**: Clicking Markdown links in preview pane no longer causes WebView navigation (blank screen). Links are now intercepted with proper `onClick` handler in `PreviewPaneV2.tsx`
+
 ### Changed
-- Migrated from React Context/Reducer to Zustand stores (8 stores)
+- Migrated from React Context/Reducer to Zustand stores (9 stores)
 - Migrated from simple textarea to CodeMirror 6 editor
 - Migrated from basic CSS to Tailwind CSS + CSS variable-based theming
 - All components rewritten with V2 architecture
+
+### Fixed
+- **Fullscreen layout height**: Fixed macOS fullscreen mode showing dark blank area at the bottom
+  - Root container changed from `h-screen` (`100vh`) to `h-dvh` (`100dvh`) for accurate dynamic viewport height
+  - Added `isFullscreen` runtime state to `useUIStore` with `tauri://resize` event detection
+  - TitleBar auto-hides (`height: 0`) in fullscreen mode, restoring 38px of vertical space
+  - Added `html, body, #root { height: 100% }` safety measure for height inheritance
 
 ## [0.1.0] - 2024-XX-XX
 

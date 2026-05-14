@@ -20,9 +20,34 @@ The system SHALL display a rendered preview of the current document's Markdown c
   - Blockquotes (including nested)
   - Horizontal rules
   - Tables (GFM)
-  - Links (clickable) and images
+  - Links (with click interception — internal .md links open as tabs, external links open in system browser, anchor links scroll within preview) and images
   - Math expressions (LaTeX via KaTeX)
   - Mermaid diagrams (fenced blocks tagged `mermaid`)
+
+### Requirement: Preview pane intercepts link clicks with smart navigation
+The system SHALL intercept all link clicks in the preview pane to prevent WebView navigation and provide intelligent link handling.
+
+#### Scenario: Internal Markdown link opens in new tab
+- **WHEN** user clicks a link to a `.md` file (e.g., `./other.md`, `../docs/readme.md`)
+- **THEN** the system SHALL resolve the relative path against the current file's directory
+- **AND** the resolved file SHALL be opened in a new editor tab via `openFileByPath`
+- **AND** if the file cannot be found, a warning notification SHALL be displayed
+
+#### Scenario: External link opens in system browser
+- **WHEN** user clicks a link starting with `http://` or `https://`
+- **THEN** the system SHALL invoke the `open_external_url` Rust command
+- **AND** the link SHALL open in the user's system default browser
+- **AND** the preview pane SHALL NOT navigate away from the current content
+
+#### Scenario: Anchor link scrolls within preview
+- **WHEN** user clicks a link starting with `#` (e.g., `#heading-title`)
+- **THEN** the preview pane SHALL smooth-scroll to the element with the matching `id`
+- **AND** no new tab SHALL be created
+
+#### Scenario: Link type classification
+- **WHEN** a link is clicked
+- **THEN** the system SHALL classify it using `classifyLink()` into one of: `anchor`, `external`, `internal-md`, `unknown`
+- **AND** dispatch the appropriate handler based on the classification
 
 ### Requirement: Preview pane has header toolbar
 The system SHALL provide a toolbar at the top of the preview pane.

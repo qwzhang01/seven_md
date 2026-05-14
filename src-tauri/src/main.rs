@@ -66,6 +66,7 @@ pub fn main() {
             #[cfg(target_os = "macos")]
             reveal_in_finder,
             create_new_window,
+            open_external_url,
         ])
         .setup(|app| {
             // Initialize logger
@@ -83,6 +84,7 @@ pub fn main() {
             // --- File menu items ---
             let new_file = MenuItem::with_id(app, "new_file", "新建文件", true, Some("CmdOrCtrl+N"))?;
             let new_window = MenuItem::with_id(app, "new_window", "新建窗口", true, Some("CmdOrCtrl+Shift+N"))?;
+            let open_folder_new_window = MenuItem::with_id(app, "open_folder_new_window", "在新窗口中打开文件夹...", true, None::<&str>)?;
             let open_file = MenuItem::with_id(app, "open_file", "打开文件...", true, Some("CmdOrCtrl+O"))?;
             let open_folder = MenuItem::with_id(app, "open_folder", "打开文件夹", true, None::<&str>)?;
             let close_folder = MenuItem::with_id(app, "close_folder", "关闭文件夹", true, None::<&str>)?;
@@ -271,6 +273,7 @@ pub fn main() {
                 &PredefinedMenuItem::separator(app)?,
                 &open_file,
                 &open_folder,
+                &open_folder_new_window,
                 &close_folder,
                 &PredefinedMenuItem::separator(app)?,
                 &recent_submenu,
@@ -464,6 +467,7 @@ pub fn main() {
                     "new_window" => { let _ = app_handle.emit("menu-new-window", ()); }
                     "open_file" => { let _ = app_handle.emit("menu-open-file", ()); }
                     "open_folder" => { let _ = app_handle.emit("menu-open-folder", ()); }
+                    "open_folder_new_window" => { let _ = app_handle.emit("menu-open-folder-new-window", ()); }
                     "close_folder" => { let _ = app_handle.emit("menu-close-folder", ()); }
                     "clear_recent" => { let _ = app_handle.emit("menu-clear-recent", ()); }
                     id if id.starts_with("recent_doc_") => {
@@ -780,16 +784,27 @@ fn get_recent_documents() -> Result<Vec<String>, String> {
 }
 
 /// Create a new application window
+/// Optionally accepts an initial_folder path to auto-open in the new window.
 #[tauri::command]
-async fn create_new_window(app: tauri::AppHandle) -> Result<String, String> {
-    let _ = log(LogLevel::Info, "Creating new window".to_string(), None, Some("create_new_window".to_string()));
+async fn create_new_window(app: tauri::AppHandle, initial_folder: Option<String>) -> Result<String, String> {
+    let _ = log(LogLevel::Info, "Creating new window".to_string(),
+        Some(serde_json::json!({"initial_folder": initial_folder})),
+        Some("create_new_window".to_string()));
 
     let label = format!("window-{}", std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis());
 
-    let webview_url = tauri::WebviewUrl::App("index.html".into());
+    // Build URL with optional folder query parameter
+    let url_str = match &initial_folder {
+        Some(folder) => {
+            let encoded = urlencoding::encode(folder);
+            format!("index.html?folder={}", encoded)
+        }
+        None => "index.html".to_string(),
+    };
+    let webview_url = tauri::WebviewUrl::App(url_str.into());
 
     match tauri::WebviewWindowBuilder::new(&app, &label, webview_url)
         .title("Seven Markdown")
@@ -808,4 +823,41 @@ async fn create_new_window(app: tauri::AppHandle) -> Result<String, String> {
             Err(format!("创建窗口失败: {}", e))
         }
     }
+}
+
+/// Open an external URL in the system default browser
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    let _ = log(LogLevel::Debug, format!("Opening external URL: {}", url), None, Some("open_external_url".to_string()));
+
+    // Validate URL starts with http:// or https://
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("Only HTTP/HTTPS URLs are supported".to_string());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open URL: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &url])
+            .spawn()
+            .map_err(|e| format!("Failed to open URL: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Failed to open URL: {}", e))?;
+    }
+
+    Ok(())
 }

@@ -100,7 +100,7 @@ seven_md/
 │   │   ├── dialogs/           # 业务对话框
 │   │   ├── statusbar-v2/      # 状态栏
 │   │   └── ErrorBoundary/     # 错误边界
-│   ├── stores/                 # Zustand 状态管理（8 个 store）
+│   ├── stores/                 # Zustand 状态管理（9 个 store）
 │   ├── commands/               # 命令注册与执行
 │   ├── hooks/                  # 自定义 Hooks（含 useKeyboardShortcuts）
 │   ├── utils/                  # 工具函数

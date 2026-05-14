@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { readFile } from '../tauriCommands'
 
 interface FileTab {
   id: string
@@ -36,6 +37,7 @@ interface FileState {
   getActiveTab: () => FileTab | null
   reloadTabContent: (tabId: string, content: string) => void
   markTabExternalConflict: (tabId: string, flag: boolean) => void
+  openFileByPath: (absolutePath: string) => Promise<string | null>
 }
 
 let tabIdCounter = 0
@@ -231,4 +233,22 @@ export const useFileStore = create<FileState>()((set, get) => ({
         t.id === tabId ? { ...t, hasExternalConflict: flag } : t
       ),
     })),
+
+  openFileByPath: async (absolutePath: string) => {
+    const state = get()
+    // 如果文件已打开，直接激活
+    const existingTab = state.tabs.find((t) => t.path === absolutePath)
+    if (existingTab) {
+      set({ activeTabId: existingTab.id })
+      return existingTab.id
+    }
+
+    // 读取文件并创建新标签页
+    try {
+      const content = await readFile(absolutePath)
+      return get().openTab(absolutePath, content)
+    } catch {
+      return null
+    }
+  },
 }))

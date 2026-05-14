@@ -66,7 +66,7 @@ logger.error('错误', { error: String(error) })
 
 ### Zustand Store 调试
 
-项目使用 **Zustand** 进行状态管理（8 个 Store），调试方式如下：
+项目使用 **Zustand** 进行状态管理（9 个 Store），调试方式如下：
 
 ```typescript
 // 方式 1：直接在 DevTools Console 中读取 Store 状态
@@ -96,9 +96,10 @@ function MyComponent() {
 | Store | 调试场景 |
 |-------|---------|
 | `useEditorStore` | 编辑器内容、光标位置、选区 |
-| `useUIStore` | 侧边栏/面板可见性、视图模式 |
+| `useUIStore` | 侧边栏/面板可见性、视图模式、全屏状态（`isFullscreen`） |
 | `useThemeStore` | 主题状态 |
-| `useFileStore` | 文件树、当前文件路径 |
+| `useFileStore` | 标签页管理、当前文件路径、`openFileByPath` |
+| `useWorkspaceStore` | 工作区文件夹路径、文件树状态、`openFolderByPath` |
 | `useAIStore` | AI 对话消息、加载状态 |
 | `useNotificationStore` | 通知队列 |
 | `useCommandStore` | 已注册命令列表 |

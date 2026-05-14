@@ -38,7 +38,7 @@ Seven Markdown 是基于 **Tauri v2** 构建的跨平台桌面应用，采用 **
 │  └──────────┘ └──────────┘ └──────────┘                          │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │           Zustand Stores (8 stores)                         │ │
+│  │           Zustand Stores (9 stores)                         │ │
 │  └─────────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────────┤
 │                    Tauri IPC Bridge                              │
@@ -66,7 +66,7 @@ Seven Markdown 是基于 **Tauri v2** 构建的跨平台桌面应用，采用 **
 | Vite 5 | 构建工具 & 开发服务器 |
 | Tailwind CSS 3 | 样式系统 |
 | CodeMirror 6 | Markdown 代码编辑器 |
-| Zustand 5 | 状态管理（8 个 Store） |
+| Zustand 5 | 状态管理（9 个 Store） |
 | react-markdown 10 | Markdown 预览渲染 |
 | remark-gfm | GFM 扩展（表格、任务列表、删除线） |
 | remark-math + rehype-katex | 数学公式渲染 |
@@ -86,11 +86,8 @@ Seven Markdown 是基于 **Tauri v2** 构建的跨平台桌面应用，采用 **
 ## 🧩 组件架构
 
 ```
-AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统)
-├── TitleBar
-│   ├── TrafficLights (macOS 交通灯)
-│   ├── TabBar (文件标签页)
-│   └── TitleBarActions (命令面板/侧边栏切换)
+AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统 + 全屏状态检测)
+├── TitleBar (窗口拖拽区域，全屏时自动隐藏 height:0)
 ├── Toolbar (格式按钮 + 视图切换 + AI 按钮)
 │   ├── ToolbarGroup
 │   └── ToolbarButton
@@ -106,7 +103,7 @@ AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统)
 │       │   ├── EditorContextMenu (右键菜单 + hover 展开子菜单)
 │       │   └── FindReplaceBar (查找替换栏)
 │       ├── Gutter (可拖拽分割线)
-│       └── PreviewPaneV2 (Markdown 实时渲染)
+│       └── PreviewPaneV2 (Markdown 实时渲染 + 链接智能导航拦截)
 ├── CommandPalette (Ctrl+Shift+P 命令面板)
 ├── AIPanel (AI 助手面板)
 │   ├── ChatMode (对话模式)
@@ -134,9 +131,10 @@ AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统)
 | Store | 职责 |
 |-------|------|
 | `useEditorStore` | 编辑器内容、光标位置、选区状态、查找替换 |
-| `useUIStore` | 侧边栏/面板可见性、视图模式、模态对话框 |
+| `useUIStore` | 侧边栏/面板可见性、视图模式、模态对话框、全屏状态（`isFullscreen`，运行时状态不持久化） |
 | `useThemeStore` | 主题切换、CSS 变量管理 |
-| `useFileStore` | 文件树、当前文件、工作区管理 |
+| `useFileStore` | 标签页管理、当前文件、`openFileByPath` 按路径打开文件 |
+| `useWorkspaceStore` | 工作区文件夹管理、文件树、`openFolderByPath` 按路径打开文件夹 |
 | `useAIStore` | AI 对话消息、AI 面板模式、加载状态 |
 | `useNotificationStore` | 通知队列管理（4 种类型，含 hover 暂停） |
 | `useCommandStore` | 命令注册、执行与检索 |
@@ -187,10 +185,42 @@ Tauri 菜单事件监听在 `src/AppV2.tsx` 的 `useEffect` 中注册。
 
 通过 Tauri 的 `WebviewWindow` API 实现：
 
-- **触发**：`Ctrl+Shift+N` / 文件菜单 → 新建窗口
+- **触发**：`Ctrl+Shift+N` / 文件菜单 → 新建窗口 / 文件菜单 → 在新窗口中打开文件夹
 - **实现**：Rust 端创建新 `WebviewWindow`，加载相同前端入口
-- **隔离**：每个窗口独立维护标签页、文件状态、编辑器状态
+- **隔离**：每个窗口独立维护标签页、文件状态、编辑器状态（Zustand store 天然按窗口隔离，每个窗口有独立 JS 上下文）
 - **共享**：主题、用户设置通过 localStorage 同步
+
+### 窗口上下文传递
+
+每个窗口可以绑定独立的工作文件夹，通过 URL query parameter 实现上下文传递：
+
+```
+窗口创建流程:
+1. 前端调用 createNewWindow(initialFolder?)
+2. Rust 端将 initialFolder 编码到 URL: index.html?folder=<encoded_path>
+3. 新窗口前端在 AppV2.tsx 的 useEffect 中解析 URL 参数
+4. 自动调用 useWorkspaceStore.openFolderByPath(decodedPath)
+5. 文件树自动加载并展示
+
+关键代码路径:
+- Rust: src-tauri/src/main.rs → create_new_window(initial_folder: Option<String>)
+- 前端封装: src/tauriCommands.ts → createNewWindow(initialFolder?)
+- 前端初始化: src/AppV2.tsx → URLSearchParams 解析 + openFolderByPath
+```
+
+### 链接导航架构
+
+预览面板中的链接点击经过 `linkNavigation.ts` 工具模块拦截和分类：
+
+```
+链接点击流程:
+1. PreviewPaneV2 的 <a> 标签 onClick 拦截 (e.preventDefault())
+2. classifyLink(href) 分类: anchor / external / internal-md / unknown
+3. 按类型分发:
+   - anchor → 预览面板内滚动到对应 heading
+   - external → openExternalUrl(href) → Rust open_external_url → 系统浏览器
+   - internal-md → resolveMarkdownLink(href, currentFilePath) → openFileByPath → 新标签页
+```
 
 ---
 
@@ -221,10 +251,10 @@ seven_md/
 │   │   ├── dialogs/           # 业务对话框
 │   │   ├── statusbar-v2/      # 状态栏
 │   │   └── ErrorBoundary/     # 错误边界
-│   ├── stores/                 # Zustand 状态管理（8 个 store）
+│   ├── stores/                 # Zustand 状态管理（9 个 store）
 │   ├── commands/               # 命令注册与执行
 │   ├── hooks/                  # 自定义 Hooks（useKeyboardShortcuts 等）
-│   ├── utils/                  # 工具函数（日志/路径/导出/安全等）
+│   ├── utils/                  # 工具函数（日志/路径/导出/安全/链接导航等）
 │   ├── styles/                 # 全局样式（主题 CSS / 无障碍 / RTL）
 │   ├── themes/                 # 主题定义
 │   ├── types/                  # TypeScript 类型定义
@@ -279,6 +309,13 @@ seven_md/
 
 - **桌面端（≥769px）**：完整布局（活动栏 + 侧边栏 + 编辑器 + 预览）
 - **移动端（<768px）**：侧边栏收起，编辑器与预览上下排列
+
+### 全屏布局
+
+- **根容器**使用 `100dvh`（dynamic viewport height）而非 `100vh`，确保全屏/非全屏切换时高度精确
+- **TitleBar** 在全屏模式下自动隐藏（`height: 0; overflow: hidden`），释放 38px 空间
+- **全屏检测**通过 `tauri://resize` 事件 + `getCurrentWindow().isFullscreen()` 实现，状态存储在 `useUIStore.isFullscreen`（运行时状态，不持久化）
+- `html, body, #root` 设置 `height: 100%` 确保高度继承链完整
 
 ---
 

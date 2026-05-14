@@ -18,6 +18,14 @@ The system SHALL manage the lifecycle of open file tabs including creation, acti
 - **WHEN** user opens a file that IS already open in another tab
 - **THEN** instead of creating a new tab, the existing tab SHALL be activated (brought to front)
 
+#### Scenario: Opening file by absolute path
+- **WHEN** `openFileByPath(absolutePath)` action is called
+- **THEN** if a tab with the same path already exists, it SHALL be activated
+- **AND** if no existing tab matches, the file SHALL be read from disk via `readFile`
+- **AND** a new tab SHALL be created with the file content
+- **AND** the new tab SHALL become the active tab
+- **IF** the file read fails, the action SHALL return `null` without creating a tab
+
 #### Scenario: Closing tab with unsaved changes prompts confirmation
 - **WHEN** user attempts to close a tab that has unsaved modifications (blue dot visible)
 - **THEN** a DirtyTabDialog confirmation modal SHALL appear

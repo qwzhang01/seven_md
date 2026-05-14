@@ -5,10 +5,12 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeHighlight from 'rehype-highlight'
 import rehypeKatex from 'rehype-katex'
-import { useEditorStore, useUIStore } from '../../stores'
+import { useEditorStore, useUIStore, useFileStore, useNotificationStore } from '../../stores'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { MermaidBlock } from './MermaidBlock'
 import { PreviewContextMenu } from './PreviewContextMenu'
+import { classifyLink, resolveMarkdownLink } from '../../utils/linkNavigation'
+import { openExternalUrl } from '../../tauriCommands'
 
 interface PreviewPaneV2Props {
   content: string
@@ -151,7 +153,79 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
             h2: ({ children }) => <h2 style={{ color: 'var(--markdown-h2)', borderBottom: '1px solid var(--border-primary)', paddingBottom: '0.3em', marginBottom: '0.6em', fontSize: '1.5em', fontWeight: 600 }}>{children}</h2>,
             h3: ({ children }) => <h3 style={{ color: 'var(--markdown-h3)', fontSize: '1.25em', fontWeight: 600, marginBottom: '0.5em' }}>{children}</h3>,
             h4: ({ children }) => <h4 style={{ color: 'var(--markdown-h4)', fontSize: '1em', fontWeight: 600 }}>{children}</h4>,
-            a: ({ href, children }) => <a href={href} style={{ color: 'var(--markdown-link)', textDecoration: 'none' }} onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}>{children}</a>,
+            a: ({ href, children }) => {
+              const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                e.preventDefault()
+                if (!href) return
+
+                const linkType = classifyLink(href)
+
+                switch (linkType) {
+                  case 'anchor': {
+                    // 锚点链接: 在预览面板内滚动到对应标题
+                    const targetId = href.substring(1)
+                    const targetEl = previewRef.current?.querySelector(`[id="${CSS.escape(targetId)}"]`)
+                      || previewRef.current?.querySelector(`[id="${targetId}"]`)
+                    if (targetEl) {
+                      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                    break
+                  }
+                  case 'external': {
+                    // 外部链接: 使用 Rust 后端打开系统默认浏览器
+                    openExternalUrl(href).catch((err) => {
+                      console.error('打开外部链接失败:', err)
+                      // 降级: 尝试 window.open
+                      window.open(href, '_blank', 'noopener,noreferrer')
+                    })
+                    break
+                  }
+                  case 'internal-md': {
+                    // 内部 .md 链接: 解析路径并在新标签页打开
+                    const activeTab = useFileStore.getState().getActiveTab()
+                    const currentFilePath = activeTab?.path || null
+                    const resolvedPath = resolveMarkdownLink(href, currentFilePath)
+
+                    if (!resolvedPath) {
+                      useNotificationStore.getState().addNotification({
+                        type: 'warning',
+                        message: `无法解析链接路径: ${href}`,
+                        autoClose: true,
+                        duration: 3000,
+                      })
+                      return
+                    }
+
+                    useFileStore.getState().openFileByPath(resolvedPath).then((tabId) => {
+                      if (!tabId) {
+                        useNotificationStore.getState().addNotification({
+                          type: 'warning',
+                          message: `文件未找到: ${resolvedPath}`,
+                          autoClose: true,
+                          duration: 3000,
+                        })
+                      }
+                    })
+                    break
+                  }
+                  default:
+                    // unknown 类型: 不做处理
+                    break
+                }
+              }
+
+              return (
+                <a
+                  href={href}
+                  onClick={handleLinkClick}
+                  style={{ color: 'var(--markdown-link)', textDecoration: 'none', cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                >
+                  {children}
+                </a>
+              )
+            },
             code: ({ className, children }) => {
               const isBlock = className?.startsWith('language-')
               if (isBlock) return <code className={className}>{children}</code>

@@ -30,6 +30,7 @@
 | *separator* | | | |
 | Open File... | `open_file` | `CmdOrCtrl+O` | 打开文件选择对话框 |
 | Open Folder | `open_folder` | — | 打开文件夹 |
+| Open Folder in New Window | `open_folder_new_window` | — | 选择文件夹并在新窗口中打开 |
 | Close Folder | `close_folder` | — | 关闭当前文件夹 |
 | *separator* | | | |
 | Save | `save` | `CmdOrCtrl+S` | 保存当前文件 |
