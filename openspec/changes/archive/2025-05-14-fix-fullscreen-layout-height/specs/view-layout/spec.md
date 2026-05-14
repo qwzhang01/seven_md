@@ -3,11 +3,11 @@
 ### Requirement: Root layout container fills the entire window in all modes
 The system SHALL ensure the root layout container always fills the entire window height, including in fullscreen mode, normal mode, and during fullscreen transitions.
 
-#### Scenario: Root container uses dynamic viewport height
+#### Scenario: Root container fills WebView area via percentage height
 - **WHEN** the application renders its root layout container
-- **THEN** the container height SHALL use `100dvh` (dynamic viewport height) instead of `100vh`
-- **AND** a fallback of `100vh` SHALL be provided for environments that do not support `dvh`
-- **AND** the container SHALL completely fill the window without any blank areas at the top or bottom
+- **THEN** the container height SHALL use `height: 100%` with a complete inheritance chain (`html → body → #root → AppV2`)
+- **AND** the container SHALL NOT use `100vh` or `100dvh` (which include the system title bar in Tauri `decorations: true` mode)
+- **AND** the container SHALL completely fill the WebView visible area without any blank areas at the top or bottom
 
 #### Scenario: Layout fills entire screen in fullscreen mode
 - **WHEN** the user enters fullscreen mode (via menu, keyboard shortcut, or maximize button)

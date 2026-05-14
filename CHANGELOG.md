@@ -56,10 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Fullscreen layout height**: Fixed macOS fullscreen mode showing dark blank area at the bottom
-  - Root container changed from `h-screen` (`100vh`) to `h-dvh` (`100dvh`) for accurate dynamic viewport height
+  - Root container changed from `h-screen` (`100vh`) to `height: 100%` with complete inheritance chain (`html → body → #root → AppV2`)
+  - Does not use `100vh`/`100dvh` which include system title bar height in Tauri `decorations: true` mode
   - Added `isFullscreen` runtime state to `useUIStore` with `tauri://resize` event detection
   - TitleBar auto-hides (`height: 0`) in fullscreen mode, restoring 38px of vertical space
-  - Added `html, body, #root { height: 100% }` safety measure for height inheritance
+  - Added `html, body, #root { height: 100% }` for complete height inheritance chain
 
 ## [0.1.0] - 2024-XX-XX
 

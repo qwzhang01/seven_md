@@ -312,7 +312,8 @@ seven_md/
 
 ### 全屏布局
 
-- **根容器**使用 `100dvh`（dynamic viewport height）而非 `100vh`，确保全屏/非全屏切换时高度精确
+- **根容器**使用 `height: 100%` 配合 `html → body → #root` 完整继承链，精确匹配 WebView 可视区域
+- 不使用 `100vh` / `100dvh`，因为在 Tauri `decorations: true` 模式下 vh/dvh 会包含系统标题栏导致溢出
 - **TitleBar** 在全屏模式下自动隐藏（`height: 0; overflow: hidden`），释放 38px 空间
 - **全屏检测**通过 `tauri://resize` 事件 + `getCurrentWindow().isFullscreen()` 实现，状态存储在 `useUIStore.isFullscreen`（运行时状态，不持久化）
 - `html, body, #root` 设置 `height: 100%` 确保高度继承链完整
