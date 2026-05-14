@@ -1028,6 +1028,9 @@ Phase 4+: Tauri 安全存储 (正式版必须)
 
 ---
 
+把 Pi 代码拉到工作区后，从 Phase 0 spike-pi-compatibility 开始，用 OpenSpec 的方式逐阶段推进。
+
+
 > **本文档版本**：v1.0
 > **最后更新**：2025-05-14
 > **作者**：Seven Markdown Team
