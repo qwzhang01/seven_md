@@ -49,8 +49,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules/.vite",
-    "clean:all": "rm -rf dist node_modules src-tauri/target"
+    "clean": "node -e \"const fs=require('fs');['dist','node_modules/.vite'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true,force:true})}})\"",
+    "clean:all": "node -e \"const fs=require('fs');['dist','node_modules','src-tauri/target'].forEach(p=>{if(fs.existsSync(p)){fs.rmSync(p,{recursive:true,force:true})}})\""
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",

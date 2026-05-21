@@ -616,6 +616,24 @@ pub fn reveal_in_finder(path: String) -> Result<(), String> {
     }
 }
 
+/// 在资源管理器中显示文件或文件夹（Windows 专用）
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn reveal_in_explorer(path: String) -> Result<(), String> {
+    let _ = log(LogLevel::Debug, format!("Revealing in Explorer: {}", path), None, Some("reveal_in_explorer".to_string()));
+
+    match StdCommand::new("explorer")
+        .args(["/select,", &path])
+        .spawn()
+    {
+        Ok(_) => {
+            let _ = log(LogLevel::Info, "Revealed in Explorer".to_string(), Some(serde_json::json!({"path": path})), Some("reveal_in_explorer".to_string()));
+            Ok(())
+        }
+        Err(e) => Err(format!("Failed to reveal in Explorer: {}", e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -763,8 +781,15 @@ mod tests {
 
         // Make file read-only
         let mut perms = std::fs::metadata(&file_path).unwrap().permissions();
-        use std::os::unix::fs::PermissionsExt;
-        perms.set_mode(0o444);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            perms.set_mode(0o444);
+        }
+        #[cfg(windows)]
+        {
+            perms.set_readonly(true);
+        }
         std::fs::set_permissions(&file_path, perms).unwrap();
 
         // Attempt to overwrite — should fail

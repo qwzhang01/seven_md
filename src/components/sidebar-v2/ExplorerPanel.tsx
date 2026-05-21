@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ChevronDown, ChevronRight, Folder, FolderOpen, FileText, FilePlus, FolderPlus, RefreshCw, Loader2, MinusSquare } from 'lucide-react'
 import { useFileStore, useWorkspaceStore } from '../../stores'
-import { readFile, deletePath, renamePath, openInTerminal, revealInFinder } from '../../tauriCommands'
+import { readFile, deletePath, renamePath, openInTerminal, revealInFileManager } from '../../tauriCommands'
 import type { FileTreeNode } from '../../types'
 import {
   ExplorerContextMenu,
@@ -444,9 +444,9 @@ export function ExplorerPanel() {
           },
           onRevealInFinder: async () => {
             try {
-              await revealInFinder(node.path)
+              await revealInFileManager(node.path)
             } catch (error) {
-              console.error('在 Finder 中显示失败:', error)
+              console.error('在文件管理器中显示失败:', error)
             }
           },
         })
@@ -484,9 +484,9 @@ export function ExplorerPanel() {
           },
           onRevealInFinder: async () => {
             try {
-              await revealInFinder(node.path)
+              await revealInFileManager(node.path)
             } catch (error) {
-              console.error('在 Finder 中显示失败:', error)
+              console.error('在文件管理器中显示失败:', error)
             }
           },
         })

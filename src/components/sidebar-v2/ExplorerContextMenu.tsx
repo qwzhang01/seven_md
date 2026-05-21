@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { FilePlus, FolderPlus, Pencil, Trash2, Copy, Terminal, FolderSearch } from 'lucide-react'
+import { isMacOS } from '../../utils/platform'
 
 export interface ContextMenuItem {
   id: string
@@ -142,7 +143,7 @@ export function getFileContextMenuItems(options: {
     { id: 'sep2', label: '', separator: true },
     { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, onClick: onCopyPath },
     { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, onClick: onOpenTerminal },
-    { id: 'reveal-finder', label: '在 Finder 中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
+    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
     { id: 'sep3', label: '', separator: true },
     { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, onClick: onDelete },
   ]
@@ -172,7 +173,7 @@ export function getFolderContextMenuItems(options: {
     { id: 'sep2', label: '', separator: true },
     { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, onClick: onCopyPath },
     { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, onClick: onOpenTerminal },
-    { id: 'reveal-finder', label: '在 Finder 中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
+    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
     { id: 'sep3', label: '', separator: true },
     { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, onClick: onDelete },
   ]

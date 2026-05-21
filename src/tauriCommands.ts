@@ -84,6 +84,26 @@ export const revealInFinder = async (path: string): Promise<void> => {
 }
 
 /**
+ * 在资源管理器中显示文件或文件夹（仅 Windows）
+ */
+export const revealInExplorer = async (path: string): Promise<void> => {
+  return await invoke('reveal_in_explorer', { path })
+}
+
+/**
+ * 跨平台：在系统文件管理器中显示文件或文件夹
+ * macOS 调用 reveal_in_finder，Windows 调用 reveal_in_explorer
+ */
+export const revealInFileManager = async (path: string): Promise<void> => {
+  const platform = navigator.userAgent.toLowerCase()
+  if (platform.includes('win')) {
+    return await revealInExplorer(path)
+  } else {
+    return await revealInFinder(path)
+  }
+}
+
+/**
  * 创建新窗口
  * @param initialFolder 可选的初始文件夹路径，新窗口会自动打开该目录
  */

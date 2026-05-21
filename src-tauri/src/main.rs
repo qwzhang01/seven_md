@@ -5,6 +5,8 @@ use logger::{init_logger, write_log, read_logs, get_log_dates, log, LogLevel};
 use commands::{read_file, save_file, read_directory, export_html, search_in_files, create_file, create_directory, rename_path, delete_path, get_git_branch, open_in_terminal};
 #[cfg(target_os = "macos")]
 use commands::reveal_in_finder;
+#[cfg(target_os = "windows")]
+use commands::reveal_in_explorer;
 use std::fs;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -65,6 +67,8 @@ pub fn main() {
             open_in_terminal,
             #[cfg(target_os = "macos")]
             reveal_in_finder,
+            #[cfg(target_os = "windows")]
+            reveal_in_explorer,
             create_new_window,
             open_external_url,
         ])
@@ -107,7 +111,7 @@ pub fn main() {
             let recent_submenu = {
                 let mut recent_items: Vec<Box<dyn tauri::menu::IsMenuItem<tauri::Wry>>> = Vec::new();
                 for path in recent_paths.iter().take(10) {
-                    let name = path.split('/').last().unwrap_or(path.as_str()).to_string();
+                    let name = path.split(['/', '\\']).last().unwrap_or(path.as_str()).to_string();
                     let id = format!("recent_doc_{}", path);
                     if let Ok(item) = MenuItem::with_id(app, id, name, true, None::<&str>) {
                         recent_items.push(Box::new(item));
