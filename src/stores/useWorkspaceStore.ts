@@ -170,17 +170,24 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     const state = get()
     if (!state.folderPath) return
 
+    // 防止并发刷新：如果已经在刷新中，跳过
+    if (state.isLoading) return
+
     set({ isLoading: true })
 
     try {
       // 重新加载根目录
       await get().loadDirectory(state.folderPath)
 
-      // 重新加载所有已展开的子目录
+      // 重新加载所有已展开的子目录（限制并发数量避免性能问题）
       const expandedPaths = Array.from(state.expandedDirs)
-      await Promise.all(
-        expandedPaths.map((dirPath) => get().loadDirectory(dirPath))
-      )
+      const BATCH_SIZE = 3
+      for (let i = 0; i < expandedPaths.length; i += BATCH_SIZE) {
+        const batch = expandedPaths.slice(i, i + BATCH_SIZE)
+        await Promise.all(
+          batch.map((dirPath) => get().loadDirectory(dirPath))
+        )
+      }
     } finally {
       set({ isLoading: false })
     }

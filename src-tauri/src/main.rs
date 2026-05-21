@@ -12,7 +12,7 @@ use commands::reveal_in_finder;
 use commands::reveal_in_explorer;
 use std::fs;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
+use notify_debouncer_mini::{new_debouncer, DebouncedEventKind, notify};
 use tauri::{Manager, Emitter};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 
@@ -21,21 +21,20 @@ struct AppHandleState {
     handle: tauri::AppHandle,
 }
 
-/// Holds the active file system watcher thread's stop flag.
+/// Holds the active file system watcher (notify-based, event-driven).
 struct WatcherState {
-    stop_flag: Option<Arc<AtomicBool>>,
+    watcher: Option<notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>>,
 }
 
 impl WatcherState {
     fn new() -> Self {
-        WatcherState { stop_flag: None }
+        WatcherState { watcher: None }
     }
 
-    /// Stop the current watcher thread if running.
+    /// Stop the current watcher if running.
     fn stop(&mut self) {
-        if let Some(flag) = self.stop_flag.take() {
-            flag.store(true, Ordering::Relaxed);
-        }
+        // Dropping the debouncer stops the watcher automatically
+        self.watcher = None;
     }
 }
 
@@ -647,7 +646,9 @@ fn get_store_path(app: tauri::AppHandle) -> Result<String, String> {
     }
 }
 
-/// Start watching a folder for file system changes using a polling thread.
+/// Start watching a folder for file system changes using OS-native APIs
+/// (ReadDirectoryChangesW on Windows, FSEvents on macOS, inotify on Linux).
+/// Events are debounced to avoid flooding the frontend.
 /// If a watcher is already running, it is stopped first (restart semantics).
 /// Emits `fs-watch:changed` to the frontend window on any change.
 #[tauri::command]
@@ -667,63 +668,62 @@ fn start_fs_watch(
     // Stop any existing watcher
     state.stop();
 
-    let stop_flag = Arc::new(AtomicBool::new(false));
-    let stop_flag_clone = stop_flag.clone();
     let app_handle = app.clone();
 
-    std::thread::spawn(move || {
-        use std::time::{Duration, SystemTime};
-        use std::collections::HashMap;
+    // Create a debounced watcher with 1 second debounce timeout.
+    // The OS kernel will notify us of changes — no polling needed.
+    let mut debouncer = new_debouncer(
+        std::time::Duration::from_secs(1),
+        move |result: Result<Vec<notify_debouncer_mini::DebouncedEvent>, notify::Error>| {
+            match result {
+                Ok(events) => {
+                    // Filter out events for hidden files and irrelevant directories
+                    let dominated_dirs: &[&str] = &[
+                        "node_modules", "target", ".git", ".hg", ".svn",
+                        "dist", "build", ".next", ".nuxt", "__pycache__",
+                        ".cargo", ".rustup", "vendor",
+                    ];
 
-        // Collect initial mtimes
-        let mut last_mtimes: HashMap<std::path::PathBuf, SystemTime> = HashMap::new();
-        collect_mtimes(&path, &mut last_mtimes);
+                    let has_relevant_event = events.iter().any(|e| {
+                        if e.kind != DebouncedEventKind::Any {
+                            return false;
+                        }
+                        // Check if any path component is in the skip list
+                        let dominated_path = e.path.components().any(|c| {
+                            if let std::path::Component::Normal(name) = c {
+                                let name_str = name.to_string_lossy();
+                                name_str.starts_with('.') || dominated_dirs.contains(&name_str.as_ref())
+                            } else {
+                                false
+                            }
+                        });
+                        !dominated_path
+                    });
 
-        loop {
-            if stop_flag_clone.load(Ordering::Relaxed) {
-                break;
+                    if has_relevant_event {
+                        let _ = app_handle.emit("fs-watch:changed", ());
+                    }
+                }
+                Err(err) => {
+                    let _ = log(LogLevel::Warn, format!("fs watch error: {:?}", err), None, Some("start_fs_watch".to_string()));
+                }
             }
-            std::thread::sleep(Duration::from_millis(800));
-            if stop_flag_clone.load(Ordering::Relaxed) {
-                break;
-            }
+        },
+    ).map_err(|e| format!("Failed to create watcher: {}", e))?;
 
-            let mut current_mtimes: HashMap<std::path::PathBuf, SystemTime> = HashMap::new();
-            collect_mtimes(&path, &mut current_mtimes);
+    // Start watching the folder recursively
+    debouncer.watcher().watch(
+        &path,
+        notify::RecursiveMode::Recursive,
+    ).map_err(|e| format!("Failed to watch path: {}", e))?;
 
-            if current_mtimes != last_mtimes {
-                last_mtimes = current_mtimes;
-                let _ = app_handle.emit("fs-watch:changed", ());
-            }
-        }
-    });
+    state.watcher = Some(debouncer);
 
-    state.stop_flag = Some(stop_flag);
-
-    let _ = log(LogLevel::Info, "fs watch started".to_string(),
+    let _ = log(LogLevel::Info, "fs watch started (notify-based)".to_string(),
         Some(serde_json::json!({"folder_path": folder_path})),
         Some("start_fs_watch".to_string()));
 
     Ok(())
-}
-
-/// Recursively collect (path, mtime) pairs for all entries under a directory.
-fn collect_mtimes(dir: &std::path::Path, map: &mut std::collections::HashMap<std::path::PathBuf, std::time::SystemTime>) {
-    let entries = match std::fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if let Ok(meta) = path.metadata() {
-            if let Ok(mtime) = meta.modified() {
-                map.insert(path.clone(), mtime);
-            }
-            if meta.is_dir() {
-                collect_mtimes(&path, map);
-            }
-        }
-    }
 }
 
 /// Stop the active file system watcher.
