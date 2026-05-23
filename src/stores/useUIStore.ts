@@ -16,12 +16,14 @@ interface UIState {
   dialogType: DialogType
   editorFocused: boolean // 编辑器是否获得焦点
   editorWidth: number | null // 编辑器像素宽度（null = flex:1 自动 50/50）
+  aiPanelWidth: number // AI 面板宽度
   isFullscreen: boolean // 全屏状态（运行时状态，不持久化）
 
   // Actions
   toggleSidebar: () => void
   setSidebarVisible: (visible: boolean) => void
   setSidebarWidth: (width: number) => void
+  setAIPanelWidth: (width: number) => void
   setActiveSidebarPanel: (panel: UIState['activeSidebarPanel']) => void
   setViewMode: (mode: UIState['viewMode']) => void
   setCommandPaletteOpen: (open: boolean) => void
@@ -43,6 +45,9 @@ const MAX_ZOOM = 32
 const ZOOM_STEP = 2
 const MIN_SIDEBAR_WIDTH = 180
 const MAX_SIDEBAR_WIDTH = 500
+const MIN_AI_PANEL_WIDTH = 280
+const MAX_AI_PANEL_WIDTH = 600
+const DEFAULT_AI_PANEL_WIDTH = 360
 
 export const useUIStore = create<UIState>()(
   persist(
@@ -59,12 +64,15 @@ export const useUIStore = create<UIState>()(
       dialogType: null,
       editorFocused: false,
       editorWidth: null,
+      aiPanelWidth: DEFAULT_AI_PANEL_WIDTH,
       isFullscreen: false,
 
       toggleSidebar: () => set((s) => ({ sidebarVisible: !s.sidebarVisible })),
       setSidebarVisible: (visible) => set({ sidebarVisible: visible }),
       setSidebarWidth: (width) =>
         set({ sidebarWidth: Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, width)) }),
+      setAIPanelWidth: (width) =>
+        set({ aiPanelWidth: Math.max(MIN_AI_PANEL_WIDTH, Math.min(MAX_AI_PANEL_WIDTH, width)) }),
       setActiveSidebarPanel: (panel) =>
         set((s) => ({
           activeSidebarPanel: panel,
@@ -94,6 +102,7 @@ export const useUIStore = create<UIState>()(
         viewMode: state.viewMode,
         zoomLevel: state.zoomLevel,
         editorWidth: state.editorWidth,
+        aiPanelWidth: state.aiPanelWidth,
       }),
     }
   )

@@ -1,20 +1,64 @@
-import { useEffect } from 'react'
-import { X, MessageCircle, Wand2, Languages, Lightbulb } from 'lucide-react'
+import { useEffect, useRef, useCallback } from 'react'
+import { X, MessageCircle, Wand2, Languages, Lightbulb, Bot } from 'lucide-react'
 import { useAIStore } from '../../stores'
+import { useUIStore } from '../../stores'
 import { ChatMode } from './ChatMode'
 import { RewriteMode } from './RewriteMode'
 import { TranslateMode } from './TranslateMode'
 import { ExplainMode } from './ExplainMode'
+import { AgentMode } from './AgentMode'
 
 const TABS = [
   { id: 'chat' as const, label: '对话', icon: <MessageCircle size={14} /> },
   { id: 'rewrite' as const, label: '改写', icon: <Wand2 size={14} /> },
   { id: 'translate' as const, label: '翻译', icon: <Languages size={14} /> },
   { id: 'explain' as const, label: '解释', icon: <Lightbulb size={14} /> },
+  { id: 'agent' as const, label: 'Agent', icon: <Bot size={14} /> },
 ]
+
+const DEFAULT_WIDTH = 360
 
 export function AIPanel() {
   const { isOpen, mode, setOpen, setMode } = useAIStore()
+  const { aiPanelWidth, setAIPanelWidth } = useUIStore()
+
+  const isResizing = useRef(false)
+  const startX = useRef(0)
+  const startWidth = useRef(0)
+
+  // 拖拽调整宽度
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true
+    startX.current = e.clientX
+    startWidth.current = aiPanelWidth
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.documentElement.setAttribute('data-resizing', '')
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isResizing.current) return
+      // 向左拖动增大宽度（与左侧边栏相反）
+      const dx = startX.current - ev.clientX
+      setAIPanelWidth(startWidth.current + dx)
+    }
+
+    const handleMouseUp = () => {
+      isResizing.current = false
+      document.documentElement.removeAttribute('data-resizing')
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [aiPanelWidth, setAIPanelWidth])
+
+  // 双击重置宽度
+  const handleDoubleClick = useCallback(() => {
+    setAIPanelWidth(DEFAULT_WIDTH)
+  }, [setAIPanelWidth])
 
   useEffect(() => {
     if (!isOpen) return
@@ -32,7 +76,7 @@ export function AIPanel() {
       className="fixed right-0 flex flex-col z-[1000]"
       style={{
         top: 'var(--titlebar-height, 38px)',
-        width: '360px',
+        width: `${aiPanelWidth}px`,
         height: 'calc(100% - var(--titlebar-height, 38px))',
         background: 'var(--bg-ai-panel, var(--bg-secondary))',
         borderLeft: '1px solid var(--border-primary)',
@@ -40,6 +84,25 @@ export function AIPanel() {
         animation: 'aiSlideIn 0.2s ease',
       }}
     >
+      {/* 左侧 Resize 手柄 */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize transition-all"
+        style={{
+          zIndex: 10,
+          background: 'transparent',
+        }}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--accent)'
+          e.currentTarget.style.width = '3px'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.width = '4px'
+        }}
+      />
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-2 flex-shrink-0"
@@ -86,6 +149,7 @@ export function AIPanel() {
         {mode === 'rewrite' && <RewriteMode />}
         {mode === 'translate' && <TranslateMode />}
         {mode === 'explain' && <ExplainMode />}
+        {mode === 'agent' && <AgentMode />}
       </div>
 
       <style>{`

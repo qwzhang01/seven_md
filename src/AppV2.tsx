@@ -35,7 +35,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { DefaultContextMenu } from './components/shared/DefaultContextMenu'
 
 // Stores
-import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore, useWorkspaceStore } from './stores'
+import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEditorStore, useWorkspaceStore, useAIStore } from './stores'
 import type { ThemeId } from './stores/useThemeStore'
 import { readFile, saveFile, createNewWindow as tauriCreateNewWindow } from './tauriCommands'
 
@@ -369,18 +369,84 @@ function AppV2() {
         window.dispatchEvent(new CustomEvent('editor:redo'))
       }))
       unlisteners.push(await listen('menu-cut', () => {
+        const el = document.activeElement
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          const start = el.selectionStart ?? 0
+          const end = el.selectionEnd ?? 0
+          if (start !== end) {
+            navigator.clipboard.writeText(el.value.slice(start, end))
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+              el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
+            )?.set
+            const newValue = el.value.slice(0, start) + el.value.slice(end)
+            nativeSetter ? nativeSetter.call(el, newValue) : (el.value = newValue)
+            el.selectionStart = el.selectionEnd = start
+            el.dispatchEvent(new Event('input', { bubbles: true }))
+          }
+          return
+        }
         window.dispatchEvent(new CustomEvent('editor:cut'))
       }))
       unlisteners.push(await listen('menu-copy', () => {
+        const el = document.activeElement
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          const start = el.selectionStart ?? 0
+          const end = el.selectionEnd ?? 0
+          if (start !== end) {
+            navigator.clipboard.writeText(el.value.slice(start, end))
+          }
+          return
+        }
         window.dispatchEvent(new CustomEvent('editor:copy'))
       }))
       unlisteners.push(await listen('menu-paste', () => {
+        const el = document.activeElement
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          navigator.clipboard.readText().then((text) => {
+            if (!text) return
+            const target = document.activeElement
+            if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
+            const start = target.selectionStart ?? 0
+            const end = target.selectionEnd ?? 0
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+              target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
+            )?.set
+            const newValue = target.value.slice(0, start) + text + target.value.slice(end)
+            nativeSetter ? nativeSetter.call(target, newValue) : (target.value = newValue)
+            target.selectionStart = target.selectionEnd = start + text.length
+            target.dispatchEvent(new Event('input', { bubbles: true }))
+          })
+          return
+        }
         window.dispatchEvent(new CustomEvent('editor:paste'))
       }))
       unlisteners.push(await listen('menu-paste-match-style', () => {
+        const el = document.activeElement
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          navigator.clipboard.readText().then((text) => {
+            if (!text) return
+            const target = document.activeElement
+            if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
+            const start = target.selectionStart ?? 0
+            const end = target.selectionEnd ?? 0
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+              target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
+            )?.set
+            const newValue = target.value.slice(0, start) + text + target.value.slice(end)
+            nativeSetter ? nativeSetter.call(target, newValue) : (target.value = newValue)
+            target.selectionStart = target.selectionEnd = start + text.length
+            target.dispatchEvent(new Event('input', { bubbles: true }))
+          })
+          return
+        }
         window.dispatchEvent(new CustomEvent('editor:paste-match-style'))
       }))
       unlisteners.push(await listen('menu-select-all', () => {
+        const el = document.activeElement
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          el.select()
+          return
+        }
         window.dispatchEvent(new CustomEvent('editor:select-all'))
       }))
       unlisteners.push(await listen('menu-find', () => {
@@ -406,8 +472,8 @@ function AppV2() {
         useUIStore.getState().toggleCommandPalette()
       }))
       unlisteners.push(await listen('menu-toggle-ai-panel', () => {
-        const state = useUIStore.getState()
-        state.setAIPanelOpen(!state.aiPanelOpen)
+        const aiStore = useAIStore.getState()
+        aiStore.setOpen(!aiStore.isOpen)
       }))
       unlisteners.push(await listen('menu-toggle-sidebar', () => {
         useUIStore.getState().toggleSidebar()
@@ -795,7 +861,7 @@ function AppV2() {
       key: 'Escape',
       action: () => {
         if (ui.commandPaletteOpen) ui.setCommandPaletteOpen(false)
-        else if (ui.aiPanelOpen) ui.setAIPanelOpen(false)
+        else if (useAIStore.getState().isOpen) useAIStore.getState().setOpen(false)
         else if (ui.findReplaceOpen) ui.setFindReplaceOpen(false)
         else if (isMobile && mobileSidebarOpen) setMobileSidebarOpen(false)
       },
@@ -840,8 +906,8 @@ function AppV2() {
       }}
       data-theme={theme}
     >
-      {/* === TITLEBAR (窗口拖拽区域，全屏时自动隐藏) === */}
-      <TitleBar />
+      {/* === TITLEBAR (已注释：decorations:true 时原生标题栏已提供拖拽，无需额外占位) === */}
+      {/* <TitleBar /> */}
 
       {/* === TOOLBAR === */}
       <div data-component="toolbar">

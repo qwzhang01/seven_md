@@ -70,6 +70,8 @@
     "loglevel": "^1.9.2",
     "lucide-react": "^0.400.0",
     "mermaid": "10.9.5",
+    "openai": "6.26.0",
+    "partial-json": "0.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.2",
@@ -78,6 +80,8 @@
     "rehype-katex": "^7.0.0",
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
+    "typebox": "1.1.38",
+    "yaml": "2.9.0",
     "zustand": "5.0.12"
   },
   "devDependencies": {

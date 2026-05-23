@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type AIMode = 'chat' | 'rewrite' | 'translate' | 'explain'
+export type AIMode = 'chat' | 'rewrite' | 'translate' | 'explain' | 'agent'
 export type RewriteStyle = 'professional' | 'casual' | 'concise' | 'expansive'
 export type TranslateDirection = 'zh-en' | 'en-zh' | 'zh-ja'
 
