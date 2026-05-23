@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
+import { readText as clipboardReadText, writeText as clipboardWriteText } from '@tauri-apps/plugin-clipboard-manager'
 import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
@@ -30,6 +31,7 @@ import { Gutter, EditorPaneV2, FindReplaceBar, PreviewPaneV2 } from './component
 import { ShortcutReferenceDialog } from './components/dialogs/ShortcutReferenceDialog'
 import { AboutDialog } from './components/dialogs/AboutDialog'
 import { WelcomeDialog } from './components/dialogs/WelcomeDialog'
+import { WechatPanel } from './wechat'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { DefaultContextMenu } from './components/shared/DefaultContextMenu'
@@ -374,7 +376,7 @@ function AppV2() {
           const start = el.selectionStart ?? 0
           const end = el.selectionEnd ?? 0
           if (start !== end) {
-            navigator.clipboard.writeText(el.value.slice(start, end))
+            clipboardWriteText(el.value.slice(start, end))
             const nativeSetter = Object.getOwnPropertyDescriptor(
               el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
             )?.set
@@ -393,7 +395,7 @@ function AppV2() {
           const start = el.selectionStart ?? 0
           const end = el.selectionEnd ?? 0
           if (start !== end) {
-            navigator.clipboard.writeText(el.value.slice(start, end))
+            clipboardWriteText(el.value.slice(start, end))
           }
           return
         }
@@ -402,7 +404,7 @@ function AppV2() {
       unlisteners.push(await listen('menu-paste', () => {
         const el = document.activeElement
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          navigator.clipboard.readText().then((text) => {
+          clipboardReadText().then((text) => {
             if (!text) return
             const target = document.activeElement
             if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
@@ -423,7 +425,7 @@ function AppV2() {
       unlisteners.push(await listen('menu-paste-match-style', () => {
         const el = document.activeElement
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          navigator.clipboard.readText().then((text) => {
+          clipboardReadText().then((text) => {
             if (!text) return
             const target = document.activeElement
             if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
@@ -1108,6 +1110,9 @@ function AppV2() {
           onCancel={() => setDirtyTabId(null)}
         />
       )}
+
+      {/* WeChat Export Panel */}
+      <WechatPanel />
     </div>
   )
 }
