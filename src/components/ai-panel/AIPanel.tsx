@@ -3,7 +3,7 @@ import { X, MessageCircle, Bot, Settings } from 'lucide-react'
 import { useAIStore } from '../../stores'
 import { useUIStore } from '../../stores'
 import { useNotificationStore } from '../../stores'
-import { isAIConfigured, getAIConfig, setAIConfig } from '../../services/aiService'
+import { isAIConfigured, getAIConfig, setAIConfig } from '../../services/ai'
 import { ChatMode } from './ChatMode'
 import { AgentMode } from './AgentMode'
 

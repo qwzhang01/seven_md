@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Bot, User, RefreshCw, AlertCircle } from 'lucide-react'
 import { useAIStore, useNotificationStore } from '../../stores'
-import { aiChat, isAIConfigured } from '../../services/aiService'
+import { aiChat, isAIConfigured } from '../../services/ai'
 
 export function ChatMode() {
   const { messages, isLoading, error, addMessage, setLoading, setError } = useAIStore()
