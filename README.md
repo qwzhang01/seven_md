@@ -37,7 +37,7 @@
 - 内置 AI 对话、改写、翻译、解释能力
 - 专为写作场景优化的编辑器体验
 - 像代码编辑器一样的高效操作（VS Code 风格交互）
-- 未来将通过集成 **OpenCode** 打造写作 / 研究报告的 **AI IDE**
+- 已集成 **Pi AI/Agent** 框架，打造写作 / 研究报告的 **AI IDE**
 
 ### 更大的愿景
 
@@ -51,7 +51,7 @@ Seven Markdown 只是开始。我相信**每个专业领域都可以有自己的
 
 未来可期，一起探索 🚀
 
-> 📋 想了解更多规划细节？参阅 [docs/FUTURE_TODO.md](docs/FUTURE_TODO.md) — 完整路线图（含 Git 集成、OpenCode 集成等）
+> 📋 想了解更多规划细节？参阅 [docs/FUTURE_TODO.md](docs/FUTURE_TODO.md) — 完整路线图（含 Git 集成、Pi Agent 增强等）
 
 ---
 
@@ -99,7 +99,7 @@ Seven Markdown 只是开始。我相信**每个专业领域都可以有自己的
 - **大纲视图** — H1-H6 标题层级导航，**不同级别使用不同颜色区分**，支持筛选与跳转
 - **代码片段** — 表格/代码块/任务列表/Mermaid/PRD 模板/API 文档模板等
 - **命令面板** — `Ctrl+Shift+P` 统一命令入口，模糊搜索
-- **AI 助手** — 4 种模式：对话 / 改写（专业·随意·简洁·扩展） / 翻译（中↔英·中→日） / 解释
+- **AI 助手** — 对话模式 + Agent 模式（自主读写文档、工具调用、diff 预览与一键应用）；改写（专业·随意·简洁·扩展）/ 翻译（中↔英·中→日）/ 解释
 - **通知系统** — info / warning / error / success 4 种类型，**hover 暂停计时**，自动消失，最大堆叠限制
 - **多窗口** — `Ctrl+Shift+N` 新建独立窗口，每个窗口可绑定独立工作文件夹，窗口间状态隔离
 - **在新窗口中打开文件夹** — 通过菜单选择文件夹并在新窗口中直接打开
@@ -223,7 +223,14 @@ seven_md/
 │   ├── stores/                 # Zustand 状态管理（9 个 Store）
 │   ├── commands/               # 命令注册与执行
 │   ├── hooks/                  # 自定义 Hooks（文件操作/快捷键/搜索/主题等）
-│   ├── services/               # 业务服务层（AI 服务）
+│   ├── lib/                    # 第三方库 vendor 源码
+│   │   └── pi/                 # Pi AI/Agent 框架（vendor）
+│   │       ├── ai/             # Pi AI 引擎（stream / complete / providers）
+│   │       └── agent/          # Pi Agent 运行时（Agent 类 / agentLoop / compaction / session）
+│   ├── services/               # 业务服务层
+│   │   └── ai/                 # AI 服务封装（对话 + Agent 应用层）
+│   │       ├── agent/          # Markdown Agent 工具适配层（toolRegistry / markdownAgent 等）
+│   │       └── providers/      # Provider 配置（桥接 Pi 原生与 OpenAI Compatible）
 │   ├── utils/                  # 工具函数（日志/路径验证/导出/安全/性能监控/链接导航等）
 │   ├── styles/                 # 全局样式（主题 CSS / 无障碍 / RTL / 焦点指示器）
 │   ├── themes/                 # 主题定义（7 种主题）
@@ -312,7 +319,7 @@ seven_md/
 | [测试指南](docs/TESTING.md) | 单元/集成测试编写与运行 |
 | [E2E 测试指南](docs/E2E-TESTING.md) | Playwright E2E 测试 |
 | [调试指南](docs/DEBUGGING.md) | 前后端调试技巧 |
-| [未来规划 TODO](docs/FUTURE_TODO.md) | Git 集成、OpenCode 集成等完整路线图 |
+| [未来规划 TODO](docs/FUTURE_TODO.md) | Git 集成、Pi Agent 增强等完整路线图 |
 | [Windows 安装指南](docs/windows-installation-guide.md) | Windows 安装与配置 |
 | [Windows 故障排除](docs/windows-troubleshooting.md) | Windows 常见问题 |
 | [更新日志](CHANGELOG.md) | 版本变更记录 |
@@ -348,7 +355,8 @@ seven_md/
 - [x] 最近文档集成（原生系统最近文件列表）
 
 **系统能力**
-- [x] AI 助手（对话 / 改写 / 翻译 / 解释）
+- [x] AI 助手（对话 / Agent / 改写 / 翻译 / 解释）
+- [x] **Pi AI/Agent 集成**（`src/lib/pi/`，支持 OpenAI Compatible 及 Pi 原生 Provider，流式输出、上下文压缩、内存会话管理）
 - [x] 通知系统（4 种类型，含 hover 暂停计时，最大堆叠限制）
 - [x] 多窗口支持（`Ctrl+Shift+N`，每个窗口可绑定独立文件夹）
 - [x] 帮助菜单完整化（欢迎页 / Markdown 指南 / 快捷键参考 / 关于 / 检查更新）
@@ -365,11 +373,13 @@ seven_md/
 - [ ] 自定义代码片段
 - [ ] 多语言 UI（i18n 完善）
 - [ ] 工作区与配置持久化
+- [ ] **Pi Agent 测试与优化** — 工具调用稳定性、上下文压缩策略、多文件操作
 
 ### 🔮 v2.0 愿景（详见 [FUTURE_TODO.md](docs/FUTURE_TODO.md)）
 
 - [ ] ⭐ **Git 集成** — 状态栏分支显示、提交/推送/拉取、Diff 查看
-- [ ] ⭐ **OpenCode 集成** — 打造 AI 写作 / 研究报告的 IDE
+- [x] ~~**OpenCode 集成**~~ — 已用 **Pi AI/Agent** 替代并完成集成
+- [ ] **Pi Agent 增强** — Agent 预设模板、多模型切换、工作区多文件操作
 - [ ] 插件系统（插件加载机制 + 注册表）
 - [ ] 文献引用与管理、研究报告模板
 - [ ] 云同步与协同编辑

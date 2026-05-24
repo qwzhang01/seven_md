@@ -333,6 +333,8 @@ Seven Markdown 使用 **Tauri 原生菜单**，包含 7 个顶级菜单，完整
 | 💬 对话 | 与 AI 自由对话，讨论写作问题、获取建议 |
 | 🤖 Agent | 让 AI 自主读写文档，支持工具调用、diff 预览与一键应用 |
 
+> ✅ **Agent 模式**基于内置 **Pi AI/Agent** 框架（`src/lib/pi/`）实现，已完成集成，支持 OpenAI Compatible 及 Pi 原生 Provider。
+
 ### AI 设置
 
 点击 AI 面板右上角的 ⚙️ 设置按钮，可配置：
@@ -352,12 +354,15 @@ Seven Markdown 使用 **Tauri 原生菜单**，包含 7 个顶级菜单，完整
 
 ### Agent 模式
 
+Agent 模式由 **Pi AI/Agent** 框架驱动，具备以下能力：
+
 - 输入指令后 Agent 自动规划并执行工具调用
 - 支持读取文档、替换选区、插入内容等操作
 - 执行结果以 diff 形式预览，可逐条或批量应用/拒绝
 - 运行中可随时点击取消按钮中止
+- 支持上下文压缩（compaction）与内存会话管理，长对话不丢失上下文
 
-> 🔭 **未来计划**：工作区多文件操作、Agent 预设模板、多模型切换。详见 [FUTURE_TODO.md](./FUTURE_TODO.md)。
+> 🔭 **持续优化中**：工作区多文件操作、Agent 预设模板、多模型切换。详见 [FUTURE_TODO.md](./FUTURE_TODO.md)。
 
 ---
 
