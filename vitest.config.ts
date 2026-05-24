@@ -30,6 +30,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@pi/ai': path.resolve(__dirname, './src/lib/pi/ai'),
+      '@pi/agent': path.resolve(__dirname, './src/lib/pi/agent'),
     },
   },
 })

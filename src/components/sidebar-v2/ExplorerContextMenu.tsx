@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { FilePlus, FolderPlus, Pencil, Trash2, Copy, Terminal, FolderSearch } from 'lucide-react'
+import { FilePlus, FolderPlus, Pencil, Trash2, Copy, Terminal, FolderSearch, Bot } from 'lucide-react'
 import { isMacOS } from '../../utils/platform'
+import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../../services/ai/agent/agentPresets'
+import { useUIStore } from '../../stores'
 
 export interface ContextMenuItem {
   id: string
@@ -165,6 +167,19 @@ export function getFolderContextMenuItems(options: {
 }): ContextMenuItem[] {
   const { onNewFile, onNewFolder, onRename, onDelete, onCopyPath, onOpenTerminal, onRevealInFinder } = options
 
+  // 工作区下可用的 Agent 预设（workspace 类别）
+  const workspacePresets = BUILTIN_PRESETS.filter((p) => p.category === 'workspace')
+  const triggerPreset = (id: string) => {
+    useUIStore.getState().setAIPanelOpen(true)
+    dispatchAgentRunPreset(id)
+  }
+  const agentItems: ContextMenuItem[] = workspacePresets.map((p) => ({
+    id: `agent-preset-${p.id}`,
+    label: `Agent: ${p.label}`,
+    icon: <Bot size={14} />,
+    onClick: () => triggerPreset(p.id),
+  }))
+
   return [
     { id: 'new-file', label: '新建文件', icon: <FilePlus size={14} />, onClick: onNewFile },
     { id: 'new-folder', label: '新建文件夹', icon: <FolderPlus size={14} />, onClick: onNewFolder },
@@ -174,6 +189,12 @@ export function getFolderContextMenuItems(options: {
     { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, onClick: onCopyPath },
     { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, onClick: onOpenTerminal },
     { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
+    ...(agentItems.length > 0
+      ? [
+          { id: 'sep-agent', label: '', separator: true } as ContextMenuItem,
+          ...agentItems,
+        ]
+      : []),
     { id: 'sep3', label: '', separator: true },
     { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, onClick: onDelete },
   ]

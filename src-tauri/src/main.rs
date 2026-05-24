@@ -150,11 +150,12 @@ pub fn main() {
             // --- Edit menu items ---
             let undo = MenuItem::with_id(app, "undo", "撤销", true, Some("CmdOrCtrl+Z"))?;
             let redo = MenuItem::with_id(app, "redo", "重做", true, Some("CmdOrCtrl+Shift+Z"))?;
-            let cut = MenuItem::with_id(app, "cut", "剪切", true, Some("CmdOrCtrl+X"))?;
-            let copy = MenuItem::with_id(app, "copy", "复制", true, Some("CmdOrCtrl+C"))?;
-            let paste = MenuItem::with_id(app, "paste", "粘贴", true, Some("CmdOrCtrl+V"))?;
+            // 使用 PredefinedMenuItem，由 macOS 系统原生处理（包括 Cmd+V 键盘快捷键），避免 IPC 事件与原生粘贴双重触发
+            let cut = PredefinedMenuItem::cut(app, Some("剪切"))?;
+            let copy = PredefinedMenuItem::copy(app, Some("复制"))?;
+            let paste = PredefinedMenuItem::paste(app, Some("粘贴"))?;
             let paste_match_style = MenuItem::with_id(app, "paste_match_style", "粘贴并匹配样式", true, Some("CmdOrCtrl+Shift+V"))?;
-            let select_all = MenuItem::with_id(app, "select_all", "全选", true, Some("CmdOrCtrl+A"))?;
+            let select_all = PredefinedMenuItem::select_all(app, Some("全选"))?;
             let find = MenuItem::with_id(app, "find", "查找...", true, Some("CmdOrCtrl+F"))?;
             let replace = MenuItem::with_id(app, "replace", "替换...", true, Some("CmdOrCtrl+H"))?;
             let find_next = MenuItem::with_id(app, "find_next", "查找下一个", true, Some("Cmd+G"))?;

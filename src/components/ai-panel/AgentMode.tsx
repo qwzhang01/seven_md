@@ -1,14 +1,39 @@
 /**
  * AgentMode — Agent 模式主组件
- * 消息列表 + 输入区域 + 工具调用日志 + Patch 预览
+ *
+ * 布局：
+ *   ┌─────────────────────────────┐
+ *   │ Header (model selector / sessions / clear) │
+ *   ├─────────────────────────────┤
+ *   │ PresetBar                                  │
+ *   ├─────────────────────────────┤
+ *   │ Compaction indicator (conditional)         │
+ *   │ Messages + ToolCalls + ConfirmPanel + Diff │
+ *   ├─────────────────────────────┤
+ *   │ Error                                      │
+ *   ├─────────────────────────────┤
+ *   │ Input                                      │
+ *   └─────────────────────────────┘
+ *
+ *   SessionDrawer 以遮罩层方式覆盖在面板上方。
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Bot, User, Loader2 } from 'lucide-react'
+import { Send, Square, Bot, User, Loader2, History, Trash2 } from 'lucide-react'
 import { useAgentStore } from '../../stores/useAgentStore'
 import { AgentToolCallLog } from './AgentToolCallLog'
 import { DiffPreview } from './DiffPreview'
 import { PatchActions } from './PatchActions'
+import { AgentPresetBar } from './AgentPresetBar'
+import { AgentModelSelector } from './AgentModelSelector'
+import { AgentSessionDrawer } from './AgentSessionDrawer'
+import { AgentConfirmPanel } from './AgentConfirmPanel'
+import {
+  AGENT_RUN_PRESET_EVENT,
+  findPreset,
+  type AgentRunPresetDetail,
+} from '../../services/ai/agent/agentPresets'
+import { useAIStore } from '../../stores/useAIStore'
 
 export function AgentMode() {
   const {
@@ -16,21 +41,49 @@ export function AgentMode() {
     messages,
     toolCalls,
     pendingPatches,
+    compactionInProgress,
     error,
     startAgent,
     cancelAgent,
     clearHistory,
   } = useAgentStore()
 
+  const setMode = useAIStore((s) => s.setMode)
+  const selectedText = useAIStore((s) => s.selectedText)
+
   const [input, setInput] = useState('')
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const messagesRef = useRef<HTMLDivElement>(null)
 
-  // 自动滚动到底部
+  // 自动滚动
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight
     }
   }, [messages, toolCalls])
+
+  // 监听 preset 事件
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<AgentRunPresetDetail>).detail
+      const preset = findPreset(detail.presetId)
+      if (!preset) {
+        console.warn(`[AgentMode] 未知 preset: ${detail.presetId}`)
+        return
+      }
+      // 切换到 Agent Tab
+      setMode('agent')
+
+      if (preset.requiresSelection && (!selectedText || selectedText.trim().length === 0)) {
+        alert('请先选中文本')
+        return
+      }
+      // 启动 Agent
+      startAgent(preset.prompt)
+    }
+    window.addEventListener(AGENT_RUN_PRESET_EVENT, handler as EventListener)
+    return () => window.removeEventListener(AGENT_RUN_PRESET_EVENT, handler as EventListener)
+  }, [startAgent, setMode, selectedText])
 
   const handleSend = useCallback(() => {
     const text = input.trim()
@@ -50,7 +103,67 @@ export function AgentMode() {
   )
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-3 py-1.5 gap-2"
+        style={{ borderBottom: '1px solid var(--border-primary)' }}
+      >
+        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <Bot size={12} />
+          <span>Agent</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AgentModelSelector />
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex items-center justify-center w-6 h-6 rounded"
+            style={{
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-primary)',
+              cursor: 'pointer',
+            }}
+            title="会话列表"
+          >
+            <History size={12} />
+          </button>
+          {messages.length > 0 && !isRunning && (
+            <button
+              onClick={clearHistory}
+              className="inline-flex items-center justify-center w-6 h-6 rounded"
+              style={{
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-primary)',
+                cursor: 'pointer',
+              }}
+              title="清除对话"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Preset bar */}
+      <AgentPresetBar />
+
+      {/* Compaction indicator */}
+      {compactionInProgress && (
+        <div
+          className="px-3 py-1 text-[10px] flex items-center gap-1"
+          style={{
+            background: 'var(--bg-info, #eff6ff)',
+            color: 'var(--text-info, #1d4ed8)',
+            borderBottom: '1px solid var(--border-primary)',
+          }}
+        >
+          <Loader2 size={10} className="animate-spin" />
+          正在压缩对话上下文…
+        </div>
+      )}
+
       {/* 消息列表 */}
       <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
         {messages.length === 0 && !isRunning && (
@@ -60,7 +173,7 @@ export function AgentMode() {
           >
             <Bot size={32} className="mb-2 opacity-50" />
             <p className="text-sm">Markdown Writing Agent</p>
-            <p className="text-xs mt-1">输入指令让 Agent 帮你编辑文档</p>
+            <p className="text-xs mt-1">输入指令或选择上方预设让 Agent 帮你编辑</p>
           </div>
         )}
 
@@ -110,6 +223,9 @@ export function AgentMode() {
 
         {/* Tool Call Log */}
         {toolCalls.length > 0 && <AgentToolCallLog toolCalls={toolCalls} />}
+
+        {/* Confirmation Panel */}
+        <AgentConfirmPanel />
 
         {/* Diff Preview + Patch Actions */}
         {pendingPatches.length > 0 && (
@@ -194,23 +310,8 @@ export function AgentMode() {
         )}
       </div>
 
-      {/* 清除历史 */}
-      {messages.length > 0 && !isRunning && (
-        <div className="px-3 pb-2">
-          <button
-            className="w-full text-[10px] py-1 rounded transition-colors"
-            style={{
-              background: 'transparent',
-              color: 'var(--text-tertiary)',
-              border: '1px solid var(--border-primary)',
-              cursor: 'pointer',
-            }}
-            onClick={clearHistory}
-          >
-            清除对话
-          </button>
-        </div>
-      )}
+      {/* Session Drawer (绝对定位覆盖) */}
+      <AgentSessionDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   )
 }

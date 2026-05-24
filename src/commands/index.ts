@@ -1,5 +1,6 @@
 import { useCommandStore, useUIStore, useThemeStore, useFileStore, useSettingsStore } from '../stores'
 import { commandRegistry } from './registry'
+import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../services/ai/agent/agentPresets'
 
 /**
  * 注册所有内置命令到 CommandStore
@@ -58,6 +59,18 @@ export function registerAllCommands() {
     { id: 'ai.open', category: 'ai' as const, title: '打开 AI 助手', icon: 'Bot', execute: () => useUIStore.getState().setAIPanelOpen(true) },
     { id: 'ai.rewrite', category: 'ai' as const, title: '改写选中文本', icon: 'PenLine', execute: () => { useUIStore.getState().setAIPanelOpen(true) } },
     { id: 'ai.translate', category: 'ai' as const, title: '翻译选中文本', icon: 'Languages', execute: () => { useUIStore.getState().setAIPanelOpen(true) } },
+
+    // ===== Agent 预设命令 =====
+    ...BUILTIN_PRESETS.map((preset) => ({
+      id: `agent.preset.${preset.id}`,
+      category: 'ai' as const,
+      title: `Agent: ${preset.label}`,
+      icon: preset.icon ?? 'Bot',
+      execute: () => {
+        useUIStore.getState().setAIPanelOpen(true)
+        dispatchAgentRunPreset(preset.id)
+      },
+    })),
   ]
 
   allCommands.forEach((cmd) => store.registerCommand(cmd))

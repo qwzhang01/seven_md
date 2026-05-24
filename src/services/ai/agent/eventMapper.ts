@@ -1,5 +1,9 @@
 /**
  * 事件映射器 — 将 Pi AgentEvent 映射为应用层 MarkdownAgentEvent
+ *
+ * 扩展事件：
+ * - confirmation_required：confirm 工具等待用户决定
+ * - compaction_done / compaction_failed：上下文压缩
  */
 
 import type { AgentEvent } from '@pi/agent'
@@ -13,6 +17,9 @@ export type MarkdownAgentEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown>; toolCallId: string }
   | { type: 'tool_result'; name: string; result: unknown; toolCallId: string }
   | { type: 'patch'; patch: MarkdownPatch; toolCallId: string }
+  | { type: 'confirmation_required'; id: string; toolName: string; args: Record<string, unknown>; preview?: string }
+  | { type: 'compaction_done'; removedMessages: number }
+  | { type: 'compaction_failed'; error: string }
   | { type: 'error'; error: string }
   | { type: 'done' }
 

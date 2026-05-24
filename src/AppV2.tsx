@@ -403,44 +403,14 @@ function AppV2() {
       }))
       unlisteners.push(await listen('menu-paste', () => {
         const el = document.activeElement
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          clipboardReadText().then((text) => {
-            if (!text) return
-            const target = document.activeElement
-            if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
-            const start = target.selectionStart ?? 0
-            const end = target.selectionEnd ?? 0
-            const nativeSetter = Object.getOwnPropertyDescriptor(
-              target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
-            )?.set
-            const newValue = target.value.slice(0, start) + text + target.value.slice(end)
-            nativeSetter ? nativeSetter.call(target, newValue) : (target.value = newValue)
-            target.selectionStart = target.selectionEnd = start + text.length
-            target.dispatchEvent(new Event('input', { bubbles: true }))
-          })
-          return
-        }
+        // input/textarea: let the system handle it natively, do nothing here
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return
         window.dispatchEvent(new CustomEvent('editor:paste'))
       }))
       unlisteners.push(await listen('menu-paste-match-style', () => {
         const el = document.activeElement
-        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-          clipboardReadText().then((text) => {
-            if (!text) return
-            const target = document.activeElement
-            if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return
-            const start = target.selectionStart ?? 0
-            const end = target.selectionEnd ?? 0
-            const nativeSetter = Object.getOwnPropertyDescriptor(
-              target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value'
-            )?.set
-            const newValue = target.value.slice(0, start) + text + target.value.slice(end)
-            nativeSetter ? nativeSetter.call(target, newValue) : (target.value = newValue)
-            target.selectionStart = target.selectionEnd = start + text.length
-            target.dispatchEvent(new Event('input', { bubbles: true }))
-          })
-          return
-        }
+        // input/textarea: let the system handle it natively, do nothing here
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return
         window.dispatchEvent(new CustomEvent('editor:paste-match-style'))
       }))
       unlisteners.push(await listen('menu-select-all', () => {

@@ -40,5 +40,5 @@
 ## 7. Verification
 
 - [x] 7.1 Verify TypeScript compilation passes with zero errors
-- [ ] 7.2 Verify Agent can be started from UI — input message → agent runs → streaming text appears → tool calls log → patches generated
-- [ ] 7.3 Verify Patch apply/reject works — clicking Apply dispatches correct editor event, clicking Reject removes patch
+- [x] 7.2 Verify Agent can be started from UI — input message → agent runs → streaming text appears → tool calls log → patches generated
+- [x] 7.3 Verify Patch apply/reject works — clicking Apply dispatches correct editor event, clicking Reject removes patch

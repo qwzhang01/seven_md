@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Scissors, Clipboard, FileText, Plus, Type, Search, Sparkles, Bot } from 'lucide-react'
+import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../../services/ai/agent/agentPresets'
+import { useAIStore } from '../../stores/useAIStore'
+import { useUIStore } from '../../stores'
 
 interface EditorContextMenuProps {
   x: number
@@ -81,6 +84,24 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
     { label: '引用', action: () => onInsert('> ') },
   ]
 
+  // Agent 预设子菜单：根据当前选区状态过滤
+  const selectedText = useAIStore((s) => s.selectedText) ?? ''
+  const hasSelection = selectedText.trim().length > 0
+  const setAIPanelOpen = useUIStore((s) => s.setAIPanelOpen)
+  const triggerAgentPreset = (presetId: string) => {
+    setAIPanelOpen(true)
+    dispatchAgentRunPreset(presetId)
+  }
+  const agentItems: MenuItem[] = BUILTIN_PRESETS.filter((p) =>
+    hasSelection ? p.requiresSelection : !p.requiresSelection,
+  ).map((p) => ({
+    label: p.label,
+    action: () => triggerAgentPreset(p.id),
+  }))
+  if (agentItems.length === 0) {
+    agentItems.push({ label: hasSelection ? '（当前无适用预设）' : '（请选择文本以使用更多预设）', action: () => {} })
+  }
+
   const menuItems: MenuItem[] = [
     { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => window.dispatchEvent(new CustomEvent('editor:cut')) },
     { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => window.dispatchEvent(new CustomEvent('editor:copy')) },
@@ -95,6 +116,7 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
     { label: '格式化文档', icon: <Sparkles size={14} />, action: onFormat },
     { separator: true },
     { label: 'AI 改写', icon: <Bot size={14} />, action: onAIRewrite },
+    { label: 'Run with Agent…', icon: <Bot size={14} />, submenu: agentItems },
   ]
 
   return (
