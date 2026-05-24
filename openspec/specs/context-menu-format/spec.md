@@ -13,12 +13,12 @@ The system SHALL provide a "格式化文档" option in the editor right-click co
   - 插入: `Plus` icon
   - 全选: `Type` icon
   - 查找: `Search` icon
-  - AI 改写: `Bot` icon
+  - AI Agent: `Bot` icon
 
 #### Scenario: Format Document menu item position and icon
 - **WHEN** user right-clicks in the editor area
 - **THEN** the context menu SHALL include a "格式化文档" item with `Sparkles` icon
-- **AND** the item SHALL be positioned after the "查找" item and before the "AI 改写" item
+- **AND** the item SHALL be positioned after the "查找" item and before the "AI Agent" item
 
 #### Scenario: Format Document triggers formatting
 - **WHEN** user clicks "格式化文档" in the context menu
@@ -65,4 +65,4 @@ The system SHALL listen for `editor:format` events and apply formatting rules to
 
 #### Scenario: 编辑器右键菜单保持原有功能
 - **WHEN** 用户在编辑器区域右键点击并使用菜单
-- **THEN** 剪切/复制/粘贴/全选/查找/格式化/AI改写等功能正常可用
+- **THEN** 剪切/复制/粘贴/全选/查找/格式化/AI Agent 等功能正常可用

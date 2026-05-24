@@ -7,7 +7,7 @@ Defines the UI components for the Agent mode in the AIPanel, including the agent
 ## Requirements
 
 ### Requirement: AIPanel includes Agent Tab
-The system SHALL add a fifth tab labeled "Agent" to the AIPanel component.
+The system SHALL add a second tab labeled "Agent" to the AIPanel component (alongside the existing "对话" tab).
 
 #### Scenario: Agent tab renders AgentMode component
 - **WHEN** the user selects the "Agent" tab in AIPanel
@@ -16,7 +16,7 @@ The system SHALL add a fifth tab labeled "Agent" to the AIPanel component.
 
 #### Scenario: Agent tab icon and label
 - **WHEN** the AIPanel tabs are displayed
-- **THEN** the Agent tab SHALL have a distinguishable icon (e.g., bot/sparkle)
+- **THEN** the Agent tab SHALL have a Bot icon
 - **AND** the label SHALL be "Agent"
 
 ### Requirement: AgentMode provides full Agent interaction interface
@@ -41,8 +41,9 @@ The system SHALL provide an `AgentMode.tsx` component at `src/components/ai-pane
 
 #### Scenario: Message list displays conversation
 - **WHEN** messages exist in `useAgentStore.messages`
-- **THEN** user messages SHALL be displayed with user styling (right-aligned or distinct background)
-- **AND** assistant messages SHALL be displayed with assistant styling
+- **THEN** user messages SHALL be displayed with `flex-row-reverse` layout, accent background, white text
+- **AND** assistant messages SHALL be displayed with tertiary background
+- **AND** both SHALL use `w-7 h-7` avatar, `text-sm` font size, `lineHeight: 1.6`, `gap-2.5` spacing
 - **AND** assistant messages SHALL render Markdown content
 
 #### Scenario: Streaming text renders progressively
@@ -116,8 +117,8 @@ The system SHALL display error information when the Agent encounters issues.
 
 #### Scenario: Error message displayed
 - **WHEN** `useAgentStore.error` is not null
-- **THEN** an error banner SHALL be displayed with the error message
-- **AND** a "重试" (Retry) option SHALL be available
+- **THEN** an error banner SHALL be displayed with `AlertCircle` icon, orange/red background, and error message
+- **AND** a "重试" (Retry) button with `RefreshCw` icon SHALL be available
 
 #### Scenario: Network/timeout error handling
 - **WHEN** the Agent run fails due to network error or timeout

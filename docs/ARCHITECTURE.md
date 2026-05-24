@@ -8,8 +8,8 @@
 
 Seven Markdown 定位为 **AI 时代的 Markdown 写作工作站**，目标是成为类似 Cursor / Claude Code 在编程领域的"写作 Agent"。
 
-- **当前（v1.x）**：专业 Markdown 编辑器 + 内置 AI（对话/改写/翻译/解释）
-- **未来（v2.x）**：通过集成 OpenCode 等 AI 引擎，演进为写作与研究报告的 **AI IDE**
+- **当前（v2.x）**：专业 Markdown 编辑器 + 内置 AI（对话 / Agent 自主编辑）+ 微信公众号导出
+- **AI 引擎**：集成 Pi AI/Agent 框架（`src/lib/pi/`），支持 OpenAI Compatible 及 Pi 原生 Provider
 - **更大愿景**：同一架构模式可扩展到 HR / 财务 / 法律 / 数据分析等垂直领域的 Agent
 
 > 完整路线图见 [FUTURE_TODO.md](./FUTURE_TODO.md)。
@@ -31,14 +31,14 @@ Seven Markdown 是基于 **Tauri v2** 构建的跨平台桌面应用，采用 **
 │  └──────────┘ └──────────┘ └────────┘                            │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐               │
 │  │ Sidebar  │ │ Editor   │ │ Preview  │ │AI Panel│               │
-│  │ (4面板)  │ │ (CM6)    │ │          │ │(4模式) │               │
+│  │ (4面板)  │ │ (CM6)    │ │          │ │(2模式) │               │
 │  └──────────┘ └──────────┘ └──────────┘ └────────┘               │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐                          │
 │  │ CmdPalet │ │ NotifSys │ │ StatusBar│                          │
 │  └──────────┘ └──────────┘ └──────────┘                          │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │           Zustand Stores (9 stores)                         │ │
+│  │           Zustand Stores (11 stores)                        │ │
 │  └─────────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────────┤
 │                    Tauri IPC Bridge                              │
@@ -66,7 +66,10 @@ Seven Markdown 是基于 **Tauri v2** 构建的跨平台桌面应用，采用 **
 | Vite 5 | 构建工具 & 开发服务器 |
 | Tailwind CSS 3 | 样式系统 |
 | CodeMirror 6 | Markdown 代码编辑器 |
-| Zustand 5 | 状态管理（9 个 Store） |
+| Zustand 5 | 状态管理（11 个 Store） |
+| @sinclair/typebox | TypeBox schema 验证（Pi Agent 工具定义） |
+| partial-json | 流式 JSON 解析（Pi AI 流处理） |
+| yaml | YAML 解析（Pi Agent 配置） |
 | react-markdown 10 | Markdown 预览渲染 |
 | remark-gfm | GFM 扩展（表格、任务列表、删除线） |
 | remark-math + rehype-katex | 数学公式渲染 |
@@ -103,13 +106,17 @@ AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统 + 全屏状态
 │       │   ├── EditorContextMenu (右键菜单 + hover 展开子菜单)
 │       │   └── FindReplaceBar (查找替换栏)
 │       ├── Gutter (可拖拽分割线)
-│       └── PreviewPaneV2 (Markdown 实时渲染 + 链接智能导航拦截)
+│       └── PreviewPaneV2 (Markdown 实时渲染 + 链接智能导航拦截 + 微信导出按钮)
+├── WechatPanel (微信公众号导出面板，主题选择 + 颜色定制 + 一键复制)
 ├── CommandPalette (Ctrl+Shift+P 命令面板)
-├── AIPanel (AI 助手面板)
-│   ├── ChatMode (对话模式)
-│   ├── RewriteMode (改写模式)
-│   ├── TranslateMode (翻译模式)
-│   └── ExplainMode (解释模式)
+├── AIPanel (AI 助手面板，可拖拽调整宽度)
+│   ├── ChatMode (对话模式，流式输出)
+│   ├── AgentMode (Agent 模式，工具调用 + diff 预览)
+│   │   ├── AgentToolCallLog (工具调用历史)
+│   │   ├── DiffPreview (patch 差异预览)
+│   │   ├── PatchActions (应用/拒绝 patch)
+│   │   └── AgentConfirmPanel (确认面板)
+│   └── AISettingsPanel (全局 AI 设置，对话/Agent 共用)
 ├── NotificationSystem (支持 hover 暂停)
 │   ├── NotificationContainer
 │   └── NotificationItem (info/warning/error/success)
@@ -135,7 +142,9 @@ AppV2  (注册 Tauri 菜单事件监听 → 分发到命令系统 + 全屏状态
 | `useThemeStore` | 主题切换、CSS 变量管理 |
 | `useFileStore` | 标签页管理、当前文件、`openFileByPath` 按路径打开文件 |
 | `useWorkspaceStore` | 工作区文件夹管理、文件树、`openFolderByPath` 按路径打开文件夹 |
-| `useAIStore` | AI 对话消息、AI 面板模式、加载状态 |
+| `useAIStore` | AI 对话消息、AI 面板模式（chat/agent）、加载状态、AI 配置 |
+| `useAgentStore` | Agent 运行状态、消息历史、工具调用记录、待确认 patch 队列 |
+| `useWechatStore` | 微信导出面板状态、主题选择、主色配置 |
 | `useNotificationStore` | 通知队列管理（4 种类型，含 hover 暂停） |
 | `useCommandStore` | 命令注册、执行与检索 |
 | `useSettingsStore` | 用户偏好设置持久化 |
@@ -244,14 +253,29 @@ seven_md/
 │   │   ├── activitybar-v2/    # 活动栏（4 个图标切换侧边栏面板）
 │   │   ├── sidebar-v2/        # 侧边栏（资源管理器/搜索/大纲/片段）
 │   │   ├── editor-v2/         # 编辑器（CM6 + 预览 + 右键菜单 + 查找替换 + 分隔条）
-│   │   ├── ai-panel/          # AI 助手（对话/改写/翻译/解释 4 模式）
+│   │   ├── ai-panel/          # AI 助手（对话/Agent 2 模式 + 全局设置）
 │   │   ├── cmd-palette/       # 命令面板
 │   │   ├── notification-v2/   # 通知系统（4 种类型 + hover 暂停）
 │   │   ├── modal-v2/          # 模态对话框（确认/脏文件提示）
 │   │   ├── dialogs/           # 业务对话框
 │   │   ├── statusbar-v2/      # 状态栏
 │   │   └── ErrorBoundary/     # 错误边界
-│   ├── stores/                 # Zustand 状态管理（9 个 store）
+│   ├── lib/
+│   │   └── pi/                # Pi AI/Agent 框架（vendored）
+│   │       ├── ai/            # LLM 流式调用（openai-completions provider）
+│   │       └── agent/         # Agent 运行时（harness、session、compaction）
+│   ├── services/
+│   │   ├── ai/                # AI 服务层（provider 抽象、agent 服务、工具注册）
+│   │   │   ├── providers/     # OpenAI Compatible / Pi provider
+│   │   │   └── agent/         # markdownAgent、toolRegistry、patchProtocol 等
+│   │   └── aiService.ts       # 顶层 AI 服务入口
+│   ├── wechat/                # 微信公众号导出模块
+│   │   ├── components/        # WechatPanel UI
+│   │   ├── renderer/          # Markdown → 内联样式 HTML
+│   │   ├── services/          # 导出服务
+│   │   ├── stores/            # useWechatStore
+│   │   └── theme-css/         # 内置主题 CSS（default/grace/simple）
+│   ├── stores/                 # Zustand 状态管理（11 个 store）
 │   ├── commands/               # 命令注册与执行
 │   ├── hooks/                  # 自定义 Hooks（useKeyboardShortcuts 等）
 │   ├── utils/                  # 工具函数（日志/路径/导出/安全/链接导航等）
@@ -325,7 +349,7 @@ seven_md/
 Seven Markdown 不仅是一个编辑器，更是 **AI 写作 IDE** 的起点。v2.x 规划的架构演进：
 
 1. **Git 集成** - 状态栏分支显示 + 提交/推送/拉取 + Diff 视图
-2. **OpenCode 集成** - 内建 AI Agent 框架（类似 Claude Code 对 Cursor 的关系）
+2. **Agent 增强** - 工作区多文件操作、Agent 预设模板、多模型切换、会话管理
 3. **插件系统** - 用户可扩展自定义命令、侧边栏面板、语法高亮
 4. **MCP 支持** - 连接各种 AI 服务与工具
 5. **云同步** - 可选的文档同步与协同

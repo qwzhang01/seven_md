@@ -5,7 +5,7 @@ The system SHALL provide an AI service module that encapsulates all AI API calls
 
 #### Scenario: AI service configuration
 - **WHEN** the AI service is initialized
-- **THEN** it SHALL read configuration (API Key, endpoint URL, model name) from localStorage
+- **THEN** it SHALL read configuration (AI provider, API Key, endpoint URL, model name) from localStorage via `useAIStore`
 - **AND** if no configuration exists, the service SHALL return an error indicating "请先配置 AI 服务"
 
 #### Scenario: AI service handles network errors gracefully
@@ -14,70 +14,31 @@ The system SHALL provide an AI service module that encapsulates all AI API calls
 - **AND** the calling component SHALL display the error via notification system
 - **AND** the UI SHALL NOT remain in a loading state
 
-#### Scenario: AI service supports streaming responses (optional)
-- **WHEN** the AI service receives a response
-- **THEN** it SHALL support both streaming and non-streaming response modes
-- **AND** the default mode SHALL be non-streaming for initial implementation
+### Requirement: AI service layer supports multiple providers
+The system SHALL provide a provider abstraction at `src/services/ai/providers/` supporting at least two providers.
 
-### Requirement: Rewrite mode executes AI rewriting with selected text
-The system SHALL allow users to rewrite selected text using AI with configurable style options.
+#### Scenario: OpenAI Compatible provider
+- **WHEN** the user configures provider as "OpenAI Compatible"
+- **THEN** the service SHALL use `openaiCompatible.ts` to call any OpenAI-format API
+- **AND** it SHALL support custom Base URL for third-party services (e.g., DeepSeek, Qwen)
 
-#### Scenario: Trigger rewrite with selected text
-- **WHEN** the user has text selected in the editor
-- **AND** the user switches to the Rewrite tab in the AI panel
-- **THEN** the selected text SHALL appear in the rewrite preview area
-- **AND** the system SHALL send the text to the AI service with the selected style (专业/随意/简洁/扩展)
+#### Scenario: Pi provider
+- **WHEN** the user configures provider as "Pi"
+- **THEN** the service SHALL use `piProvider.ts` which wraps `src/lib/pi/ai/` stream function
+- **AND** it SHALL support streaming responses via Pi AI framework
 
-#### Scenario: Apply rewrite result to editor
-- **WHEN** the AI returns a rewrite result
-- **AND** the user clicks "应用改写" button
-- **THEN** the originally selected text in the editor SHALL be replaced with the rewrite result
-- **AND** the replacement SHALL be a single undoable transaction
+#### Scenario: Provider selection persists
+- **WHEN** the user selects a provider in AI settings
+- **THEN** the selection SHALL be persisted in `useAIStore` (localStorage)
+- **AND** subsequent AI calls SHALL use the selected provider
 
-#### Scenario: Rewrite with no selected text
-- **WHEN** the user is in Rewrite mode
-- **AND** no text is selected in the editor
-- **THEN** the preview area SHALL display "选中文本将显示在此处..."
-- **AND** the "应用改写" button SHALL be disabled
-
-### Requirement: Translate mode executes AI translation with selected text
-The system SHALL allow users to translate selected text using AI with configurable direction options.
-
-#### Scenario: Trigger translation with selected text
-- **WHEN** the user has text selected in the editor
-- **AND** the user switches to the Translate tab in the AI panel
-- **THEN** the selected text SHALL appear in the translation preview area
-- **AND** the system SHALL send the text to the AI service with the selected direction (中→英 / 英→中 / 中→日)
-
-#### Scenario: Apply translation result to editor
-- **WHEN** the AI returns a translation result
-- **AND** the user clicks "应用翻译" button
-- **THEN** the originally selected text in the editor SHALL be replaced with the translation result
-- **AND** the replacement SHALL be a single undoable transaction
-
-### Requirement: Explain mode executes AI explanation for selected text
-The system SHALL allow users to get AI-generated explanations for selected text.
-
-#### Scenario: Trigger explanation with selected text
-- **WHEN** the user has text selected in the editor
-- **AND** the user switches to the Explain tab in the AI panel
-- **THEN** the selected text SHALL appear in the "选中内容" section
-- **AND** an "解释" button SHALL be displayed
-- **WHEN** the user clicks the "解释" button
-- **THEN** the system SHALL send the text to the AI service for explanation
-
-#### Scenario: Display explanation result
-- **WHEN** the AI returns an explanation
-- **THEN** the explanation text SHALL appear in the "AI 解释" section
-- **AND** the explanation SHALL remain visible until the user selects new text or switches mode
-
-### Requirement: Chat mode uses real AI API instead of mock
-The system SHALL replace the current mock implementation in ChatMode with real AI API calls.
+### Requirement: Chat mode uses real AI API with streaming
+The system SHALL replace any mock implementation in ChatMode with real AI API calls.
 
 #### Scenario: Send chat message to AI
 - **WHEN** user types a message and presses Enter or clicks Send
-- **THEN** the system SHALL send the message to the AI service's chat endpoint
-- **AND** the response SHALL be displayed as an assistant message in the chat history
+- **THEN** the system SHALL call the configured AI provider's stream endpoint
+- **AND** the response SHALL stream progressively into the chat history
 
 #### Scenario: Chat fallback when AI not configured
 - **WHEN** the AI service is not configured (no API Key)

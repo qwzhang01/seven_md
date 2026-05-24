@@ -8,7 +8,7 @@ import { getPlatformConfig } from './platform';
  */
 export function normalizePath(path: string): string {
   const { pathSeparator } = getPlatformConfig();
-  
+
   // Replace all forward and backward slashes with platform-specific separator
   return path.replace(/[\\/]/g, pathSeparator);
 }
@@ -20,7 +20,7 @@ export function normalizePath(path: string): string {
  */
 export function joinPath(...segments: string[]): string {
   const { pathSeparator } = getPlatformConfig();
-  
+
   return segments
     .map(segment => segment.replace(/[\\/]+$/, '')) // Remove trailing separators
     .filter(segment => segment.length > 0) // Remove empty segments
@@ -35,12 +35,12 @@ export function joinPath(...segments: string[]): string {
 export function dirname(path: string): string {
   const { pathSeparator } = getPlatformConfig();
   const normalizedPath = normalizePath(path);
-  
+
   const lastSeparatorIndex = normalizedPath.lastIndexOf(pathSeparator);
   if (lastSeparatorIndex === -1) {
     return '';
   }
-  
+
   return normalizedPath.substring(0, lastSeparatorIndex);
 }
 
@@ -52,12 +52,12 @@ export function dirname(path: string): string {
 export function basename(path: string): string {
   const { pathSeparator } = getPlatformConfig();
   const normalizedPath = normalizePath(path);
-  
+
   const lastSeparatorIndex = normalizedPath.lastIndexOf(pathSeparator);
   if (lastSeparatorIndex === -1) {
     return normalizedPath;
   }
-  
+
   return normalizedPath.substring(lastSeparatorIndex + 1);
 }
 
@@ -69,11 +69,11 @@ export function basename(path: string): string {
 export function extname(path: string): string {
   const base = basename(path);
   const lastDotIndex = base.lastIndexOf('.');
-  
+
   if (lastDotIndex === -1 || lastDotIndex === 0) {
     return '';
   }
-  
+
   return base.substring(lastDotIndex + 1);
 }
 
@@ -83,19 +83,21 @@ export function extname(path: string): string {
  * @returns True if the path is absolute
  */
 export function isAbsolutePath(path: string): boolean {
-  const { pathSeparator } = getPlatformConfig();
-  const normalizedPath = normalizePath(path);
-  
   // Windows absolute path: drive letter + separator (C:\)
   if (/^[A-Za-z]:[\\/]/.test(path)) {
     return true;
   }
-  
+
+  // Windows UNC network path: \\server\share or //server/share
+  if (/^[\\\/]{2}/.test(path)) {
+    return true;
+  }
+
   // Unix absolute path: starts with /
   if (path.startsWith('/')) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -109,7 +111,7 @@ export function resolvePath(basePath: string, relativePath: string): string {
   if (isAbsolutePath(relativePath)) {
     return normalizePath(relativePath);
   }
-  
+
   return joinPath(basePath, relativePath);
 }
 
@@ -120,11 +122,11 @@ export function resolvePath(basePath: string, relativePath: string): string {
  */
 export function formatPathForDisplay(path: string): string {
   const { pathSeparator } = getPlatformConfig();
-  
+
   // On Windows, show forward slashes for better readability
   if (pathSeparator === '\\') {
     return path.replace(/\\/g, '/');
   }
-  
+
   return path;
 }

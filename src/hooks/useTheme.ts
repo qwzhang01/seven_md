@@ -41,7 +41,25 @@ export function useTheme() {
   }, [theme])
 
   const toggleTheme = () => {
-    setThemeState(prev => (prev === 'light' ? 'dark' : 'light'))
+    setThemeState(prev => {
+      const next = prev === 'light' ? 'dark' : 'light'
+      // Sync localStorage immediately (also done in useEffect, but sync here
+      // ensures persistence is available before the next render in tests)
+      try {
+        localStorage.setItem(STORAGE_KEY, next)
+      } catch {
+        // ignore
+      }
+      // Sync classList immediately
+      if (next === 'dark') {
+        document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('light')
+      } else {
+        document.documentElement.classList.remove('dark')
+        document.documentElement.classList.add('light')
+      }
+      return next
+    })
   }
 
   return { theme, toggleTheme }

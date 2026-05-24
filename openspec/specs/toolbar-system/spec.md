@@ -129,12 +129,14 @@ The system SHALL provide Blockquote, Horizontal Rule, and Table insertion button
   ```
 - **AND** the cursor SHALL be positioned in the first data cell
 
-### Requirement: Toolbar provides AI assistant button
-The system SHALL provide an AI assistant button to open the AI panel.
+### Requirement: Toolbar provides AI assistant toggle button
+The system SHALL provide an AI assistant button that toggles the AI panel open/closed.
 
-#### Scenario: AI button opens AI panel
-- **WHEN** user clicks the AI button (Bot icon + "AI" label) in the toolbar
+#### Scenario: AI button toggles AI panel
+- **WHEN** user clicks the AI button (Bot icon + "AI" label) in the toolbar and the panel is closed
 - **THEN** the AI assistant panel SHALL open on the right side of the editor
+- **WHEN** user clicks the AI button again and the panel is open
+- **THEN** the AI assistant panel SHALL close
 - **AND** the button SHALL display both the Bot icon and "AI" text label
 - **AND** the tooltip SHALL show "AI 助手" on hover
 

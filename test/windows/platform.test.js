@@ -1,6 +1,6 @@
 // Windows-specific unit tests
-const { detectPlatform, isWindows, isMacOS, isLinux, getPlatformClasses, getPlatformConfig } = require('../../src/utils/platform');
-const { normalizePath, joinPath, dirname, basename, extname, isAbsolutePath, resolvePath, formatPathForDisplay } = require('../../src/utils/pathUtils');
+import { detectPlatform, isWindows, isMacOS, isLinux, getPlatformClasses, getPlatformConfig } from '../../src/utils/platform'
+import { normalizePath, joinPath, dirname, basename, extname, isAbsolutePath, resolvePath, formatPathForDisplay } from '../../src/utils/pathUtils'
 
 describe('Windows Platform Detection', () => {
   beforeEach(() => {
@@ -91,7 +91,7 @@ describe('Windows File System Operations', () => {
     // Test common Windows special folder paths
     const specialFolders = [
       'C:\\Users\\Test\\Documents',
-      'C:\\Users\\Test\\Desktop', 
+      'C:\\Users\\Test\\Desktop',
       'C:\\Users\\Test\\Downloads',
       'C:\\Program Files',
       'C:\\Windows'

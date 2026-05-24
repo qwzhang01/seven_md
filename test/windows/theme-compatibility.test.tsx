@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { useTheme } from '../../src/hooks/useTheme'
 
 // Mock platform detection
 const originalPlatform = navigator.platform
+const originalMatchMedia = window.matchMedia
 
 // Mock component to test theme switching
 function ThemeTestComponent() {
   const { theme, toggleTheme } = useTheme()
-  
+
   return (
     <div data-testid="theme-test">
       <span data-testid="current-theme">{theme}</span>
@@ -33,6 +34,11 @@ describe('Windows Theme Compatibility', () => {
       value: originalPlatform,
       writable: true
     })
+    // Restore matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      value: originalMatchMedia,
+      writable: true
+    })
   })
 
   describe('Windows-specific theme behavior', () => {
@@ -46,34 +52,35 @@ describe('Windows Theme Compatibility', () => {
 
     it('should apply dark theme correctly on Windows', () => {
       render(<ThemeTestComponent />)
-      
+
       const toggleButton = screen.getByTestId('toggle-theme')
       fireEvent.click(toggleButton)
-      
+
       expect(screen.getByTestId('current-theme')).toHaveTextContent('dark')
       expect(document.documentElement).toHaveClass('dark')
     })
 
     it('should apply light theme correctly on Windows', () => {
       render(<ThemeTestComponent />)
-      
+
       const toggleButton = screen.getByTestId('toggle-theme')
       fireEvent.click(toggleButton) // Switch to dark
       fireEvent.click(toggleButton) // Switch back to light
-      
+
       expect(screen.getByTestId('current-theme')).toHaveTextContent('light')
       expect(document.documentElement).not.toHaveClass('dark')
     })
 
     it('should persist theme preference across sessions on Windows', () => {
       render(<ThemeTestComponent />)
-      
+
       const toggleButton = screen.getByTestId('toggle-theme')
       fireEvent.click(toggleButton)
-      
-      // Simulate page reload
+
+      // Simulate page reload: cleanup and re-render
+      cleanup()
       render(<ThemeTestComponent />)
-      
+
       expect(screen.getByTestId('current-theme')).toHaveTextContent('dark')
       expect(document.documentElement).toHaveClass('dark')
     })
@@ -90,7 +97,7 @@ describe('Windows Theme Compatibility', () => {
       })
 
       render(<ThemeTestComponent />)
-      
+
       expect(screen.getByTestId('current-theme')).toHaveTextContent('dark')
       expect(document.documentElement).toHaveClass('dark')
     })
@@ -105,21 +112,26 @@ describe('Windows Theme Compatibility', () => {
       })
 
       render(<ThemeTestComponent />)
-      const toggleButton = screen.getByTestId('toggle-theme')
-      fireEvent.click(toggleButton)
-      
+      const macToggleButton = screen.getByTestId('toggle-theme')
+      fireEvent.click(macToggleButton)
+
       const macTheme = screen.getByTestId('current-theme').textContent
       const macHasDarkClass = document.documentElement.classList.contains('dark')
 
-      // Reset and test on Windows
+      // Cleanup and reset for Windows test
+      cleanup()
+      localStorage.clear()
+      document.documentElement.classList.remove('dark')
+
       Object.defineProperty(navigator, 'platform', {
         value: 'Win32',
         writable: true
       })
-      
+
       render(<ThemeTestComponent />)
-      fireEvent.click(toggleButton)
-      
+      const winToggleButton = screen.getByTestId('toggle-theme')
+      fireEvent.click(winToggleButton)
+
       const windowsTheme = screen.getByTestId('current-theme').textContent
       const windowsHasDarkClass = document.documentElement.classList.contains('dark')
 
@@ -138,13 +150,13 @@ describe('Windows Theme Compatibility', () => {
       })
 
       render(<ThemeTestComponent />)
-      
+
       const toggleButton = screen.getByTestId('toggle-theme')
       fireEvent.click(toggleButton)
-      
+
       expect(screen.getByTestId('current-theme')).toHaveTextContent('dark')
       expect(document.documentElement).toHaveClass('dark')
-      
+
       // Theme should work correctly regardless of DPI scaling
       fireEvent.click(toggleButton)
       expect(screen.getByTestId('current-theme')).toHaveTextContent('light')
@@ -155,15 +167,15 @@ describe('Windows Theme Compatibility', () => {
   describe('Accessibility considerations', () => {
     it('should maintain sufficient color contrast in both themes', () => {
       render(<ThemeTestComponent />)
-      
+
       // Test light theme contrast
       document.documentElement.classList.remove('dark')
       const lightThemeElement = screen.getByTestId('theme-test')
-      
+
       // Test dark theme contrast
       document.documentElement.classList.add('dark')
       const darkThemeElement = screen.getByTestId('theme-test')
-      
+
       // Both themes should be accessible
       expect(lightThemeElement).toBeInTheDocument()
       expect(darkThemeElement).toBeInTheDocument()
@@ -171,13 +183,14 @@ describe('Windows Theme Compatibility', () => {
 
     it('should support keyboard navigation for theme switching', () => {
       render(<ThemeTestComponent />)
-      
+
       const toggleButton = screen.getByTestId('toggle-theme')
-      
-      // Test keyboard interaction
+
+      // Focus the button first, then test keyboard interaction
+      toggleButton.focus()
       fireEvent.keyDown(toggleButton, { key: 'Enter' })
       fireEvent.keyDown(toggleButton, { key: ' ' })
-      
+
       // Button should be focusable and interactive
       expect(toggleButton).toHaveFocus()
       expect(toggleButton).toBeEnabled()

@@ -66,7 +66,7 @@ logger.error('错误', { error: String(error) })
 
 ### Zustand Store 调试
 
-项目使用 **Zustand** 进行状态管理（9 个 Store），调试方式如下：
+项目使用 **Zustand** 进行状态管理（11 个 Store），调试方式如下：
 
 ```typescript
 // 方式 1：直接在 DevTools Console 中读取 Store 状态
@@ -84,7 +84,7 @@ import { useUIStore } from '../stores'
 
 function MyComponent() {
   const sidebarVisible = useUIStore(s => s.sidebarVisible)
-  
+
   useEffect(() => {
     console.log('侧边栏状态:', sidebarVisible)
   }, [sidebarVisible])
@@ -278,7 +278,7 @@ console.log('当前主题:', useThemeStore.getState().theme)
 useEffect(() => {
   const handler = () => {}
   window.addEventListener('resize', handler)
-  
+
   // 务必清理！
   return () => window.removeEventListener('resize', handler)
 }, [])

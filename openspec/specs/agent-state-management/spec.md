@@ -91,10 +91,10 @@ The system SHALL define message types suitable for the Agent UI.
 - **WHEN** a tool call is recorded
 - **THEN** it SHALL have `id` (string), `name` (string), `args` (Record<string, unknown>), `status` ('running' | 'completed' | 'error'), and `result` (unknown | null)
 
-### Requirement: AIMode extended with agent option
-The system SHALL extend the `AIMode` type in `useAIStore` to include `'agent'`.
+### Requirement: AIMode supports chat and agent modes
+The system SHALL define `AIMode` type in `useAIStore` as `'chat' | 'agent'`.
 
 #### Scenario: Agent mode available
 - **WHEN** `useAIStore.getState().mode` is inspected
 - **THEN** it SHALL accept `'agent'` as a valid value
-- **AND** setting mode to `'agent'` SHALL not affect other mode states (messages, rewriteResult, etc.)
+- **AND** setting mode to `'agent'` SHALL not affect chat message history or other chat state

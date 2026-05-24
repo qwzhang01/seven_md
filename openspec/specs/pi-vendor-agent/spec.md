@@ -44,7 +44,6 @@ The system SHALL NOT include any code that imports Node.js built-in modules.
 - **WHEN** the `src/lib/pi/agent/` directory is inspected
 - **THEN** it SHALL NOT contain `node.ts`
 - **AND** it SHALL NOT contain `harness/env/nodejs.ts`
-- **AND** it SHALL NOT contain `harness/skills.ts`
 - **AND** it SHALL NOT contain `harness/session/jsonl-repo.ts`
 
 ### Requirement: Pi Agent vendor module provides AgentTool type definition

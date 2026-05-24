@@ -24,19 +24,18 @@
   - 提交操作（暂存、提交、推送）
   - GitHub/GitLab 远程仓库连接
 
-- [ ] **OpenCode 集成** ⭐ *当前重点*
-  - 将 Seven Markdown 打造成 **AI 写作研究 IDE**
-  - 集成 OpenCode 作为后端 AI 引擎
-  - 支持本地部署的 LLM（Llama、Qwen 等）
-  - 写作助手功能：
-    - 文献引用与管理
-    - 研究报告模板
-    - 自动摘要生成
-    - 写作风格分析
-    - 事实核查辅助
-  - 支持 MCP (Model Context Protocol) 协议
-  - 连接到各种 AI 服务（OpenAI、Claude、本地模型）
+- [x] **Pi AI/Agent 集成** ✅ *已完成*
+  - 集成 Pi AI/Agent 框架（`src/lib/pi/`）作为内置 AI 引擎
+  - 支持 OpenAI Compatible 及 Pi 原生 Provider
+  - Markdown Writing Agent：自主读写文档、工具调用、diff 预览与一键应用
+  - 对话模式：流式输出、历史记录、全局 AI 设置
+  - Agent 上下文压缩（compaction）、内存会话管理
 
+- [ ] **OpenCode 集成** — *已用 Pi 替代，该项已关闭*
+
+- [x] **微信公众号导出** ✅ *已完成*
+  - Markdown → 内联样式 HTML，支持三种内置主题（经典/优雅/简洁）
+  - 主色自定义、实时预览、一键复制到剪贴板
 - [x] **多窗口支持**（部分完成）
   - [x] `Ctrl+Shift+N` 新建窗口
   - [x] 窗口间独立状态
@@ -132,7 +131,7 @@
 - [ ] **编辑器虚拟滚动**
   - 支持超长文档（10万+ 行）
   - 按需渲染可见区域
-  
+
 - [ ] **预览区懒加载**
   - 非可见区域延迟渲染
   - 减少初始加载时间

@@ -23,7 +23,7 @@ export const useFileOperations = () => {
           extensions: ['md', 'markdown']
         }]
       });
-      
+
       if (selected && typeof selected === 'string') {
         const content = await readFile(selected);
         dispatch({ type: 'OPEN_TAB', payload: { path: selected, content } });
@@ -37,7 +37,9 @@ export const useFileOperations = () => {
   }, [dispatch]);
 
   const saveCurrentFile = useCallback(async () => {
-    if (!activeTab) return false;
+    if (!activeTab) {
+      return saveFileAs();
+    }
     if (!activeTab.path) {
       return saveFileAs();
     }
@@ -58,7 +60,6 @@ export const useFileOperations = () => {
   }, [activeTab, activeTabId, dispatch]);
 
   const saveFileAs = useCallback(async () => {
-    if (!activeTab || !activeTabId) return false;
     try {
       setIsSaving(true);
       const selected = await save({
@@ -67,10 +68,13 @@ export const useFileOperations = () => {
           extensions: ['md', 'markdown']
         }]
       });
-      
+
       if (selected && typeof selected === 'string') {
-        await saveFile(selected, activeTab.content);
-        dispatch({ type: 'UPDATE_TAB_PATH', payload: { tabId: activeTabId, path: selected } });
+        const content = activeTab?.content ?? '';
+        await saveFile(selected, content);
+        if (activeTabId) {
+          dispatch({ type: 'UPDATE_TAB_PATH', payload: { tabId: activeTabId, path: selected } });
+        }
         return true;
       }
       return false;

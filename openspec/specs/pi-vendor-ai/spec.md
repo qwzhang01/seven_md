@@ -27,7 +27,10 @@ The system SHALL include only the `openai-completions` provider implementation, 
 - **THEN** it SHALL contain `openai-completions.ts`
 - **AND** it SHALL contain `transform-messages.ts` (dependency)
 - **AND** it SHALL contain `simple-options.ts` (dependency)
-- **AND** it SHALL NOT contain `anthropic.ts`, `amazon-bedrock.ts`, `google.ts`, `mistral.ts`, `azure-openai-responses.ts`, or `cloudflare.ts`
+- **AND** it SHALL contain `cloudflare.ts` (Cloudflare Workers AI adapter)
+- **AND** it SHALL contain `github-copilot-headers.ts` (GitHub Copilot header helper)
+- **AND** it SHALL contain `openai-prompt-cache.ts` (prompt cache support)
+- **AND** it SHALL NOT contain `anthropic.ts`, `amazon-bedrock.ts`, `google.ts`, `mistral.ts`, or `azure-openai-responses.ts`
 
 ### Requirement: Pi AI vendor module provides minimal model definitions
 The system SHALL include a `models-minimal.ts` file that defines commonly used models, replacing the 416KB generated file.

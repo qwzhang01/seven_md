@@ -56,12 +56,12 @@ The system SHALL provide a toolbar at the top of the preview pane.
 - **WHEN** the preview pane is visible
 - **THEN** a header bar SHALL be displayed at the top containing:
   - Left side: "预览" label
-  - Right side: "在新窗口打开" button
+  - Right side: "导出微信公众号" button with hover tooltip
 
-#### Scenario: Open preview in new window
-- **WHEN** user clicks "在新窗口打开" in the preview header
-- **THEN** the current document's rendered preview SHALL open in a new browser/native window
-- **AND** the new window SHALL show only the preview content (no editor controls)
+#### Scenario: Export to WeChat
+- **WHEN** user clicks "导出微信公众号" in the preview header
+- **THEN** the WeChat export panel (WechatPanel) SHALL open
+- **AND** the button SHALL show a tooltip "导出微信公众号" on hover
 
 ### Requirement: Preview pane scrolls independently
 The system SHALL allow independent scrolling of the preview pane.

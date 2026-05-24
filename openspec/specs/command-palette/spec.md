@@ -33,7 +33,7 @@ The system SHALL organize commands into categories and allow execution via selec
   - 🖌️ Edit: 格式化文档 / 切换自动换行
   - 💾 File: 保存 / 另存为 / 导出为 PDF / 导出为 HTML
   - 📊 Insert: 表格 / 代码块 / 任务列表
-  - 🤖 AI: 打开助手 / 改写选中文本 / 翻译选中文本
+  - 🤖 AI: 打开助手 / 打开 Agent 模式
 
 #### Scenario: Execute command by selection
 - **WHEN** user highlights a command (via arrow keys or hover) AND presses Enter
