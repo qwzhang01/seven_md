@@ -94,16 +94,28 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
         }}
       >
         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>预览</span>
-        <button
-          className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-          style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onClick={openWechat}
-          title="导出微信公众号"
-          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-        >
-          <Send size={13} />
-        </button>
+        <div className="relative group">
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+            style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={openWechat}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <Send size={13} />
+          </button>
+          <div
+            className="absolute right-0 top-full mt-1.5 px-2 py-1 text-xs rounded whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            style={{
+              background: 'var(--bg-tooltip, #1a1a1a)',
+              color: 'var(--text-tooltip, #e5e5e5)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              zIndex: 9999,
+            }}
+          >
+            导出微信公众号
+          </div>
+        </div>
       </div>
 
       {/* Preview content */}

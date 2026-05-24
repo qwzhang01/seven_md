@@ -19,7 +19,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Square, Bot, User, Loader2, History, Trash2 } from 'lucide-react'
+import { Send, Square, Bot, User, Loader2, History, Trash2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useAgentStore } from '../../stores/useAgentStore'
 import { AgentToolCallLog } from './AgentToolCallLog'
 import { DiffPreview } from './DiffPreview'
@@ -53,7 +53,36 @@ export function AgentMode() {
 
   const [input, setInput] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [inputHeight, setInputHeight] = useState(80)
   const messagesRef = useRef<HTMLDivElement>(null)
+  const isResizingInput = useRef(false)
+  const startY = useRef(0)
+  const startHeight = useRef(0)
+
+  const handleInputResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizingInput.current = true
+    startY.current = e.clientY
+    startHeight.current = inputHeight
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isResizingInput.current) return
+      const dy = startY.current - ev.clientY
+      setInputHeight(Math.max(60, Math.min(300, startHeight.current + dy)))
+    }
+
+    const handleMouseUp = () => {
+      isResizingInput.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [inputHeight])
 
   // 自动滚动
   useEffect(() => {
@@ -165,7 +194,7 @@ export function AgentMode() {
       )}
 
       {/* 消息列表 */}
-      <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto p-3 space-y-4">
         {messages.length === 0 && !isRunning && (
           <div
             className="flex flex-col items-center justify-center h-full text-center"
@@ -178,20 +207,22 @@ export function AgentMode() {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'assistant' && (
-              <div
-                className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--accent)', color: 'white' }}
-              >
-                <Bot size={12} />
-              </div>
-            )}
+          <div key={msg.id} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div
-              className="max-w-[85%] rounded-lg px-3 py-2 text-xs leading-relaxed"
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                background: msg.role === 'user' ? 'var(--bg-active)' : 'var(--accent)',
+                color: msg.role === 'user' ? 'var(--text-primary)' : '#fff',
+              }}
+            >
+              {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+            </div>
+            <div
+              className="text-sm rounded-lg px-3 py-2 max-w-[85%]"
               style={{
                 background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg-tertiary)',
-                color: msg.role === 'user' ? 'white' : 'var(--text-primary)',
+                color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
+                lineHeight: 1.6,
               }}
             >
               {msg.role === 'assistant' ? (
@@ -202,22 +233,19 @@ export function AgentMode() {
                 <div className="whitespace-pre-wrap break-words">{msg.content}</div>
               )}
             </div>
-            {msg.role === 'user' && (
-              <div
-                className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-              >
-                <User size={12} />
-              </div>
-            )}
           </div>
         ))}
 
         {/* Streaming indicator */}
         {isRunning && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content && (
-          <div className="flex items-center gap-1 px-2" style={{ color: 'var(--text-tertiary)' }}>
-            <Loader2 size={10} className="animate-spin" />
-            <span className="text-[10px]">生成中...</span>
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'var(--accent)', color: '#fff' }}>
+              <Bot size={14} />
+            </div>
+            <div className="text-sm rounded-lg px-3 py-2" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+              <span className="animate-pulse">思考中...</span>
+            </div>
           </div>
         )}
 
@@ -238,19 +266,18 @@ export function AgentMode() {
 
       {/* 错误信息 */}
       {error && (
-        <div
-          className="mx-3 mb-2 px-3 py-2 rounded text-xs flex items-center justify-between"
-          style={{ background: 'var(--bg-error, #fef2f2)', color: 'var(--text-error, #dc2626)' }}
-        >
-          <span>{error}</span>
+        <div className="flex items-center gap-2 mx-3 mb-2 p-2.5 rounded-lg text-sm" style={{ background: 'rgba(244,135,113,0.1)', border: '1px solid var(--error-color, var(--error))' }}>
+          <AlertCircle size={14} style={{ color: 'var(--error-color, var(--error))', flexShrink: 0 }} />
+          <span style={{ color: 'var(--error-color, var(--error))', flex: 1 }}>{error}</span>
           <button
-            className="ml-2 underline text-xs"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
+            style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
             onClick={() => {
               const lastUser = [...messages].reverse().find((m) => m.role === 'user')
               if (lastUser) startAgent(lastUser.content)
             }}
           >
+            <RefreshCw size={12} />
             重试
           </button>
         </div>
@@ -258,56 +285,72 @@ export function AgentMode() {
 
       {/* 输入区域 */}
       <div
-        className="flex-shrink-0 px-3 py-2 flex items-end gap-2"
+        className="flex-shrink-0 flex flex-col"
         style={{ borderTop: '1px solid var(--border-primary)' }}
       >
+        {/* 拖拽手柄 */}
+        <div
+          className="flex-shrink-0 flex items-center justify-center h-3 cursor-row-resize group"
+          style={{ background: 'transparent' }}
+          onMouseDown={handleInputResizeMouseDown}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <div
+            className="w-8 h-0.5 rounded-full transition-colors"
+            style={{ background: 'var(--border-primary)' }}
+          />
+        </div>
+        <div className="flex items-end gap-2 px-3 pb-3">
         <textarea
-          className="flex-1 resize-none rounded px-2 py-1.5 text-xs"
+          className="flex-1 text-sm resize-none outline-none rounded-lg px-3 py-2"
           style={{
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-primary)',
+            background: 'var(--bg-input, var(--bg-primary))',
             border: '1px solid var(--border-primary)',
-            outline: 'none',
-            minHeight: '32px',
-            maxHeight: '96px',
-          }}
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-primary)',
+            height: inputHeight,
+          } as any}
           placeholder={isRunning ? 'Agent 运行中...' : '输入指令...'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isRunning}
-          rows={1}
         />
-        {isRunning ? (
-          <button
-            className="flex items-center justify-center w-7 h-7 rounded transition-colors"
-            style={{
-              background: 'var(--bg-error, #fef2f2)',
-              color: 'var(--text-error, #dc2626)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-            onClick={cancelAgent}
-            title="取消"
-          >
-            <Square size={14} />
-          </button>
-        ) : (
-          <button
-            className="flex items-center justify-center w-7 h-7 rounded transition-colors"
-            style={{
-              background: input.trim() ? 'var(--accent)' : 'var(--bg-tertiary)',
-              color: input.trim() ? 'white' : 'var(--text-tertiary)',
-              border: 'none',
-              cursor: input.trim() ? 'pointer' : 'default',
-            }}
-            onClick={handleSend}
-            disabled={!input.trim()}
-            title="发送"
-          >
-            <Send size={14} />
-          </button>
-        )}
+        <div className="flex flex-col gap-1 self-end">
+          {isRunning ? (
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+              style={{
+                background: 'rgba(244,135,113,0.15)',
+                color: 'var(--error-color, #dc2626)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onClick={cancelAgent}
+              title="取消"
+            >
+              <Square size={16} />
+            </button>
+          ) : (
+            <button
+              className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+              style={{
+                background: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                cursor: isRunning ? 'default' : 'pointer',
+                opacity: isRunning ? 0.6 : 1,
+              }}
+              onClick={handleSend}
+              disabled={isRunning}
+              title="发送"
+            >
+              <Send size={16} />
+            </button>
+          )}
+        </div>
+        </div>
       </div>
 
       {/* Session Drawer (绝对定位覆盖) */}

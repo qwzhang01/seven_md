@@ -1,19 +1,42 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, RefreshCw, AlertCircle, X } from 'lucide-react'
+import { Send, Bot, User, RefreshCw, AlertCircle } from 'lucide-react'
 import { useAIStore, useNotificationStore } from '../../stores'
-import { aiChat, isAIConfigured, getAIConfig, setAIConfig } from '../../services/aiService'
+import { aiChat, isAIConfigured } from '../../services/aiService'
 
-interface ChatModeProps {
-  showSettings: boolean
-  setShowSettings: (v: boolean | ((prev: boolean) => boolean)) => void
-}
-
-export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
+export function ChatMode() {
   const { messages, isLoading, error, addMessage, setLoading, setError } = useAIStore()
   const { addNotification } = useNotificationStore()
   const [input, setInput] = useState('')
-  const [settingsForm, setSettingsForm] = useState(() => getAIConfig())
+  const [inputHeight, setInputHeight] = useState(80)
   const messagesRef = useRef<HTMLDivElement>(null)
+  const isResizingInput = useRef(false)
+  const startY = useRef(0)
+  const startHeight = useRef(0)
+
+  const handleInputResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizingInput.current = true
+    startY.current = e.clientY
+    startHeight.current = inputHeight
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!isResizingInput.current) return
+      const dy = startY.current - ev.clientY
+      setInputHeight(Math.max(60, Math.min(300, startHeight.current + dy)))
+    }
+
+    const handleMouseUp = () => {
+      isResizingInput.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [inputHeight])
 
   useEffect(() => {
     if (messagesRef.current) {
@@ -58,12 +81,6 @@ export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
     }
   }, [messages, setError])
 
-  const handleSaveSettings = useCallback(() => {
-    setAIConfig(settingsForm)
-    setShowSettings(false)
-    addNotification({ type: 'success', message: 'AI 配置已保存', autoClose: true, duration: 2000 })
-  }, [settingsForm, addNotification])
-
   const configured = isAIConfigured()
 
   return (
@@ -78,7 +95,7 @@ export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
             </div>
             <div className="text-sm rounded-lg px-3 py-2 max-w-[85%]"
               style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-              你好！我是 MD Mate AI 助手，可以帮助你编写、改写、翻译或解释 Markdown 内容。
+你好！我是 Seven Markdown AI 助手，可以帮助你编写、改写、翻译或解释 Markdown 内容。
               {!configured && (
                 <span style={{ color: 'var(--accent)' }}> 请先点击下方 ⚙️ 按钮配置 API Key。</span>
               )}
@@ -138,8 +155,21 @@ export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
       </div>
 
       {/* Input area */}
-      <div className="p-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-primary)' }}>
-        <div className="flex gap-2">
+      <div className="flex-shrink-0 flex flex-col" style={{ borderTop: '1px solid var(--border-primary)' }}>
+        {/* 拖拽手柄 */}
+        <div
+          className="flex-shrink-0 flex items-center justify-center h-3 cursor-row-resize"
+          style={{ background: 'transparent' }}
+          onMouseDown={handleInputResizeMouseDown}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <div
+            className="w-8 h-0.5 rounded-full transition-colors"
+            style={{ background: 'var(--border-primary)' }}
+          />
+        </div>
+        <div className="px-3 pb-3 flex gap-2">
           <textarea
             className="flex-1 text-sm resize-none outline-none rounded-lg px-3 py-2"
             style={{
@@ -147,11 +177,9 @@ export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
               border: '1px solid var(--border-primary)',
               color: 'var(--text-primary)',
               fontFamily: 'var(--font-primary)',
-              rows: 2,
-              minHeight: 60,
+              height: inputHeight,
             } as any}
             placeholder={configured ? '输入消息...' : '请先配置 API Key...'}
-            rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -177,72 +205,7 @@ export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
         </div>
       </div>
 
-      {/* Settings Panel Overlay */}
-      {showSettings && (
-        <div className="absolute inset-0 z-10 flex flex-col" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--border-primary)' }}>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>AI 设置</span>
-            <button
-              className="flex items-center justify-center w-6 h-6 rounded"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
-              onClick={() => setShowSettings(false)}
-            >
-              <X size={14} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>API Key</label>
-              <input
-                type="password"
-                className="w-full text-sm rounded-lg px-3 py-2 outline-none"
-                style={{ background: 'var(--bg-input, var(--bg-primary))', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
-                placeholder="sk-..."
-                value={settingsForm.apiKey}
-                onChange={(e) => setSettingsForm((f) => ({ ...f, apiKey: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>API Endpoint</label>
-              <input
-                type="text"
-                className="w-full text-sm rounded-lg px-3 py-2 outline-none"
-                style={{ background: 'var(--bg-input, var(--bg-primary))', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
-                placeholder="https://api.openai.com/v1"
-                value={settingsForm.endpoint}
-                onChange={(e) => setSettingsForm((f) => ({ ...f, endpoint: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>模型</label>
-              <input
-                type="text"
-                className="w-full text-sm rounded-lg px-3 py-2 outline-none"
-                style={{ background: 'var(--bg-input, var(--bg-primary))', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}
-                placeholder="gpt-3.5-turbo"
-                value={settingsForm.model}
-                onChange={(e) => setSettingsForm((f) => ({ ...f, model: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="p-4 flex gap-2" style={{ borderTop: '1px solid var(--border-primary)' }}>
-            <button
-              className="flex-1 text-sm py-2 rounded-lg transition-colors"
-              style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-primary)', cursor: 'pointer' }}
-              onClick={() => setShowSettings(false)}
-            >
-              取消
-            </button>
-            <button
-              className="flex-1 text-sm py-2 rounded-lg transition-colors"
-              style={{ background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
-              onClick={handleSaveSettings}
-            >
-              保存
-            </button>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

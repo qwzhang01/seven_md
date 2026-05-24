@@ -21,7 +21,7 @@ function insertAtCursor(text: string) {
 
 export function Toolbar() {
   const { viewMode, setViewMode, sidebarVisible, toggleCommandPalette, toggleSidebar } = useUIStore()
-  const { setOpen: setAIOpen } = useAIStore()
+  const { isOpen: aiOpen, setOpen: setAIOpen } = useAIStore()
   const { containerRef, handleMouseDown } = useDragScroll<HTMLDivElement>()
 
   return (
@@ -138,7 +138,8 @@ export function Toolbar() {
           icon={<Bot size={14} />}
           label="AI"
           tooltip="AI 助手"
-          onClick={() => setAIOpen(true)}
+          onClick={() => setAIOpen(!aiOpen)}
+          active={aiOpen}
           accent
         />
       </div>
