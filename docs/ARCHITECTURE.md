@@ -265,10 +265,9 @@ seven_md/
 │   │       ├── ai/            # LLM 流式调用（openai-completions provider）
 │   │       └── agent/         # Agent 运行时（harness、session、compaction）
 │   ├── services/
-│   │   ├── ai/                # AI 服务层（provider 抽象、agent 服务、工具注册）
-│   │   │   ├── providers/     # OpenAI Compatible / Pi provider
-│   │   │   └── agent/         # markdownAgent、toolRegistry、patchProtocol 等
-│   │   └── aiService.ts       # 顶层 AI 服务入口
+│   │   └── ai/                # AI 服务层（provider 抽象、agent 服务、工具注册）
+│   │       ├── providers/     # OpenAI Compatible / Pi provider
+│   │       └── agent/         # markdownAgent、toolRegistry、patchProtocol 等
 │   ├── wechat/                # 微信公众号导出模块
 │   │   ├── components/        # WechatPanel UI
 │   │   ├── renderer/          # Markdown → 内联样式 HTML

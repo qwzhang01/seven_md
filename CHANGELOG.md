@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **`src/services/aiService.ts` deleted**: The deprecated compatibility shim has been removed. All components now import directly from `src/services/ai` (config functions: `getAIConfig`, `setAIConfig`, `isAIConfigured`; chat functions: `aiChat`, `aiRewrite`, `aiTranslate`, `aiExplain`).
+
 ### Added
 - **Multi-Window Independent Workspaces**: Each window can now bind to its own independent folder
   - `create_new_window` Rust command supports `initial_folder` parameter for URL query context passing
