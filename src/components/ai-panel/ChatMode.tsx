@@ -1,13 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, RefreshCw, AlertCircle, Settings, X } from 'lucide-react'
+import { Send, Bot, User, RefreshCw, AlertCircle, X } from 'lucide-react'
 import { useAIStore, useNotificationStore } from '../../stores'
 import { aiChat, isAIConfigured, getAIConfig, setAIConfig } from '../../services/aiService'
 
-export function ChatMode() {
+interface ChatModeProps {
+  showSettings: boolean
+  setShowSettings: (v: boolean | ((prev: boolean) => boolean)) => void
+}
+
+export function ChatMode({ showSettings, setShowSettings }: ChatModeProps) {
   const { messages, isLoading, error, addMessage, setLoading, setError } = useAIStore()
   const { addNotification } = useNotificationStore()
   const [input, setInput] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState(() => getAIConfig())
   const messagesRef = useRef<HTMLDivElement>(null)
 
@@ -53,11 +57,6 @@ export function ChatMode() {
       setInput(lastUserMsg.content)
     }
   }, [messages, setError])
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsForm(getAIConfig())
-    setShowSettings(true)
-  }, [])
 
   const handleSaveSettings = useCallback(() => {
     setAIConfig(settingsForm)
@@ -173,19 +172,6 @@ export function ChatMode() {
               disabled={isLoading}
             >
               <Send size={16} />
-            </button>
-            <button
-              className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
-              style={{
-                background: 'transparent',
-                color: configured ? 'var(--text-secondary)' : 'var(--accent)',
-                border: '1px solid var(--border-primary)',
-                cursor: 'pointer',
-              }}
-              onClick={handleOpenSettings}
-              title="AI 设置"
-            >
-              <Settings size={14} />
             </button>
           </div>
         </div>

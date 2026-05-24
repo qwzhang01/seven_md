@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { Send } from 'lucide-react'
+import { useWechatStore } from '../../wechat'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -76,34 +77,7 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
     return () => window.removeEventListener('preview:scroll-to-heading', handler)
   }, [])
 
-  const handleOpenExternal = useCallback(() => {
-    // Open preview in a new window
-    const win = window.open('', '_blank')
-    if (!win) return
-    const previewEl = document.getElementById('md-preview-content')
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>预览 - MD Mate</title>
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px 40px; max-width: 900px; }
-          pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
-          code { font-family: 'SF Mono', Menlo, monospace; font-size: 13px; }
-          table { border-collapse: collapse; width: 100%; }
-          th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
-          th { background: #f6f8fa; }
-          blockquote { border-left: 4px solid #d0d7de; margin: 0; padding: 8px 16px; color: #656d76; }
-          img { max-width: 100%; }
-          hr { border: none; border-top: 2px solid #d0d7de; }
-        </style>
-      </head>
-      <body>${previewEl?.innerHTML ?? ''}</body>
-      </html>
-    `)
-    win.document.close()
-  }, [])
+  const openWechat = useWechatStore((s) => s.open)
 
   return (
     <div
@@ -123,12 +97,12 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
         <button
           className="flex items-center justify-center w-6 h-6 rounded transition-colors"
           style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onClick={handleOpenExternal}
-          title="在新窗口打开"
+          onClick={openWechat}
+          title="导出微信公众号"
           onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         >
-          <ExternalLink size={13} />
+          <Send size={13} />
         </button>
       </div>
 

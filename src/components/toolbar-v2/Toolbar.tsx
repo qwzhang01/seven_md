@@ -8,12 +8,11 @@ import {
   Link, Image,
   List, ListOrdered, ListChecks,
   Quote, Table, Minus,
-  Bot, MessageSquareShare,
+  Bot,
   Columns2, PanelLeft, PanelRight,
   Command,
 } from 'lucide-react'
 import { useUIStore, useAIStore } from '../../stores'
-import { useWechatStore } from '../../wechat/stores/useWechatStore'
 import { useDragScroll } from '../../hooks/useDragScroll'
 
 function insertAtCursor(text: string) {
@@ -23,7 +22,6 @@ function insertAtCursor(text: string) {
 export function Toolbar() {
   const { viewMode, setViewMode, sidebarVisible, toggleCommandPalette, toggleSidebar } = useUIStore()
   const { setOpen: setAIOpen } = useAIStore()
-  const openWechat = useWechatStore((s) => s.open)
   const { containerRef, handleMouseDown } = useDragScroll<HTMLDivElement>()
 
   return (
@@ -136,11 +134,6 @@ export function Toolbar() {
           onClick={toggleSidebar}
         />
         <div className="w-px h-4 mx-1 bg-[var(--border-default)]" />
-        <ToolbarButton
-          icon={<MessageSquareShare size={14} />}
-          tooltip="微信公众号导出"
-          onClick={openWechat}
-        />
         <ToolbarButton
           icon={<Bot size={14} />}
           label="AI"

@@ -1,8 +1,6 @@
 import { create } from 'zustand'
 
-export type AIMode = 'chat' | 'rewrite' | 'translate' | 'explain' | 'agent'
-export type RewriteStyle = 'professional' | 'casual' | 'concise' | 'expansive'
-export type TranslateDirection = 'zh-en' | 'en-zh' | 'zh-ja'
+export type AIMode = 'chat' | 'agent'
 
 export interface AIMessage {
   id: string
@@ -18,18 +16,7 @@ interface AIState {
   isLoading: boolean
   error: string | null
 
-  // Rewrite mode
-  rewriteStyle: RewriteStyle
-  rewriteResult: string | null
-
-  // Translate mode
-  translateDirection: TranslateDirection
-  translateResult: string | null
-
-  // Explain mode
-  explainResult: string | null
-
-  // Selected text (shared across modes)
+  // Selected text (used by Agent mode)
   selectedText: string | null
 
   // Actions
@@ -39,11 +26,6 @@ interface AIState {
   clearMessages: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
-  setRewriteStyle: (style: RewriteStyle) => void
-  setRewriteResult: (result: string | null) => void
-  setTranslateDirection: (direction: TranslateDirection) => void
-  setTranslateResult: (result: string | null) => void
-  setExplainResult: (result: string | null) => void
   setSelectedText: (text: string | null) => void
 }
 
@@ -55,11 +37,6 @@ export const useAIStore = create<AIState>()((set) => ({
   messages: [],
   isLoading: false,
   error: null,
-  rewriteStyle: 'professional',
-  rewriteResult: null,
-  translateDirection: 'zh-en',
-  translateResult: null,
-  explainResult: null,
   selectedText: null,
 
   setOpen: (open) => set({ isOpen: open }),
@@ -79,10 +56,5 @@ export const useAIStore = create<AIState>()((set) => ({
   clearMessages: () => set({ messages: [] }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
-  setRewriteStyle: (style) => set({ rewriteStyle: style }),
-  setRewriteResult: (result) => set({ rewriteResult: result }),
-  setTranslateDirection: (direction) => set({ translateDirection: direction }),
-  setTranslateResult: (result) => set({ translateResult: result }),
-  setExplainResult: (result) => set({ explainResult: result }),
   setSelectedText: (text) => set({ selectedText: text }),
 }))

@@ -1,18 +1,13 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { X, MessageCircle, Wand2, Languages, Lightbulb, Bot } from 'lucide-react'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import { X, MessageCircle, Bot, Settings } from 'lucide-react'
 import { useAIStore } from '../../stores'
 import { useUIStore } from '../../stores'
+import { isAIConfigured } from '../../services/aiService'
 import { ChatMode } from './ChatMode'
-import { RewriteMode } from './RewriteMode'
-import { TranslateMode } from './TranslateMode'
-import { ExplainMode } from './ExplainMode'
 import { AgentMode } from './AgentMode'
 
 const TABS = [
   { id: 'chat' as const, label: '对话', icon: <MessageCircle size={14} /> },
-  { id: 'rewrite' as const, label: '改写', icon: <Wand2 size={14} /> },
-  { id: 'translate' as const, label: '翻译', icon: <Languages size={14} /> },
-  { id: 'explain' as const, label: '解释', icon: <Lightbulb size={14} /> },
   { id: 'agent' as const, label: 'Agent', icon: <Bot size={14} /> },
 ]
 
@@ -21,6 +16,8 @@ const DEFAULT_WIDTH = 360
 export function AIPanel() {
   const { isOpen, mode, setOpen, setMode } = useAIStore()
   const { aiPanelWidth, setAIPanelWidth } = useUIStore()
+  const [showSettings, setShowSettings] = useState(false)
+  const configured = isAIConfigured()
 
   const isResizing = useRef(false)
   const startX = useRef(0)
@@ -131,24 +128,34 @@ export function AIPanel() {
             </button>
           ))}
         </div>
-        <button
-          className="flex items-center justify-center w-6 h-6 rounded transition-colors"
-          style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          onClick={() => setOpen(false)}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          aria-label="关闭 AI 面板"
-        >
-          <X size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+            style={{ color: configured ? 'var(--text-secondary)' : 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={() => setShowSettings((v) => !v)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            aria-label="AI 设置"
+            title="AI 设置"
+          >
+            <Settings size={14} />
+          </button>
+          <button
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors"
+            style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={() => setOpen(false)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            aria-label="关闭 AI 面板"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Body */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {mode === 'chat' && <ChatMode />}
-        {mode === 'rewrite' && <RewriteMode />}
-        {mode === 'translate' && <TranslateMode />}
-        {mode === 'explain' && <ExplainMode />}
+        {mode === 'chat' && <ChatMode showSettings={showSettings} setShowSettings={setShowSettings} />}
         {mode === 'agent' && <AgentMode />}
       </div>
 
