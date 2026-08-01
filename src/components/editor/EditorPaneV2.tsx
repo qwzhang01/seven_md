@@ -691,9 +691,13 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     const view = viewRef.current
     if (!view) return
 
+    // Use named references so removeEventListener works correctly
+    const handleFocus = () => setEditorFocused(true)
+    const handleBlur = () => setEditorFocused(false)
+
     // CodeMirror 的 focus/blur 事件
-    view.dom.addEventListener('focus', () => setEditorFocused(true))
-    view.dom.addEventListener('blur', () => setEditorFocused(false))
+    view.dom.addEventListener('focus', handleFocus)
+    view.dom.addEventListener('blur', handleBlur)
 
     // 初始检查
     if (view.hasFocus) {
@@ -701,8 +705,8 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     }
 
     return () => {
-      view.dom.removeEventListener('focus', () => setEditorFocused(true))
-      view.dom.removeEventListener('blur', () => setEditorFocused(false))
+      view.dom.removeEventListener('focus', handleFocus)
+      view.dom.removeEventListener('blur', handleBlur)
       setEditorFocused(false)
     }
   }, [])
