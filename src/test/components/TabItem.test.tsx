@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TabItem } from '../../components/titlebar-v2/TabItem'
+import { TabItem } from '../../components/titlebar/TabItem'
 
 const defaultProps = {
   id: 'tab-1',

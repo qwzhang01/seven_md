@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ConfirmDialog } from '../../components/modal-v2/ConfirmDialog'
+import { ConfirmDialog } from '../../components/modal/ConfirmDialog'
 
 const defaultProps = {
   open: true,

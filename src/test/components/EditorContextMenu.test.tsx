@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { EditorContextMenu } from '../../components/editor-v2/EditorContextMenu'
+import { EditorContextMenu } from '../../components/editor/EditorContextMenu'
 
 const defaultProps = {
   x: 100,

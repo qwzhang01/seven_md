@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { NotificationItem } from '../../components/notification-v2/NotificationItem'
+import { NotificationItem } from '../../components/notification/NotificationItem'
 import { useNotificationStore } from '../../stores'
 import type { Notification } from '../../stores'
 

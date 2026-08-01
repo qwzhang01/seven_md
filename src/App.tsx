@@ -1,5 +1,5 @@
 /**
- * Seven Markdown V2 - 主布局
+ * Seven Markdown - 主布局
  * VS Code 风格: Toolbar + [ActivityBar|Sidebar] + [Editor|Preview] + StatusBar
  */
 
@@ -9,16 +9,16 @@ import { useFileActions } from './hooks/useFileActions'
 import { useTauriMenuListeners } from './hooks/useTauriMenuListeners'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 
-import { TabBar } from './components/titlebar-v2/TabBar'
-import { Toolbar } from './components/toolbar-v2/Toolbar'
-import { ActivityBar } from './components/activitybar-v2/ActivityBar'
-import { Sidebar } from './components/sidebar-v2/Sidebar'
+import { TabBar } from './components/titlebar/TabBar'
+import { Toolbar } from './components/toolbar/Toolbar'
+import { ActivityBar } from './components/activitybar/ActivityBar'
+import { Sidebar } from './components/sidebar/Sidebar'
 import { CommandPalette } from './components/cmd-palette/CommandPalette'
 import { AIPanel } from './components/ai-panel/AIPanel'
-import { NotificationContainer } from './components/notification-v2/NotificationContainer'
-import { DirtyTabModal } from './components/modal-v2/DirtyTabModal'
-import { StatusBar as StatusBarV2 } from './components/statusbar-v2/StatusBar'
-import { EditorPreviewArea } from './components/editor-v2'
+import { NotificationContainer } from './components/notification/NotificationContainer'
+import { DirtyTabModal } from './components/modal/DirtyTabModal'
+import { StatusBar } from './components/statusbar/StatusBar'
+import { EditorPreviewArea } from './components/editor'
 
 import { ShortcutReferenceDialog } from './components/dialogs/ShortcutReferenceDialog'
 import { AboutDialog } from './components/dialogs/AboutDialog'
@@ -33,7 +33,7 @@ import { readFile, saveFile } from './tauriCommands'
 import { addRecentDocument } from './utils/recentDocuments'
 import { registerAllCommands } from './commands'
 
-function AppV2() {
+function App() {
   const ui = useUIStore()
   const { tabs, openTab, closeTab, updateTabContent, getActiveTab } = useFileStore()
   const theme = useThemeStore((s) => s.currentTheme)
@@ -274,7 +274,7 @@ function AppV2() {
 
       {/* === STATUS BAR === */}
       <div data-component="statusbar">
-        <StatusBarV2 />
+        <StatusBar />
       </div>
 
       {/* === OVERLAYS === */}
@@ -327,4 +327,4 @@ function AppV2() {
   )
 }
 
-export default AppV2
+export default App

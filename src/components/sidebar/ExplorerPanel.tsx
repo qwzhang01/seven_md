@@ -9,7 +9,7 @@ import {
   getFolderContextMenuItems,
   type ContextMenuItem,
 } from './ExplorerContextMenu'
-import { ConfirmDialog } from '../modal-v2'
+import { ConfirmDialog } from '../modal'
 
 // 根据文件扩展名返回颜色/图标
 function getFileIcon(name: string) {
