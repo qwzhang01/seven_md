@@ -7,7 +7,7 @@
  * - 编辑器右键菜单
  */
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { EditorState } from '@codemirror/state'
+import { EditorState, Compartment } from '@codemirror/state'
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, keymap, KeyBinding } from '@codemirror/view'
 import { undo, redo, selectAll, indentWithTab, defaultKeymap, historyKeymap } from '@codemirror/commands'
 import { history } from '@codemirror/commands'
@@ -22,6 +22,12 @@ import { getThemeById } from '../../themes'
 import type { ThemeId } from '../../stores/useThemeStore'
 import { EditorContextMenu } from './EditorContextMenu'
 import { dispatch, on } from '../../lib/eventBus'
+
+// ─── Compartments for dynamic reconfiguration ──────────────────────
+// These allow us to swap themes / zoom without destroying the EditorView,
+// which preserves cursor position, undo history, and scroll offset.
+const highlightCompartment = new Compartment()
+const themeCompartment = new Compartment()
 
 /**
  * List continuation extension:
@@ -143,7 +149,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
     view.focus()
   }, [])
 
-  // Initialize editor
+  // Initialize editor (only once — theme & zoom are handled via Compartments)
   useEffect(() => {
     if (!containerRef.current) return
 
@@ -156,12 +162,10 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         highlightActiveLine(),
         highlightActiveLineGutter(),
         markdown({ base: markdownLanguage, codeLanguages: languages }),
-        syntaxHighlighting(highlightStyle),
+        highlightCompartment.of(syntaxHighlighting(highlightStyle)),
         bracketMatching(),
         // D4: 增强自动配对配置，添加反引号
-        closeBrackets({
-          brackets: ['(', '[', '{', '"', "'", '`'],
-        }),
+        closeBrackets(),
         history(),
         keymap.of([
           ...closeBracketsKeymap,
@@ -185,7 +189,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
             useAIStore.getState().setSelectedText(selectedText)
           }
         }),
-        EditorView.theme({
+        themeCompartment.of(EditorView.theme({
           '&': { height: '100%', background: 'var(--editor-bg, var(--bg-primary))' },
           '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono, "SF Mono", Menlo, Monaco, Consolas, monospace)' },
           '.cm-content': { fontSize: `${zoomLevel}px`, padding: '8px 0', caretColor: 'var(--editor-cursor, #aeafad)' },
@@ -200,7 +204,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
           '.cm-selectionBackground, ::selection': { backgroundColor: 'var(--editor-selection, #264f78) !important' },
           '.cm-cursor': { borderLeftColor: 'var(--editor-cursor, #aeafad)' },
           '.cm-lineNumbers': { color: 'var(--editor-gutter-fg, #858585)' },
-        }),
+        })),
         EditorView.baseTheme({
           '&.cm-focused': { outline: 'none' },
         }),
@@ -238,7 +242,44 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       view.destroy()
       viewRef.current = null
     }
-  }, [currentTheme, zoomLevel]) // Re-create when theme/zoom changes
+  }, []) // Editor is created only once
+
+  // Reconfigure syntax highlighting when theme changes (no editor rebuild)
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: highlightCompartment.reconfigure(
+        syntaxHighlighting(buildHighlightStyle(currentTheme)),
+      ),
+    })
+  }, [currentTheme])
+
+  // Reconfigure font-size when zoom level changes (no editor rebuild)
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: themeCompartment.reconfigure(
+        EditorView.theme({
+          '&': { height: '100%', background: 'var(--editor-bg, var(--bg-primary))' },
+          '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono, "SF Mono", Menlo, Monaco, Consolas, monospace)' },
+          '.cm-content': { fontSize: `${zoomLevel}px`, padding: '8px 0', caretColor: 'var(--editor-cursor, #aeafad)' },
+          '.cm-line': { padding: '0 16px' },
+          '.cm-gutters': {
+            backgroundColor: 'var(--editor-gutter-bg, var(--bg-primary))',
+            borderRight: '1px solid var(--border-primary)',
+            color: 'var(--editor-gutter-fg, var(--text-tertiary))',
+          },
+          '.cm-activeLineGutter': { backgroundColor: 'var(--editor-line-highlight, var(--bg-hover))', color: 'var(--text-primary)' },
+          '.cm-activeLine': { backgroundColor: 'var(--editor-line-highlight, rgba(255,255,255,0.05))' },
+          '.cm-selectionBackground, ::selection': { backgroundColor: 'var(--editor-selection, #264f78) !important' },
+          '.cm-cursor': { borderLeftColor: 'var(--editor-cursor, #aeafad)' },
+          '.cm-lineNumbers': { color: 'var(--editor-gutter-fg, #858585)' },
+        }),
+      ),
+    })
+  }, [zoomLevel])
 
   // Sync external content
   useEffect(() => {
