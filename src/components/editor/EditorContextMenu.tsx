@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Scissors, Clipboard, FileText, Plus, Type, Search, Sparkles, Bot } from 'lucide-react'
 import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../../services/ai/agent/agentPresets'
@@ -103,9 +104,9 @@ export function EditorContextMenu({ x, y, onClose, onInsert, onFind, onAIRewrite
   }
 
   const menuItems: MenuItem[] = [
-    { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => window.dispatchEvent(new CustomEvent('editor:cut')) },
-    { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => window.dispatchEvent(new CustomEvent('editor:copy')) },
-    { label: '粘贴', icon: <FileText size={14} />, shortcut: 'Ctrl+V', action: () => window.dispatchEvent(new CustomEvent('editor:paste')) },
+    { label: '剪切', icon: <Scissors size={14} />, shortcut: 'Ctrl+X', action: () => dispatch('editor:cut', undefined) },
+    { label: '复制', icon: <Clipboard size={14} />, shortcut: 'Ctrl+C', action: () => dispatch('editor:copy', undefined) },
+    { label: '粘贴', icon: <FileText size={14} />, shortcut: 'Ctrl+V', action: () => dispatch('editor:paste', undefined) },
     { separator: true },
     { label: '插入', icon: <Plus size={14} />, submenu: insertItems },
     { separator: true },

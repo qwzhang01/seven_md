@@ -1,3 +1,4 @@
+import { on } from '../lib/eventBus'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useExport, EXPORT_STATUS_EVENT, ExportStatusDetail } from './useExport'
@@ -125,7 +126,7 @@ describe('useExport', () => {
     )
 
     let eventFired = false
-    window.addEventListener(EXPORT_STATUS_EVENT, () => { eventFired = true }, { once: true })
+    on('export-status', () => { eventFired = true })
 
     await act(async () => { await result.current.exportHtml() })
 

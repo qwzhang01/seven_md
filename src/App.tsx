@@ -32,6 +32,7 @@ import { useUIStore, useFileStore, useThemeStore, useNotificationStore, useEdito
 import { readFile, saveFile } from './tauriCommands'
 import { addRecentDocument } from './utils/recentDocuments'
 import { registerAllCommands } from './commands'
+import { on } from './lib/eventBus'
 
 function App() {
   const ui = useUIStore()
@@ -100,36 +101,24 @@ function App() {
 
   // Handle export-pdf via window.print()
   useEffect(() => {
-    const handler = () => window.print()
-    window.addEventListener('app:export-pdf', handler)
-    return () => window.removeEventListener('app:export-pdf', handler)
+    return on('app:export-pdf', () => window.print())
   }, [])
 
   // Handle WelcomeDialog quick-action events
   useEffect(() => {
-    const onNewFile = () => openTab(null, '')
-    const onOpenFile = () => fileActions.handleOpenFile()
-    const onOpenFolder = async () => {
+    const off1 = on('app:new-file', () => openTab(null, ''))
+    const off2 = on('app:open-file', () => fileActions.handleOpenFile())
+    const off3 = on('app:open-folder', async () => {
       await useWorkspaceStore.getState().openFolder()
       const folderPath = useWorkspaceStore.getState().folderPath
       if (folderPath) addRecentDocument(folderPath, 'folder')
-    }
-    window.addEventListener('app:new-file', onNewFile)
-    window.addEventListener('app:open-file', onOpenFile)
-    window.addEventListener('app:open-folder', onOpenFolder)
-    return () => {
-      window.removeEventListener('app:new-file', onNewFile)
-      window.removeEventListener('app:open-file', onOpenFile)
-      window.removeEventListener('app:open-folder', onOpenFolder)
-    }
+    })
+    return () => { off1(); off2(); off3() }
   }, [openTab, fileActions, addNotification])
 
   // Handle app:open-recent
   useEffect(() => {
-    const handler = async (e: Event) => {
-      const detail = (e as CustomEvent<{ path: string; type: 'file' | 'folder' } | string>).detail
-      const path = typeof detail === 'string' ? detail : detail?.path
-      const type = typeof detail === 'string' ? 'file' : (detail?.type ?? 'file')
+    return on('app:open-recent', async ({ path, type }) => {
       if (!path) return
       try {
         if (type === 'folder') {
@@ -154,9 +143,7 @@ function App() {
       } catch (err) {
         addNotification({ type: 'error', message: `打开最近文档失败: ${err}`, autoClose: true, duration: 5000 })
       }
-    }
-    window.addEventListener('app:open-recent', handler)
-    return () => window.removeEventListener('app:open-recent', handler)
+    })
   }, [openTab, addNotification])
 
   // Handle window resize: auto-close mobile sidebar

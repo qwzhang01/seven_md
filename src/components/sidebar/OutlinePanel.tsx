@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useMemo, useState, useCallback } from 'react'
 import { List } from 'lucide-react'
 import { useUIStore } from '../../stores'
@@ -67,16 +68,16 @@ export function OutlinePanel({ content }: OutlinePanelProps) {
 
     // editor-only: 只发射编辑器跳转事件
     if (viewMode === 'editor-only') {
-      window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: heading.line }))
+      dispatch('editor:jump-to-line', heading.line)
     }
     // preview-only: 只发射预览面板滚动事件
     else if (viewMode === 'preview-only') {
-      window.dispatchEvent(new CustomEvent('preview:scroll-to-heading', { detail: heading.text }))
+      dispatch('preview:scroll-to-heading', heading.text)
     }
     // split: 同时发射两个事件
     else {
-      window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: heading.line }))
-      window.dispatchEvent(new CustomEvent('preview:scroll-to-heading', { detail: heading.text }))
+      dispatch('editor:jump-to-line', heading.line)
+      dispatch('preview:scroll-to-heading', heading.text)
     }
   }, [])
 

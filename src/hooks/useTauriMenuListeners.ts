@@ -14,6 +14,7 @@ import type { Notification } from '../stores/useNotificationStore'
 import type { ThemeId } from '../stores/useThemeStore'
 import { readFile, saveFile, createNewWindow as tauriCreateNewWindow, openFolderDialog, readDirectory, startFsWatch } from '../tauriCommands'
 import { addRecentDocument, clearRecentDocuments, getRecentDocType } from '../utils/recentDocuments'
+import { dispatch } from '../lib/eventBus'
 import type { FileTreeNode } from '../types'
 
 interface FileActionRefs {
@@ -63,10 +64,6 @@ const FORMAT_MAP: Record<string, string> = {
   'menu-format-link': '[](url)',
 }
 
-function dispatchEditorEvent(eventName: string, detail?: string) {
-  window.dispatchEvent(detail !== undefined ? new CustomEvent(eventName, { detail }) : new CustomEvent(eventName))
-}
-
 function handleClipboardCut() {
   const el = document.activeElement
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
@@ -84,7 +81,7 @@ function handleClipboardCut() {
     }
     return
   }
-  dispatchEditorEvent('editor:cut')
+  dispatch('editor:cut', undefined)
 }
 
 function handleClipboardCopy() {
@@ -97,7 +94,7 @@ function handleClipboardCopy() {
     }
     return
   }
-  dispatchEditorEvent('editor:copy')
+  dispatch('editor:copy', undefined)
 }
 
 async function openFolderByPath(path: string) {
@@ -221,8 +218,8 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
           refs.addNotificationRef.current({ type: 'error', message: `保存失败: ${e}`, autoClose: true, duration: 5000 })
         }
       }))
-      unlisteners.push(await listen('menu-export-pdf', () => dispatchEditorEvent('app:export-pdf')))
-      unlisteners.push(await listen('menu-export-html', () => dispatchEditorEvent('app:export-html')))
+      unlisteners.push(await listen('menu-export-pdf', () => dispatch('app:export-pdf', undefined)))
+      unlisteners.push(await listen('menu-export-html', () => dispatch('app:export-html', undefined)))
       unlisteners.push(await listen('menu-close-tab', () => {
         const tab = useFileStore.getState().getActiveTab()
         if (tab) {
@@ -239,19 +236,19 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
       }))
 
       // --- Edit 菜单 ---
-      unlisteners.push(await listen('menu-undo', () => dispatchEditorEvent('editor:undo')))
-      unlisteners.push(await listen('menu-redo', () => dispatchEditorEvent('editor:redo')))
+      unlisteners.push(await listen('menu-undo', () => dispatch('editor:undo', undefined)))
+      unlisteners.push(await listen('menu-redo', () => dispatch('editor:redo', undefined)))
       unlisteners.push(await listen('menu-cut', handleClipboardCut))
       unlisteners.push(await listen('menu-copy', handleClipboardCopy))
       unlisteners.push(await listen('menu-paste', () => {
         const el = document.activeElement
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return
-        dispatchEditorEvent('editor:paste')
+        dispatch('editor:paste', undefined)
       }))
       unlisteners.push(await listen('menu-paste-match-style', () => {
         const el = document.activeElement
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return
-        dispatchEditorEvent('editor:paste-match-style')
+        dispatch('editor:paste-match-style', undefined)
       }))
       unlisteners.push(await listen('menu-select-all', () => {
         const el = document.activeElement
@@ -259,7 +256,7 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
           el.select()
           return
         }
-        dispatchEditorEvent('editor:select-all')
+        dispatch('editor:select-all', undefined)
       }))
       unlisteners.push(await listen('menu-find', () => {
         useUIStore.getState().setFindReplaceOpen(true)
@@ -269,9 +266,9 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
         useUIStore.getState().setFindReplaceOpen(true)
         useUIStore.getState().setFindReplaceMode('replace')
       }))
-      unlisteners.push(await listen('menu-find-next', () => dispatchEditorEvent('editor:find-next')))
-      unlisteners.push(await listen('menu-find-previous', () => dispatchEditorEvent('editor:find-previous')))
-      unlisteners.push(await listen('menu-clear-format', () => dispatchEditorEvent('editor:clear-format')))
+      unlisteners.push(await listen('menu-find-next', () => dispatch('editor:find-next-simple', undefined)))
+      unlisteners.push(await listen('menu-find-previous', () => dispatch('editor:find-prev-simple', undefined)))
+      unlisteners.push(await listen('menu-clear-format', () => dispatch('editor:clear-format', undefined)))
 
       // --- View 菜单 ---
       unlisteners.push(await listen('menu-command-palette', () => useUIStore.getState().toggleCommandPalette()))
@@ -282,9 +279,9 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
       unlisteners.push(await listen('menu-toggle-sidebar', () => useUIStore.getState().toggleSidebar()))
       unlisteners.push(await listen('menu-toggle-outline', () => useUIStore.getState().setActiveSidebarPanel('outline')))
       unlisteners.push(await listen('menu-toggle-explorer', () => useUIStore.getState().setActiveSidebarPanel('explorer')))
-      unlisteners.push(await listen('menu-show-line-numbers', () => dispatchEditorEvent('editor:toggle-line-numbers')))
-      unlisteners.push(await listen('menu-show-minimap', () => dispatchEditorEvent('editor:toggle-minimap')))
-      unlisteners.push(await listen('menu-word-wrap', () => dispatchEditorEvent('editor:toggle-word-wrap')))
+      unlisteners.push(await listen('menu-show-line-numbers', () => dispatch('editor:toggle-line-numbers', undefined)))
+      unlisteners.push(await listen('menu-show-minimap', () => dispatch('editor:toggle-minimap', undefined)))
+      unlisteners.push(await listen('menu-word-wrap', () => dispatch('editor:toggle-word-wrap', undefined)))
       unlisteners.push(await listen('menu-zoom-in', () => useUIStore.getState().zoomIn()))
       unlisteners.push(await listen('menu-zoom-out', () => useUIStore.getState().zoomOut()))
       unlisteners.push(await listen('menu-reset-zoom', () => useUIStore.getState().setZoomLevel(14)))
@@ -301,12 +298,12 @@ export function useTauriMenuListeners(refs: FileActionRefs) {
 
       // --- Insert 菜单 ---
       for (const [event, detail] of Object.entries(INSERT_MAP)) {
-        unlisteners.push(await listen(event, () => dispatchEditorEvent('editor:insert', detail)))
+        unlisteners.push(await listen(event, () => dispatch('editor:insert', detail)))
       }
 
       // --- Format 菜单 ---
       for (const [event, detail] of Object.entries(FORMAT_MAP)) {
-        unlisteners.push(await listen(event, () => dispatchEditorEvent('editor:insert', detail)))
+        unlisteners.push(await listen(event, () => dispatch('editor:insert', detail)))
       }
 
       // --- Theme 菜单 ---

@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useState, useCallback, useMemo } from 'react'
 import { Table, FileCode, ListChecks, StickyNote, Image, Footprints, ChevronDown, ChevronRight, Plus } from 'lucide-react'
 import { useNotificationStore } from '../../stores'
@@ -120,7 +121,7 @@ export function SnippetsPanel() {
 
   const handleInsert = useCallback(
     (snippet: SnippetItem) => {
-      window.dispatchEvent(new CustomEvent('editor:insert', { detail: '\n' + snippet.template + '\n' }))
+      dispatch('editor:insert', '\n' + snippet.template + '\n')
       addNotification({
         type: 'success',
         message: `片段 "${snippet.name}" 已插入`,

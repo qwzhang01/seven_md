@@ -1,3 +1,4 @@
+import { dispatch } from '../lib/eventBus'
 import { useMemo } from 'react'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import type { ShortcutConfig } from './useKeyboardShortcuts'
@@ -44,7 +45,7 @@ export function useAppShortcuts({
       key: 'b', ctrlKey: true,
       action: () => {
         if (ui.editorFocused) {
-          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '**' }))
+          dispatch('editor:insert', '**')
         } else {
           ui.toggleSidebar()
         }
@@ -57,7 +58,7 @@ export function useAppShortcuts({
       key: 'i', ctrlKey: true,
       action: () => {
         if (ui.editorFocused) {
-          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '*' }))
+          dispatch('editor:insert', '*')
         }
       },
       description: '斜体',
@@ -66,7 +67,7 @@ export function useAppShortcuts({
       key: 'k', ctrlKey: true,
       action: () => {
         if (ui.editorFocused) {
-          window.dispatchEvent(new CustomEvent('editor:insert', { detail: '[](url)' }))
+          dispatch('editor:insert', '[](url)')
         }
       },
       description: '链接',

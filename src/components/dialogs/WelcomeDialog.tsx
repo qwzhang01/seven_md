@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useEffect, useRef, useState } from 'react'
 import { X, FileText, FolderOpen, Plus, Sparkles } from 'lucide-react'
 
@@ -88,25 +89,25 @@ export function WelcomeDialog({ onClose }: WelcomeDialogProps) {
 
   // 快速操作：新建文件
   const handleNewFile = () => {
-    window.dispatchEvent(new CustomEvent('app:new-file'))
+    dispatch('app:new-file', undefined)
     onClose()
   }
 
   // 快速操作：打开文件
   const handleOpenFile = () => {
-    window.dispatchEvent(new CustomEvent('app:open-file'))
+    dispatch('app:open-file', undefined)
     onClose()
   }
 
   // 快速操作：打开文件夹
   const handleOpenFolder = () => {
-    window.dispatchEvent(new CustomEvent('app:open-folder'))
+    dispatch('app:open-folder', undefined)
     onClose()
   }
 
   // 打开最近文档
   const handleOpenRecent = (path: string, type: 'file' | 'folder') => {
-    window.dispatchEvent(new CustomEvent('app:open-recent', { detail: { path, type } }))
+    dispatch('app:open-recent', { path, type })
     onClose()
   }
 

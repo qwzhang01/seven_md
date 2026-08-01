@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useState, useEffect, useCallback } from 'react'
 import { GitBranch, RefreshCw, AlertTriangle, Bell, ArrowUpDown } from 'lucide-react'
 import { useEditorStore, useFileStore, useNotificationStore, useWorkspaceStore } from '../../stores'
@@ -47,7 +48,7 @@ export function StatusBar() {
     if (input === null) return
     const lineNum = parseInt(input, 10)
     if (isNaN(lineNum) || lineNum < 1) return
-    window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: lineNum }))
+    dispatch('editor:jump-to-line', lineNum)
   }, [cursorPosition.line])
 
   // 编码点击

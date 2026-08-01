@@ -10,6 +10,7 @@
  * navigator.clipboard.writeText() 在 Tauri WebView 中可能追加而非覆盖剪贴板内容，
  * 导致多次复制后粘贴时出现重复内容。统一改用 document.execCommand() 走原生路径。
  */
+import { dispatch } from '../../lib/eventBus'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
@@ -85,7 +86,7 @@ describe('EditorPaneV2 — editor:paste 事件处理', () => {
       document.execCommand('paste')
     }
     window.addEventListener('editor:paste', handlePaste)
-    window.dispatchEvent(new CustomEvent('editor:paste'))
+    dispatch('editor:paste', undefined)
     expect(execCommandSpy).toHaveBeenCalledWith('paste')
     window.removeEventListener('editor:paste', handlePaste)
   })
@@ -138,7 +139,7 @@ describe('EditorPaneV2 — editor:copy 事件处理', () => {
       document.execCommand('copy')
     }
     window.addEventListener('editor:copy', handleCopy)
-    window.dispatchEvent(new CustomEvent('editor:copy'))
+    dispatch('editor:copy', undefined)
     expect(execCommandSpy).toHaveBeenCalledWith('copy')
     window.removeEventListener('editor:copy', handleCopy)
   })
@@ -205,7 +206,7 @@ describe('EditorPaneV2 — editor:cut 事件处理', () => {
       document.execCommand('cut')
     }
     window.addEventListener('editor:cut', handleCut)
-    window.dispatchEvent(new CustomEvent('editor:cut'))
+    dispatch('editor:cut', undefined)
     expect(execCommandSpy).toHaveBeenCalledWith('cut')
     window.removeEventListener('editor:cut', handleCut)
   })

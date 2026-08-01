@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useMemo } from 'react'
 import { FilePlus, FolderOpen, FolderPlus, Terminal } from 'lucide-react'
 import { ContextMenuBase, type ContextMenuItem } from './ContextMenuBase'
@@ -28,7 +29,7 @@ export function DefaultContextMenu({ x, y, onClose }: DefaultContextMenuProps) {
       icon: <FolderOpen size={14} />,
       shortcut: '⌘O',
       action: () => {
-        window.dispatchEvent(new CustomEvent('app:open-file'))
+        dispatch('app:open-file', undefined)
       },
     },
     {

@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { ToolbarGroup } from './ToolbarGroup'
 import { ToolbarButton } from './ToolbarButton'
 import {
@@ -16,7 +17,7 @@ import { useUIStore, useAIStore } from '../../stores'
 import { useDragScroll } from '../../hooks/useDragScroll'
 
 function insertAtCursor(text: string) {
-  window.dispatchEvent(new CustomEvent('editor:insert', { detail: text }))
+  dispatch('editor:insert', text)
 }
 
 export function Toolbar() {
@@ -44,13 +45,13 @@ export function Toolbar() {
             icon={<Undo2 size={14} />}
             tooltip="撤销"
             shortcut="Ctrl+Z"
-            onClick={() => window.dispatchEvent(new CustomEvent('editor:undo'))}
+            onClick={() => dispatch('editor:undo', undefined)}
           />
           <ToolbarButton
             icon={<Redo2 size={14} />}
             tooltip="重做"
             shortcut="Ctrl+Shift+Z"
-            onClick={() => window.dispatchEvent(new CustomEvent('editor:redo'))}
+            onClick={() => dispatch('editor:redo', undefined)}
           />
         </ToolbarGroup>
 

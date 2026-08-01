@@ -1,3 +1,4 @@
+import { dispatch } from '../lib/eventBus'
 import { useState, useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import {
@@ -16,7 +17,7 @@ export interface ExportStatusDetail {
 }
 
 function dispatchExportEvent(detail: ExportStatusDetail) {
-  window.dispatchEvent(new CustomEvent<ExportStatusDetail>(EXPORT_STATUS_EVENT, { detail }))
+  dispatch('export-status', detail)
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────

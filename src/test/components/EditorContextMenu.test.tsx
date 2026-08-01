@@ -1,3 +1,4 @@
+import { on } from '../../lib/eventBus'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { EditorContextMenu } from '../../components/editor/EditorContextMenu'
@@ -17,9 +18,9 @@ describe('EditorContextMenu — 剪贴板菜单项', () => {
 
   beforeEach(() => {
     dispatchedEvents = []
-    window.addEventListener('editor:cut', () => dispatchedEvents.push('editor:cut'))
-    window.addEventListener('editor:copy', () => dispatchedEvents.push('editor:copy'))
-    window.addEventListener('editor:paste', () => dispatchedEvents.push('editor:paste'))
+    on('editor:cut', () => { dispatchedEvents.push('editor:cut') })
+    on('editor:copy', () => { dispatchedEvents.push('editor:copy') })
+    on('editor:paste', () => { dispatchedEvents.push('editor:paste') })
   })
 
   afterEach(() => {

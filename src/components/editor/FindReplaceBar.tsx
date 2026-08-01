@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Search, Replace, ChevronUp, ChevronDown, X } from 'lucide-react'
 import { useUIStore } from '../../stores'
+import { dispatch, on } from '../../lib/eventBus'
 
 /**
  * 内联查找替换栏 — 出现在编辑器上方
@@ -22,13 +23,10 @@ export function FindReplaceBar() {
 
   // D1: 监听编辑器发送的匹配结果更新事件
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ total: number; current: number }>).detail
-      setMatchCount(detail.total)
-      setCurrentMatch(detail.current)
-    }
-    window.addEventListener('editor:find-results', handler)
-    return () => window.removeEventListener('editor:find-results', handler)
+    return on('editor:find-results', ({ total, current }) => {
+      setMatchCount(total)
+      setCurrentMatch(current)
+    })
   }, [])
 
   // Focus input when opened
@@ -54,9 +52,7 @@ export function FindReplaceBar() {
 
   // Dispatch find to editor
   const dispatchFind = useCallback((q: string) => {
-    window.dispatchEvent(new CustomEvent('editor:find-query', {
-      detail: { query: q, caseSensitive, wholeWord, useRegex }
-    }))
+    dispatch('editor:find-query', { query: q, caseSensitive, wholeWord, useRegex })
   }, [caseSensitive, wholeWord, useRegex])
 
   const handleQueryChange = (q: string) => {
@@ -65,26 +61,20 @@ export function FindReplaceBar() {
   }
 
   const handleNext = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:find-next', {
-      detail: { query, caseSensitive, wholeWord, useRegex }
-    }))
+    dispatch('editor:find-next', { query, caseSensitive, wholeWord, useRegex })
   }, [query, caseSensitive, wholeWord, useRegex])
 
   const handlePrev = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:find-prev', {
-      detail: { query, caseSensitive, wholeWord, useRegex }
-    }))
+    dispatch('editor:find-prev', { query, caseSensitive, wholeWord, useRegex })
   }, [query, caseSensitive, wholeWord, useRegex])
 
   const handleReplaceOne = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:replace-one', { detail: replaceText }))
+    dispatch('editor:replace-one', replaceText)
   }, [replaceText])
 
   const handleReplaceAll = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('editor:replace-all', {
-      detail: { query, replaceText, caseSensitive, wholeWord, useRegex }
-    }))
-  }, [replaceText])
+    dispatch('editor:replace-all', { query, replaceText, caseSensitive, wholeWord, useRegex })
+  }, [replaceText, query, caseSensitive, wholeWord, useRegex])
 
   if (!findReplaceOpen) return null
 

@@ -1,3 +1,4 @@
+import { dispatch } from '../../lib/eventBus'
 import { useState, useCallback, useRef } from 'react'
 import { Search, FileText, FolderOpen, Loader2, AlertTriangle } from 'lucide-react'
 import { useFileStore, useWorkspaceStore } from '../../stores'
@@ -134,7 +135,7 @@ export function SearchPanel({ content: _content }: SearchPanelProps) {
     if (tab) {
       switchTab(tab.id)
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: line }))
+        dispatch('editor:jump-to-line', line)
       }, 100)
     }
   }
@@ -158,7 +159,7 @@ export function SearchPanel({ content: _content }: SearchPanelProps) {
     // 跳转到指定行
     if (lineNumber) {
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('editor:jump-to-line', { detail: lineNumber }))
+        dispatch('editor:jump-to-line', lineNumber)
       }, 150)
     }
   }, [tabs, switchTab, openTab])

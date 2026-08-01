@@ -21,6 +21,7 @@ import { useEditorStore, useUIStore, useThemeStore, useAIStore } from '../../sto
 import { getThemeById } from '../../themes'
 import type { ThemeId } from '../../stores/useThemeStore'
 import { EditorContextMenu } from './EditorContextMenu'
+import { dispatch, on } from '../../lib/eventBus'
 
 /**
  * List continuation extension:
@@ -254,11 +255,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
 
   // Listen to editor:insert custom events
   useEffect(() => {
-    const handler = (e: Event) => {
-      insertAtCursor((e as CustomEvent<string>).detail)
-    }
-    window.addEventListener('editor:insert', handler)
-    return () => window.removeEventListener('editor:insert', handler)
+    return on('editor:insert', (text) => insertAtCursor(text))
   }, [insertAtCursor])
 
   // Listen to editor:jump-to-line
@@ -277,27 +274,18 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       return true
     }
 
-    const handler = (e: Event) => {
-      const lineNum = (e as CustomEvent<number>).detail
-      // 如果编辑器尚未初始化，延迟 100ms 重试一次
+    return on('editor:jump-to-line', (lineNum) => {
       if (!jumpToLine(lineNum)) {
         setTimeout(() => jumpToLine(lineNum), 100)
       }
-    }
-    window.addEventListener('editor:jump-to-line', handler)
-    return () => window.removeEventListener('editor:jump-to-line', handler)
+    })
   }, [])
 
   // Listen to undo/redo events
   useEffect(() => {
-    const handleUndo = () => { if (viewRef.current) undo(viewRef.current) }
-    const handleRedo = () => { if (viewRef.current) redo(viewRef.current) }
-    window.addEventListener('editor:undo', handleUndo)
-    window.addEventListener('editor:redo', handleRedo)
-    return () => {
-      window.removeEventListener('editor:undo', handleUndo)
-      window.removeEventListener('editor:redo', handleRedo)
-    }
+    const offUndo = on('editor:undo', () => { if (viewRef.current) undo(viewRef.current) })
+    const offRedo = on('editor:redo', () => { if (viewRef.current) redo(viewRef.current) })
+    return () => { offUndo(); offRedo() }
   }, [])
 
   // Listen to clipboard events dispatched by the native menu
@@ -370,28 +358,26 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       selectAll(viewRef.current)
       viewRef.current.focus()
     }
-    window.addEventListener('editor:cut', handleCut)
-    window.addEventListener('editor:copy', handleCopy)
-    window.addEventListener('editor:paste', handlePaste as EventListener)
-    window.addEventListener('editor:select-all', handleSelectAll)
+    const offCut = on('editor:cut', handleCut)
+    const offCopy = on('editor:copy', handleCopy)
+    const offPaste = on('editor:paste', handlePaste)
+    const offSelectAll = on('editor:select-all', handleSelectAll)
     return () => {
-      window.removeEventListener('editor:cut', handleCut)
-      window.removeEventListener('editor:copy', handleCopy)
-      window.removeEventListener('editor:paste', handlePaste as EventListener)
-      window.removeEventListener('editor:select-all', handleSelectAll)
+      offCut()
+      offCopy()
+      offPaste()
+      offSelectAll()
     }
   }, [])
 
   // D1: 监听查找事件并统计匹配数量
   useEffect(() => {
-    const handleFindQuery = (e: Event) => {
+    return on('editor:find-query', ({ query, caseSensitive, wholeWord, useRegex }) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const detail = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail
-      const { query, caseSensitive, wholeWord, useRegex } = detail
 
       if (!query) {
-        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: 0, current: 0 } }))
+        dispatch('editor:find-results', { total: 0, current: 0 })
         return
       }
 
@@ -428,22 +414,19 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
           }
         }
 
-        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: matchCount, current: currentMatch } }))
+        dispatch('editor:find-results', { total: matchCount, current: currentMatch })
       } catch {
-        window.dispatchEvent(new CustomEvent('editor:find-results', { detail: { total: 0, current: 0 } }))
+        dispatch('editor:find-results', { total: 0, current: 0 })
       }
-    }
-
-    window.addEventListener('editor:find-query', handleFindQuery)
-    return () => window.removeEventListener('editor:find-query', handleFindQuery)
+    })
   }, [])
 
   // D1: 处理查找下一个/上一个事件（纯原生实现）
   useEffect(() => {
-    const handleFindNext = (e: Event) => {
+    const handleFindNext = (detail: { query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const { query, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail || {}
+      const { query, caseSensitive, wholeWord, useRegex } = detail || {}
 
       if (!query) return
 
@@ -497,10 +480,10 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       }
     }
 
-    const handleFindPrev = (e: Event) => {
+    const handleFindPrev = (detail: { query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const { query, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail || {}
+      const { query, caseSensitive, wholeWord, useRegex } = detail || {}
 
       if (!query) return
 
@@ -555,32 +538,34 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       }
     }
 
-    window.addEventListener('editor:find-next', handleFindNext)
-    window.addEventListener('editor:find-prev', handleFindPrev)
+    const offFindNext = on('editor:find-next', handleFindNext)
+    const offFindPrev = on('editor:find-prev', handleFindPrev)
+    // Tauri menu fires simple variants (no payload) -> reuse same handlers
+    const offFindNextSimple = on('editor:find-next-simple', () => handleFindNext({ query: '', caseSensitive: false, wholeWord: false, useRegex: false }))
+    const offFindPrevSimple = on('editor:find-prev-simple', () => handleFindPrev({ query: '', caseSensitive: false, wholeWord: false, useRegex: false }))
     return () => {
-      window.removeEventListener('editor:find-next', handleFindNext)
-      window.removeEventListener('editor:find-prev', handleFindPrev)
+      offFindNext()
+      offFindPrev()
+      offFindNextSimple()
+      offFindPrevSimple()
     }
   }, [])
 
   // D1: 处理替换事件
   useEffect(() => {
-    const handleReplaceOne = (e: Event) => {
+    const offReplaceOne = on('editor:replace-one', (replaceText) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const replaceText = (e as CustomEvent<string>).detail
       const sel = view.state.selection.main
       if (sel.empty) return
       view.dispatch({
         changes: { from: sel.from, to: sel.to, insert: replaceText },
         selection: { anchor: sel.from + replaceText.length },
       })
-    }
-    const handleReplaceAll = (e: Event) => {
+    })
+    const offReplaceAll = on('editor:replace-all', ({ query, replaceText, caseSensitive, wholeWord, useRegex }) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const { query, replaceText, caseSensitive, wholeWord, useRegex } = (e as CustomEvent<{ query: string; replaceText: string; caseSensitive: boolean; wholeWord: boolean; useRegex: boolean }>).detail
-
       if (!query) return
 
       const docText = view.state.doc.toString()
@@ -607,33 +592,21 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
       } catch {
         // 无效的正则表达式
       }
-    }
-
-    window.addEventListener('editor:replace-one', handleReplaceOne)
-    window.addEventListener('editor:replace-all', handleReplaceAll)
-    return () => {
-      window.removeEventListener('editor:replace-one', handleReplaceOne)
-      window.removeEventListener('editor:replace-all', handleReplaceAll)
-    }
+    })
+    return () => { offReplaceOne(); offReplaceAll() }
   }, [])
 
   // Listen to editor:format — Markdown 格式化
   useEffect(() => {
-    const handler = () => {
+    return on('editor:format', () => {
       if (!viewRef.current) return
       const view = viewRef.current
       const doc = view.state.doc.toString()
 
-      // 格式化规则：
-      // 1. 合并多余空行为 2 行（保留 Markdown 换行语义）
-      // 2. 去除行尾空格（但保留 Markdown 换行所需的两个尾部空格）
-      // 3. 确保文件末尾有一个换行符
       let formatted = doc
-        // 去除行尾空格（保留 "  " Markdown 换行标记）
         .split('\n')
         .map((line: string) => {
           const trailingSpaces = line.match(/(  +)$/)
-          // 如果行尾恰好两个空格（Markdown 换行），保留
           if (trailingSpaces && trailingSpaces[1] === '  ') {
             return line.replace(/\s+$/, '') + '  '
           }
@@ -641,10 +614,8 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         })
         .join('\n')
 
-      // 合并 3+ 连续空行为 2 行
       formatted = formatted.replace(/\n{3,}/g, '\n\n')
 
-      // 确保末尾换行
       if (formatted.length > 0 && !formatted.endsWith('\n')) {
         formatted += '\n'
       }
@@ -654,17 +625,14 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
           changes: { from: 0, to: view.state.doc.length, insert: formatted },
         })
       }
-    }
-    window.addEventListener('editor:format', handler)
-    return () => window.removeEventListener('editor:format', handler)
+    })
   }, [])
 
   // Listen to editor:replace-selection — 替换编辑器选中文本（AI 改写/翻译应用）
   useEffect(() => {
-    const handler = (e: Event) => {
+    return on('editor:replace-selection', (newText) => {
       if (!viewRef.current) return
       const view = viewRef.current
-      const newText = (e as CustomEvent<string>).detail
       if (!newText) return
       const sel = view.state.selection.main
       if (sel.empty) return
@@ -673,9 +641,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
         selection: { anchor: sel.from + newText.length },
       })
       view.focus()
-    }
-    window.addEventListener('editor:replace-selection', handler)
-    return () => window.removeEventListener('editor:replace-selection', handler)
+    })
   }, [])
 
   // 编辑器焦点跟踪 — 更新全局状态供快捷键上下文判断
@@ -728,7 +694,7 @@ export function EditorPaneV2({ content, onChange, className = '' }: EditorPaneV2
           onInsert={insertAtCursor}
           onFind={() => { useUIStore.getState().setFindReplaceMode('find'); useUIStore.getState().setFindReplaceOpen(true) }}
           onAIRewrite={() => { useUIStore.getState().setAIPanelOpen(true) }}
-          onFormat={() => { window.dispatchEvent(new CustomEvent('editor:format')) }}
+          onFormat={() => { dispatch('editor:format', undefined) }}
         />
       )}
     </div>

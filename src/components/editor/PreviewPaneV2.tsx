@@ -1,3 +1,4 @@
+import { on } from '../../lib/eventBus'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Send } from 'lucide-react'
 import { useWechatStore } from '../../wechat'
@@ -59,11 +60,9 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
 
   // 监听 preview:scroll-to-heading 事件，滚动到对应的标题
   useEffect(() => {
-    const handler = (e: Event) => {
-      const headingText = (e as CustomEvent<string>).detail
+    return on('preview:scroll-to-heading', (headingText) => {
       if (!headingText || !previewRef.current) return
 
-      // 在预览面板中查找匹配的 heading 元素
       const headings = previewRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6')
       for (const el of headings) {
         const text = (el as HTMLElement).textContent?.trim()
@@ -72,9 +71,7 @@ export const PreviewPaneV2 = memo(function PreviewPaneV2({ content, className = 
           return
         }
       }
-    }
-    window.addEventListener('preview:scroll-to-heading', handler)
-    return () => window.removeEventListener('preview:scroll-to-heading', handler)
+    })
   }, [])
 
   const openWechat = useWechatStore((s) => s.open)

@@ -1,6 +1,7 @@
 import { useCommandStore, useUIStore, useThemeStore, useFileStore, useSettingsStore } from '../stores'
 import { commandRegistry } from './registry'
 import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../services/ai/agent/agentPresets'
+import { dispatch } from '../lib/eventBus'
 
 /**
  * 注册所有内置命令到 CommandStore
@@ -12,18 +13,18 @@ export function registerAllCommands() {
   const allCommands = [
     // ===== 文件命令 =====
     { id: 'file.new', category: 'file' as const, title: '新建文件', shortcut: 'Ctrl+N', icon: 'FilePlus', execute: () => { useFileStore.getState().openTab(null, '') } },
-    { id: 'file.save', category: 'file' as const, title: '保存', shortcut: 'Ctrl+S', icon: 'Save', execute: () => { window.dispatchEvent(new CustomEvent('app:save-file')) } },
-    { id: 'file.saveAs', category: 'file' as const, title: '另存为', shortcut: 'Ctrl+Shift+S', icon: 'SaveAll', execute: () => { window.dispatchEvent(new CustomEvent('app:save-as')) } },
-    { id: 'file.open', category: 'file' as const, title: '打开文件', shortcut: 'Ctrl+O', icon: 'FolderOpen', execute: () => { window.dispatchEvent(new CustomEvent('app:open-file')) } },
-    { id: 'file.exportPdf', category: 'file' as const, title: '导出为 PDF', shortcut: 'Ctrl+Shift+E', icon: 'FileDown', execute: () => { window.dispatchEvent(new CustomEvent('app:export-pdf')) } },
-    { id: 'file.exportHtml', category: 'file' as const, title: '导出为 HTML', shortcut: 'Ctrl+Shift+W', icon: 'FileCode', execute: () => { window.dispatchEvent(new CustomEvent('app:export-html')) } },
+    { id: 'file.save', category: 'file' as const, title: '保存', shortcut: 'Ctrl+S', icon: 'Save', execute: () => { dispatch('app:save-file', undefined) } },
+    { id: 'file.saveAs', category: 'file' as const, title: '另存为', shortcut: 'Ctrl+Shift+S', icon: 'SaveAll', execute: () => { dispatch('app:save-as', undefined) } },
+    { id: 'file.open', category: 'file' as const, title: '打开文件', shortcut: 'Ctrl+O', icon: 'FolderOpen', execute: () => { dispatch('app:open-file', undefined) } },
+    { id: 'file.exportPdf', category: 'file' as const, title: '导出为 PDF', shortcut: 'Ctrl+Shift+E', icon: 'FileDown', execute: () => { dispatch('app:export-pdf', undefined) } },
+    { id: 'file.exportHtml', category: 'file' as const, title: '导出为 HTML', shortcut: 'Ctrl+Shift+W', icon: 'FileCode', execute: () => { dispatch('app:export-html', undefined) } },
 
     // ===== 编辑命令 =====
-    { id: 'edit.undo', category: 'edit' as const, title: '撤销', shortcut: 'Ctrl+Z', icon: 'Undo2', execute: () => { window.dispatchEvent(new CustomEvent('editor:undo')) } },
-    { id: 'edit.redo', category: 'edit' as const, title: '重做', shortcut: 'Ctrl+Shift+Z', icon: 'Redo2', execute: () => { window.dispatchEvent(new CustomEvent('editor:redo')) } },
+    { id: 'edit.undo', category: 'edit' as const, title: '撤销', shortcut: 'Ctrl+Z', icon: 'Undo2', execute: () => { dispatch('editor:undo', undefined) } },
+    { id: 'edit.redo', category: 'edit' as const, title: '重做', shortcut: 'Ctrl+Shift+Z', icon: 'Redo2', execute: () => { dispatch('editor:redo', undefined) } },
     { id: 'edit.find', category: 'edit' as const, title: '查找', shortcut: 'Ctrl+F', icon: 'Search', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('find') } },
     { id: 'edit.replace', category: 'edit' as const, title: '替换', shortcut: 'Ctrl+H', icon: 'Replace', execute: () => { useUIStore.getState().setFindReplaceOpen(true); useUIStore.getState().setFindReplaceMode('replace') } },
-    { id: 'edit.format', category: 'edit' as const, title: '格式化文档', icon: 'AlignLeft', execute: () => { window.dispatchEvent(new CustomEvent('editor:format')) } },
+    { id: 'edit.format', category: 'edit' as const, title: '格式化文档', icon: 'AlignLeft', execute: () => { dispatch('editor:format', undefined) } },
     { id: 'edit.wordWrap', category: 'edit' as const, title: '切换自动换行', icon: 'WrapText', execute: () => { const state = useSettingsStore.getState(); state.setWordWrap(!state.wordWrap) } },
 
     // ===== 视图命令 =====
@@ -38,13 +39,13 @@ export function registerAllCommands() {
     { id: 'view.outline', category: 'view' as const, title: '切换大纲面板', shortcut: 'Ctrl+Shift+O', icon: 'List', execute: () => { useUIStore.getState().setActiveSidebarPanel('outline') } },
 
     // ===== 插入命令 =====
-    { id: 'insert.table', category: 'insert' as const, title: '表格', icon: 'Table', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '| 列1 | 列2 |\n|------|------|\n| | |' })) } },
-    { id: 'insert.codeblock', category: 'insert' as const, title: '代码块', icon: 'FileCode', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '```language\n\n```' })) } },
-    { id: 'insert.tasklist', category: 'insert' as const, title: '任务列表', icon: 'ListChecks', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '- [ ] 任务' })) } },
-    { id: 'insert.link', category: 'insert' as const, title: '链接', icon: 'Link', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '[文本](url)' })) } },
-    { id: 'insert.image', category: 'insert' as const, title: '图片', icon: 'Image', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '![描述](url)' })) } },
-    { id: 'insert.hr', category: 'insert' as const, title: '水平线', icon: 'Minus', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '\n---\n' })) } },
-    { id: 'insert.quote', category: 'insert' as const, title: '引用', icon: 'Quote', execute: () => { window.dispatchEvent(new CustomEvent('editor:insert', { detail: '> ' })) } },
+    { id: 'insert.table', category: 'insert' as const, title: '表格', icon: 'Table', execute: () => { dispatch('editor:insert', '| 列1 | 列2 |\n|------|------|\n| | |') } },
+    { id: 'insert.codeblock', category: 'insert' as const, title: '代码块', icon: 'FileCode', execute: () => { dispatch('editor:insert', '```language\n\n```') } },
+    { id: 'insert.tasklist', category: 'insert' as const, title: '任务列表', icon: 'ListChecks', execute: () => { dispatch('editor:insert', '- [ ] 任务') } },
+    { id: 'insert.link', category: 'insert' as const, title: '链接', icon: 'Link', execute: () => { dispatch('editor:insert', '[文本](url)') } },
+    { id: 'insert.image', category: 'insert' as const, title: '图片', icon: 'Image', execute: () => { dispatch('editor:insert', '![描述](url)') } },
+    { id: 'insert.hr', category: 'insert' as const, title: '水平线', icon: 'Minus', execute: () => { dispatch('editor:insert', '\n---\n') } },
+    { id: 'insert.quote', category: 'insert' as const, title: '引用', icon: 'Quote', execute: () => { dispatch('editor:insert', '> ') } },
 
     // ===== 主题命令 =====
     { id: 'theme.dark', category: 'theme' as const, title: '切换到深色模式', icon: 'Moon', execute: () => { useThemeStore.getState().setTheme('dark') } },
