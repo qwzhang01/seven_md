@@ -11,7 +11,7 @@
  */
 
 import type { AgentTool, AgentToolResult } from '@pi/agent'
-import { Type, type Static } from 'typebox'
+import { Type, type Static } from '@sinclair/typebox'
 import { useFileStore } from '../../../../stores/useFileStore'
 import { useEditorStore } from '../../../../stores/useEditorStore'
 import { extractHeadings, calculateCursorOffset } from '../../../../utils/markdownUtils'

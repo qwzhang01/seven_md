@@ -1,5 +1,5 @@
 import type { AgentTool } from '@pi/agent'
-import type { TSchema } from 'typebox'
+import type { TSchema } from '@sinclair/typebox'
 
 /**
  * 工具权限级别

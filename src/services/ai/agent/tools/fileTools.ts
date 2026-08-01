@@ -12,7 +12,7 @@
  */
 
 import type { AgentTool, AgentToolResult } from '@pi/agent'
-import { Type, type Static } from 'typebox'
+import { Type, type Static } from '@sinclair/typebox'
 import {
   readFile as tauriReadFile,
   searchInFiles,

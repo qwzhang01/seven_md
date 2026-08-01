@@ -4,7 +4,7 @@
  */
 
 import type { AgentTool, AgentToolResult } from '@pi/agent'
-import { Type, type Static } from 'typebox'
+import { Type, type Static } from '@sinclair/typebox'
 import { useEditorStore } from '../../../../stores/useEditorStore'
 import { useFileStore } from '../../../../stores/useFileStore'
 import { useAIStore } from '../../../../stores/useAIStore'

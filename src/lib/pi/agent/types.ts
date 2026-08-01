@@ -10,7 +10,7 @@ import type {
 	Tool,
 	ToolResultMessage,
 } from "@pi/ai";
-import type { Static, TSchema } from "typebox";
+import type { Static, TSchema } from "@sinclair/typebox";
 
 /**
  * Stream function used by the agent loop.

@@ -8,7 +8,7 @@
  */
 
 import type { AgentTool, AgentToolResult } from '@pi/agent'
-import type { TSchema } from 'typebox'
+import type { TSchema } from '@sinclair/typebox'
 import type { RegisteredTool, ToolPermission } from './types'
 import { getEffectivePermission } from './permissionModel'
 

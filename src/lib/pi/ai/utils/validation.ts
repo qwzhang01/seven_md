@@ -1,9 +1,8 @@
-import { Compile } from "typebox/compile";
-import type { TLocalizedValidationError } from "typebox/error";
-import { Value } from "typebox/value";
+import { TypeCompiler, type TypeCheck, type ValueError } from "@sinclair/typebox/compiler";
+import { Value } from "@sinclair/typebox/value";
 import type { Tool, ToolCall } from "../types.ts";
 
-const validatorCache = new WeakMap<object, ReturnType<typeof Compile>>();
+const validatorCache = new WeakMap<object, TypeCheck<Tool["parameters"]>>();
 const TYPEBOX_KIND = Symbol.for("TypeBox.Kind");
 
 interface JsonSchemaObject {
@@ -63,7 +62,7 @@ function isValidatorSchema(value: unknown): value is Tool["parameters"] {
 	return isRecord(value);
 }
 
-function getSubSchemaValidator(schema: JsonSchemaObject): ReturnType<typeof Compile> | undefined {
+function getSubSchemaValidator(schema: JsonSchemaObject): TypeCheck<Tool["parameters"]> | undefined {
 	if (!isValidatorSchema(schema)) {
 		return undefined;
 	}
@@ -243,27 +242,19 @@ function coerceWithJsonSchema(value: unknown, schema: JsonSchemaObject): unknown
 	return nextValue;
 }
 
-function getValidator(schema: Tool["parameters"]): ReturnType<typeof Compile> {
+function getValidator(schema: Tool["parameters"]): TypeCheck<Tool["parameters"]> {
 	const key = schema as object;
 	const cached = validatorCache.get(key);
 	if (cached) {
 		return cached;
 	}
-	const validator = Compile(schema);
+	const validator = TypeCompiler.Compile(schema);
 	validatorCache.set(key, validator);
 	return validator;
 }
 
-function formatValidationPath(error: TLocalizedValidationError): string {
-	if (error.keyword === "required") {
-		const requiredProperties = (error.params as { requiredProperties?: string[] }).requiredProperties;
-		const requiredProperty = requiredProperties?.[0];
-		if (requiredProperty) {
-			const basePath = error.instancePath.replace(/^\//, "").replace(/\//g, ".");
-			return basePath ? `${basePath}.${requiredProperty}` : requiredProperty;
-		}
-	}
-	const path = error.instancePath.replace(/^\//, "").replace(/\//g, ".");
+function formatValidationPath(error: ValueError): string {
+	const path = error.path.replace(/^\//, "").replace(/\//g, ".");
 	return path || "root";
 }
 
@@ -313,8 +304,7 @@ export function validateToolArguments(tool: Tool, toolCall: ToolCall): any {
 	}
 
 	const errors =
-		validator
-			.Errors(args)
+		Array.from(validator.Errors(args))
 			.map((error) => `  - ${formatValidationPath(error)}: ${error.message}`)
 			.join("\n") || "Unknown validation error";
 
