@@ -4,7 +4,12 @@
  * - 首次调用 getAIConfig() 时自动从旧 key 迁移
  */
 
-import type { AIServiceConfig } from './types'
+export interface AIServiceConfig {
+  apiKey: string
+  endpoint: string
+  model: string
+  provider: string
+}
 
 const CONFIG_KEY = 'seven-markdown-ai-config'
 const LEGACY_CONFIG_KEY = 'md-mate-ai-config'

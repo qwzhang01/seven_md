@@ -48,7 +48,6 @@ export function AgentMode() {
     clearHistory,
   } = useAgentStore()
 
-  const setMode = useAIStore((s) => s.setMode)
   const selectedText = useAIStore((s) => s.selectedText)
 
   const [input, setInput] = useState('')
@@ -101,7 +100,7 @@ export function AgentMode() {
         return
       }
       // 切换到 Agent Tab
-      setMode('agent')
+      // (chat mode 已移除，无需切换)
 
       if (preset.requiresSelection && (!selectedText || selectedText.trim().length === 0)) {
         alert('请先选中文本')
@@ -112,7 +111,7 @@ export function AgentMode() {
     }
     window.addEventListener(AGENT_RUN_PRESET_EVENT, handler as EventListener)
     return () => window.removeEventListener(AGENT_RUN_PRESET_EVENT, handler as EventListener)
-  }, [startAgent, setMode, selectedText])
+  }, [startAgent, selectedText])
 
   const handleSend = useCallback(() => {
     const text = input.trim()

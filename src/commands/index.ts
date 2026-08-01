@@ -58,8 +58,6 @@ export function registerAllCommands() {
 
     // ===== AI 命令 =====
     { id: 'ai.open', category: 'ai' as const, title: '打开 AI 助手', icon: 'Bot', execute: () => useUIStore.getState().setAIPanelOpen(true) },
-    { id: 'ai.rewrite', category: 'ai' as const, title: '改写选中文本', icon: 'PenLine', execute: () => { useUIStore.getState().setAIPanelOpen(true) } },
-    { id: 'ai.translate', category: 'ai' as const, title: '翻译选中文本', icon: 'Languages', execute: () => { useUIStore.getState().setAIPanelOpen(true) } },
 
     // ===== Agent 预设命令 =====
     ...BUILTIN_PRESETS.map((preset) => ({

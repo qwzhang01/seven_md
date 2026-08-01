@@ -1,21 +1,15 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { X, MessageCircle, Bot, Settings } from 'lucide-react'
+import { X, Bot, Settings } from 'lucide-react'
 import { useAIStore } from '../../stores'
 import { useUIStore } from '../../stores'
 import { useNotificationStore } from '../../stores'
 import { isAIConfigured, getAIConfig, setAIConfig } from '../../services/ai'
-import { ChatMode } from './ChatMode'
 import { AgentMode } from './AgentMode'
-
-const TABS = [
-  { id: 'chat' as const, label: '对话', icon: <MessageCircle size={14} /> },
-  { id: 'agent' as const, label: 'Agent', icon: <Bot size={14} /> },
-]
 
 const DEFAULT_WIDTH = 360
 
 export function AIPanel() {
-  const { isOpen, mode, setOpen, setMode } = useAIStore()
+  const { isOpen, setOpen } = useAIStore()
   const { aiPanelWidth, setAIPanelWidth } = useUIStore()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState(() => getAIConfig())
@@ -118,28 +112,9 @@ export function AIPanel() {
         className="flex items-center justify-between px-3 py-2 flex-shrink-0"
         style={{ borderBottom: '1px solid var(--border-primary)' }}
       >
-        <div className="flex items-center gap-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs transition-colors"
-            style={{
-              color: mode === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderBottom: `2px solid ${mode === tab.id ? 'var(--accent)' : 'transparent'}`,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              paddingBottom: mode === tab.id ? '6px' : '8px',
-              borderBottomWidth: mode === tab.id ? '2px' : '0',
-              borderBottomStyle: 'solid' as const,
-              borderBottomColor: mode === tab.id ? 'var(--accent)' : 'transparent',
-            }}
-              onClick={() => setMode(tab.id)}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1 px-3 py-1.5 text-xs" style={{ color: 'var(--text-primary)' }}>
+          <Bot size={14} />
+          <span>Agent</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -159,8 +134,7 @@ export function AIPanel() {
 
       {/* Body */}
       <div className="flex-1 overflow-hidden flex flex-col relative">
-        {mode === 'chat' && <ChatMode />}
-        {mode === 'agent' && <AgentMode />}
+        <AgentMode />
 
         {/* Settings Panel Overlay - global, covers all tabs */}
         {showSettings && (
