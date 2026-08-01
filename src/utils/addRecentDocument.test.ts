@@ -1,39 +1,11 @@
 /**
- * Unit tests for the addRecentDocument utility (extracted from AppV2.tsx).
- *
- * Because addRecentDocument is a module-level function inside AppV2.tsx,
- * we test its behaviour by replicating the same logic here and verifying
- * the localStorage contract it must satisfy.
+ * Unit tests for the addRecentDocument utility.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { invoke } from '@tauri-apps/api/core'
+import { addRecentDocument, type RecentDoc } from './recentDocuments'
 
 const RECENT_DOCS_KEY = 'recent-documents'
-const MAX_RECENT_DOCS = 10
-
-interface RecentDoc {
-  path: string
-  name: string
-  lastOpened: number
-  type: 'file' | 'folder'
-}
-
-/** Mirrors the addRecentDocument function in AppV2.tsx (including invoke sync) */
-function addRecentDocument(path: string, type: 'file' | 'folder') {
-  try {
-    const name = path.split('/').pop() || path
-    const stored = localStorage.getItem(RECENT_DOCS_KEY)
-    const existing: RecentDoc[] = stored ? JSON.parse(stored) : []
-    const filtered = existing.filter((f) => f.path !== path)
-    const updated = [{ path, name, lastOpened: Date.now(), type }, ...filtered].slice(0, MAX_RECENT_DOCS)
-    localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(updated))
-    // Sync paths to Rust backend so the native menu is updated on next launch
-    const paths = updated.map((f) => f.path)
-    invoke('update_recent_menu', { paths }).catch((e) => console.warn('update_recent_menu failed:', e))
-  } catch (e) {
-    console.error('Failed to save recent document', e)
-  }
-}
 
 function getStored(): RecentDoc[] {
   const raw = localStorage.getItem(RECENT_DOCS_KEY)

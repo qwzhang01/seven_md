@@ -1,51 +1,24 @@
 /**
- * Unit tests for the native-menu recent-document event handlers in AppV2.tsx.
- *
- * We extract the handler logic into plain functions so they can be tested
- * without mounting the full React component.
+ * Unit tests for the native-menu recent-document event handlers.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { invoke } from '@tauri-apps/api/core'
 import { readFile } from '../tauriCommands'
+import { addRecentDocument, clearRecentDocuments, type RecentDoc } from './recentDocuments'
 
-// ---- Shared constants (mirrors AppV2.tsx) ----
 const RECENT_DOCS_KEY = 'recent-documents'
-const MAX_RECENT_DOCS = 10
 
-interface RecentDoc {
-  path: string
-  name: string
-  lastOpened: number
-  type: 'file' | 'folder'
-}
+// ---- Extracted handler logic (mirrors useTauriMenuListeners.ts) ----
 
-// ---- Extracted handler logic (mirrors AppV2.tsx) ----
-
-function addRecentDocument(path: string, type: 'file' | 'folder') {
-  try {
-    const name = path.split('/').pop() || path
-    const stored = localStorage.getItem(RECENT_DOCS_KEY)
-    const existing: RecentDoc[] = stored ? JSON.parse(stored) : []
-    const filtered = existing.filter((f) => f.path !== path)
-    const updated = [{ path, name, lastOpened: Date.now(), type }, ...filtered].slice(0, MAX_RECENT_DOCS)
-    localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(updated))
-    const paths = updated.map((f) => f.path)
-    invoke('update_recent_menu', { paths }).catch(() => {})
-  } catch (e) {
-    console.error('Failed to save recent document', e)
-  }
-}
-
-/** Mirrors the menu-clear-recent handler in AppV2.tsx */
+/** Mirrors the menu-clear-recent handler */
 function handleClearRecent(
   addNotification: (n: { type: string; message: string }) => void
 ) {
-  localStorage.removeItem(RECENT_DOCS_KEY)
-  invoke('update_recent_menu', { paths: [] }).catch(() => {})
+  clearRecentDocuments()
   addNotification({ type: 'info', message: '已清除最近文档' })
 }
 
-/** Mirrors the menu-open-recent-doc handler in AppV2.tsx */
+/** Mirrors the menu-open-recent-doc handler */
 async function handleOpenRecentDoc(
   path: string,
   openTab: (path: string, content: string) => void,
