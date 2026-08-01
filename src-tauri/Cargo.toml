@@ -1,6 +1,6 @@
 [package]
 name = "SevenMarkdown"
-version = "0.0.0"
+version = "0.1.0"
 description = "A cross-platform markdown reader for macOS and Windows"
 authors = ["avinzhang <qwzhang01@users.noreply.github.com>"]
 license = "MIT"
