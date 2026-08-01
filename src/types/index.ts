@@ -11,24 +11,6 @@ export interface FileTreeNode {
 }
 
 /**
- * Folder state
- */
-export interface FolderState {
-  path: string | null
-  tree: FileTreeNode[] | null
-  expandedDirs: Set<string>
-}
-
-/**
- * File state (legacy - kept for migration compatibility)
- */
-export interface FileState {
-  path: string | null
-  content: string
-  isDirty: boolean
-}
-
-/**
  * Individual tab state
  */
 export interface TabState {
@@ -51,51 +33,11 @@ export interface TabsState {
 }
 
 /**
- * UI state
- */
-export interface UIState {
-  sidebarCollapsed: boolean
-  editorCollapsed: boolean
-  previewCollapsed: boolean
-  theme: 'light' | 'dark'
-  zoomLevel: number
-}
-
-/**
  * Cursor position
  */
 export interface CursorPosition {
   line: number
   column: number
-}
-
-/**
- * Document statistics
- */
-export interface DocumentStats {
-  characters: number
-  words: number
-  lines: number
-}
-
-/**
- * Editor state
- */
-export interface EditorState {
-  cursorPosition: CursorPosition
-  documentStats: DocumentStats
-  fileEncoding: string
-  lineEnding: 'LF' | 'CRLF'
-}
-
-/**
- * Application state
- */
-export interface AppState {
-  folder: FolderState
-  tabs: TabsState
-  ui: UIState
-  editor: EditorState
 }
 
 /**
@@ -143,18 +85,6 @@ export interface SearchResponse {
  * Search mode
  */
 export type SearchType = 'filename' | 'fulltext'
-
-/**
- * Persisted tab entry (for storage)
- */
-export interface PersistedTabEntry {
-  id: string
-  path: string | null
-  content?: string        // Only persisted if isDirty=true
-  isDirty: boolean
-  cursorPosition: CursorPosition
-  scrollPosition: { line: number }
-}
 
 /**
  * Persisted state (for storage)
