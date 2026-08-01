@@ -7,7 +7,7 @@ import {
   estimateTokens,
   tokenThresholdFor,
   maybeCompact,
-} from '../../services/ai/agent/compaction'
+} from './compaction'
 import type { Agent, AgentMessage } from '@pi/agent'
 
 describe('compaction.estimateTokens', () => {

@@ -9,9 +9,9 @@ import {
   setSessionPermissionOverride,
   clearSessionOverrides,
   _resetAllOverridesForTest,
-} from '../../services/ai/agent/permissionModel'
+} from './permissionModel'
 // 触发工具注册（默认权限来源）
-import '../../services/ai/agent/tools'
+import './tools'
 
 describe('permissionModel.getEffectivePermission — defaults', () => {
   beforeEach(() => {

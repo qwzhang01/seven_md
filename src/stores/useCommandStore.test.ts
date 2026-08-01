@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import { useCommandStore } from '../../stores/useCommandStore'
-import type { Command } from '../../stores/useCommandStore'
+import { useCommandStore } from './useCommandStore'
+import type { Command } from './useCommandStore'
 
 function reset() {
   useCommandStore.setState({ commands: new Map(), searchQuery: '', filteredCommands: [] })

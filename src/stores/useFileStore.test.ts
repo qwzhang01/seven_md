@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act } from '@testing-library/react'
-import { useFileStore } from '../../stores/useFileStore'
+import { useFileStore } from './useFileStore'
 
 function resetStore() {
   useFileStore.setState({ tabs: [], activeTabId: null, recentlyClosed: [] })

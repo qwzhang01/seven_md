@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { Modal } from '../../components/modal/Modal'
+import { Modal } from './Modal'
 
 describe('Modal', () => {
   it('open=false 时不渲染', () => {

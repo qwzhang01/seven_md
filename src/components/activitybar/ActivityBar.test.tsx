@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { act } from '@testing-library/react'
-import { ActivityBar } from '../../components/activitybar/ActivityBar'
+import { ActivityBar } from './ActivityBar'
 import { useUIStore } from '../../stores'
 
 function resetUI() {

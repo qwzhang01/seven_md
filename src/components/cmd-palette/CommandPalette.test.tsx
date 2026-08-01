@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { act } from '@testing-library/react'
-import { CommandPalette } from '../../components/cmd-palette/CommandPalette'
+import { CommandPalette } from './CommandPalette'
 import { useUIStore, useCommandStore } from '../../stores'
 import type { Command } from '../../stores'
 

@@ -7,8 +7,8 @@ import {
   assertInsideWorkspace,
   WorkspaceBoundaryError,
   toWorkspaceRelative,
-} from '../../services/ai/agent/tools/workspaceGuard'
-import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
+} from './workspaceGuard'
+import { useWorkspaceStore } from '../../../../stores/useWorkspaceStore'
 
 function setWorkspace(path: string | null) {
   useWorkspaceStore.setState({ folderPath: path })

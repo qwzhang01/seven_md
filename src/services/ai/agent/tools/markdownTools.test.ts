@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { generateTocTool, formatMarkdownTableTool } from '../../services/ai/agent/tools/markdownTools'
-import { useFileStore } from '../../stores/useFileStore'
-import { useEditorStore } from '../../stores/useEditorStore'
+import { generateTocTool, formatMarkdownTableTool } from './markdownTools'
+import { useFileStore } from '../../../../stores/useFileStore'
+import { useEditorStore } from '../../../../stores/useEditorStore'
 
 describe('markdownTools', () => {
   beforeEach(() => {

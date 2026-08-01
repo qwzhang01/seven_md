@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import { useNotificationStore } from '../../stores/useNotificationStore'
+import { useNotificationStore } from './useNotificationStore'
 
 function reset() {
   useNotificationStore.setState({ notifications: [], unreadCount: 0 })

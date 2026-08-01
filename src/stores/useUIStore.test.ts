@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act } from '@testing-library/react'
-import { useUIStore } from '../../stores/useUIStore'
+import { useUIStore } from './useUIStore'
 
 function resetStore() {
   useUIStore.setState({

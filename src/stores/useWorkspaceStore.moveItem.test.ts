@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
-import { useWorkspaceStore } from '../../stores/useWorkspaceStore'
-import { useFileStore } from '../../stores/useFileStore'
-import { useNotificationStore } from '../../stores/useNotificationStore'
+import { useWorkspaceStore } from './useWorkspaceStore'
+import { useFileStore } from './useFileStore'
+import { useNotificationStore } from './useNotificationStore'
 
 // ── Mock tauriCommands ────────────────────────────────────────────────────────
-vi.mock('../../tauriCommands', () => ({
+vi.mock('../tauriCommands', () => ({
   readFile: vi.fn(() => Promise.resolve('')),
   saveFile: vi.fn(() => Promise.resolve()),
   readDirectory: vi.fn(() => Promise.resolve([])),
@@ -21,7 +21,7 @@ vi.mock('../../tauriCommands', () => ({
 import {
   readDirectory,
   renamePath,
-} from '../../tauriCommands'
+} from '../tauriCommands'
 
 const mockReadDirectory = readDirectory as ReturnType<typeof vi.fn>
 const mockRenamePath = renamePath as ReturnType<typeof vi.fn>

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { act } from '@testing-library/react'
-import { useThemeStore } from '../../stores/useThemeStore'
+import { useThemeStore } from './useThemeStore'
 
 describe('useThemeStore', () => {
   beforeEach(() => {

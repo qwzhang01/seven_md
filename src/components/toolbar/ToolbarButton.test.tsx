@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ToolbarButton } from '../../components/toolbar/ToolbarButton'
+import { ToolbarButton } from './ToolbarButton'
 
 describe('ToolbarButton', () => {
   it('渲染按钮并设置 aria-label', () => {

@@ -23,6 +23,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/index.ts',
+        '**/*.test.*',
       ],
       thresholds: {
         lines: 80,

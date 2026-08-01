@@ -30,7 +30,7 @@ vi.mock('../../services/ai/agent/permissionModel', () => ({
   clearSessionOverrides: vi.fn(),
 }))
 
-import { useAgentStore } from '../../stores/useAgentStore'
+import { useAgentStore } from './useAgentStore'
 
 describe('useAgentStore — 多会话', () => {
   beforeEach(() => {
