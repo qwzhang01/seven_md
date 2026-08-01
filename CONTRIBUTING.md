@@ -89,7 +89,7 @@ git checkout -b feature/your-feature-name
 
 ## 提交规范
 
-我们使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+我们使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范，并通过 [commitlint](https://commitlint.js.org/) + husky 在 `commit-msg` 钩子中自动校验（安装依赖后 `npm run prepare` 会自动启用）：
 
 ```
 <type>(<scope>): <subject>
