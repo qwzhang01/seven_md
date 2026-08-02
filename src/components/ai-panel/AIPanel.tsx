@@ -10,7 +10,7 @@ const DEFAULT_WIDTH = 360
 
 export function AIPanel() {
   const { isOpen, setOpen } = useAIStore()
-  const { aiPanelWidth, setAIPanelWidth } = useUIStore()
+  const { aiPanelWidth, setAIPanelWidth, sidebarWidth } = useUIStore()
   const [showSettings, setShowSettings] = useState(false)
   const [settingsForm, setSettingsForm] = useState(() => getAIConfig())
   const { addNotification } = useNotificationStore()
@@ -39,8 +39,8 @@ export function AIPanel() {
       if (!isResizing.current) return
       // 向左拖动增大宽度（与左侧边栏相反）
       const dx = startX.current - ev.clientX
-      // 最大宽度 = 编辑区域（窗口宽度减去侧边栏约 200px）的 3/4
-      const editorAreaWidth = window.innerWidth - 200
+      // 最大宽度 = 编辑区域（窗口宽度减去侧边栏宽度）的 3/4
+      const editorAreaWidth = window.innerWidth - sidebarWidth
       const dynamicMax = Math.floor(editorAreaWidth * 0.75)
       const clampedWidth = Math.max(280, Math.min(dynamicMax, startWidth.current + dx))
       setAIPanelWidth(clampedWidth)
@@ -57,7 +57,7 @@ export function AIPanel() {
 
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-  }, [aiPanelWidth, setAIPanelWidth])
+  }, [aiPanelWidth, setAIPanelWidth, sidebarWidth])
 
   // 双击重置宽度
   const handleDoubleClick = useCallback(() => {
@@ -77,29 +77,28 @@ export function AIPanel() {
 
   return (
     <div
-      className="fixed right-0 flex flex-col z-[1000]"
+      className="flex-shrink-0 flex flex-col h-full relative"
       style={{
-        top: 'var(--titlebar-height, 38px)',
         width: `${aiPanelWidth}px`,
-        height: 'calc(100% - var(--titlebar-height, 38px) - var(--statusbar-height, 24px))',
         background: 'var(--bg-ai-panel, var(--bg-secondary))',
         borderLeft: '1px solid var(--border-primary)',
-        boxShadow: 'var(--shadow-md)',
-        animation: 'aiSlideIn 0.2s ease',
+        transition: 'width 0.15s ease',
       }}
     >
       {/* 左侧 Resize 手柄 */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize transition-all"
+        className="absolute left-0 top-0 bottom-0 cursor-col-resize transition-all"
         style={{
           zIndex: 10,
+          width: '4px',
           background: 'transparent',
+          transform: 'translateX(-50%)',
         }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'var(--accent)'
-          e.currentTarget.style.width = '3px'
+          e.currentTarget.style.width = '6px'
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent'
@@ -204,12 +203,6 @@ export function AIPanel() {
         )}
       </div>
 
-      <style>{`
-        @keyframes aiSlideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
     </div>
   )
 }
