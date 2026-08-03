@@ -30,6 +30,7 @@ import {
   type ConfirmationRequest,
 } from '../services/ai/agent/toolRegistry'
 import { clearSessionOverrides } from '../services/ai/agent/permissionModel'
+import { dispatch } from '../lib/eventBus'
 import { useFileStore } from './useFileStore'
 import { getAIConfig } from '../services/ai/config'
 
@@ -706,15 +707,11 @@ function dispatchEvent(
 function executePatch(patch: MarkdownPatch): void {
   switch (patch.type) {
     case 'replace_selection': {
-      document.dispatchEvent(
-        new CustomEvent('editor:replace-selection', { detail: { text: patch.newText } }),
-      )
+      dispatch('editor:replace-selection', patch.newText)
       break
     }
     case 'insert_at_cursor': {
-      document.dispatchEvent(
-        new CustomEvent('editor:insert', { detail: { text: patch.text, position: patch.position } }),
-      )
+      dispatch('editor:insert', patch.text)
       break
     }
     case 'replace_document': {

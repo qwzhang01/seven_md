@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useIsMobile } from './hooks/useMediaQuery'
 import { useFileActions } from './hooks/useFileActions'
+import { useAutoSave } from './hooks/useAutoSave'
 import { useTauriMenuListeners } from './hooks/useTauriMenuListeners'
 import { useAppShortcuts } from './hooks/useAppShortcuts'
 
@@ -52,6 +53,9 @@ function App() {
 
   // File operations (open, save, new window) + stable refs for menu listeners
   const fileActions = useFileActions()
+
+  // Auto-save: when autoSave is enabled, dirty tabs with a file path are saved after autoSaveDelay ms
+  useAutoSave()
   useTauriMenuListeners({
     handleOpenFileRef: fileActions.handleOpenFileRef,
     handleSaveFileRef: fileActions.handleSaveFileRef,
