@@ -33,32 +33,15 @@ import { clearSessionOverrides } from '../services/ai/agent/permissionModel'
 import { dispatch } from '../lib/eventBus'
 import { useFileStore } from './useFileStore'
 import { getAIConfig } from '../services/ai/config'
+import type {
+  AgentStoreMessage,
+  ToolCallRecord,
+  PendingConfirmation,
+} from '../types'
+
+export type { AgentStoreMessage, ToolCallRecord, PendingConfirmation }
 
 // ─── Types ──────────────────────────────────────────────────────────
-
-export interface AgentStoreMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: number
-}
-
-export interface ToolCallRecord {
-  id: string
-  name: string
-  args: Record<string, unknown>
-  status: 'running' | 'completed' | 'error'
-  result: unknown | null
-}
-
-export interface PendingConfirmation {
-  id: string
-  toolName: string
-  args: Record<string, unknown>
-  preview?: string
-  sessionId: string
-  createdAt: number
-}
 
 export interface AgentSession {
   id: string

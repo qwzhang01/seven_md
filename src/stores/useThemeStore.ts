@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useNotificationStore } from './useNotificationStore'
-
-export type ThemeId = 'dark' | 'light' | 'monokai' | 'solarized' | 'nord' | 'dracula' | 'github'
+import type { ThemeId } from '../types'
+export type { ThemeId }
 
 const THEME_NAMES: Record<ThemeId, string> = {
   dark: '深色',

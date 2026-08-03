@@ -1,18 +1,6 @@
 import { create } from 'zustand'
-
-export type NotificationType = 'info' | 'success' | 'warning' | 'error'
-
-export interface Notification {
-  id: string
-  type: NotificationType
-  message: string
-  action?: () => void
-  actionLabel?: string
-  createdAt: number
-  autoClose: boolean
-  duration: number // ms
-  isPaused?: boolean // hover 暂停标记
-}
+import type { Notification, NotificationType } from '../types'
+export type { Notification, NotificationType }
 
 interface NotificationState {
   notifications: Notification[]

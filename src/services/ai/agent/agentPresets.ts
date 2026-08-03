@@ -6,20 +6,11 @@
  * 处理方：AgentMode 监听并启动 Agent。
  */
 
-export interface AgentPreset {
-  id: string
-  label: string
-  /** 简短说明（用于 tooltip 或副标题） */
-  description?: string
-  /** Lucide 图标名（与 ICON_MAP 对应） */
-  icon?: string
-  /** 发送给 Agent 的 user prompt */
-  prompt: string
-  /** 是否需要先选中文本 */
-  requiresSelection: boolean
-  /** 分类（命令面板分组用） */
-  category?: 'editor' | 'workspace'
-}
+import type { AgentPreset, AgentRunPresetDetail } from '../../../types'
+
+export type { AgentPreset, AgentRunPresetDetail }
+
+// ─── Built-in Presets ───────────────────────────────────────────────
 
 export const BUILTIN_PRESETS: AgentPreset[] = [
   {
@@ -89,14 +80,7 @@ export function findPreset(id: string): AgentPreset | undefined {
 
 export const AGENT_RUN_PRESET_EVENT = 'agent:run-preset'
 
-export interface AgentRunPresetDetail {
-  presetId: string
-}
-
-/**
- * 触发 Agent 预设运行
- * 任何组件（命令面板、右键菜单、外部组件）都可调用此函数
- */
+// ─── 事件总线 ───────────────────────────────────────────────────────
 export function dispatchAgentRunPreset(presetId: string): void {
   window.dispatchEvent(
     new CustomEvent<AgentRunPresetDetail>(AGENT_RUN_PRESET_EVENT, {

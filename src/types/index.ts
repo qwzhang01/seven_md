@@ -99,3 +99,88 @@ export interface PersistedState {
   activeTabId?: string | null         // Persisted active tab
   recentlyClosedPaths?: string[]      // Paths of recently closed tabs
 }
+
+// ─── Agent Presets ──────────────────────────────────────────────────
+
+export interface AgentPreset {
+  id: string
+  label: string
+  /** 简短说明（用于 tooltip 或副标题） */
+  description?: string
+  /** Lucide 图标名（与 ICON_MAP 对应） */
+  icon?: string
+  /** 发送给 Agent 的 user prompt */
+  prompt: string
+  /** 是否需要先选中文本 */
+  requiresSelection: boolean
+  /** 分类（命令面板分组用） */
+  category?: 'editor' | 'workspace'
+}
+
+export interface AgentRunPresetDetail {
+  presetId: string
+}
+
+// ─── Notification ───────────────────────────────────────────────────
+
+export type NotificationType = 'info' | 'success' | 'warning' | 'error'
+
+export interface Notification {
+  id: string
+  type: NotificationType
+  message: string
+  action?: () => void
+  actionLabel?: string
+  createdAt: number
+  autoClose: boolean
+  duration: number // ms
+  isPaused?: boolean // hover 暂停标记
+}
+
+// ─── Command ────────────────────────────────────────────────────────
+
+export type CommandCategory = 'file' | 'edit' | 'view' | 'insert' | 'format' | 'theme' | 'ai' | 'help'
+
+export interface Command {
+  id: string
+  title: string
+  category: CommandCategory
+  icon?: string
+  shortcut?: string
+  when?: () => boolean
+  execute: () => void | Promise<void>
+}
+
+// ─── Theme ──────────────────────────────────────────────────────────
+
+export type ThemeId = 'dark' | 'light' | 'monokai' | 'solarized' | 'nord' | 'dracula' | 'github'
+
+// ─── UI Dialog ──────────────────────────────────────────────────────
+
+export type DialogType = 'shortcut-reference' | 'about' | 'welcome' | null
+
+// ─── Agent Store ────────────────────────────────────────────────────
+
+export interface AgentStoreMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+}
+
+export interface ToolCallRecord {
+  id: string
+  name: string
+  args: Record<string, unknown>
+  status: 'running' | 'completed' | 'error'
+  result: unknown | null
+}
+
+export interface PendingConfirmation {
+  id: string
+  toolName: string
+  args: Record<string, unknown>
+  preview?: string
+  sessionId: string
+  createdAt: number
+}

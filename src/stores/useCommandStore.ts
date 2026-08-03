@@ -1,16 +1,6 @@
 import { create } from 'zustand'
-
-export type CommandCategory = 'file' | 'edit' | 'view' | 'insert' | 'format' | 'theme' | 'ai' | 'help'
-
-export interface Command {
-  id: string
-  title: string
-  category: CommandCategory
-  icon?: string
-  shortcut?: string
-  when?: () => boolean
-  execute: () => void | Promise<void>
-}
+import type { Command, CommandCategory } from '../types'
+export type { Command, CommandCategory }
 
 interface CommandState {
   commands: Map<string, Command>

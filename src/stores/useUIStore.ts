@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
-export type DialogType = 'shortcut-reference' | 'about' | 'welcome' | null
+import type { DialogType } from '../types'
+export type { DialogType }
 
 interface UIState {
   sidebarVisible: boolean
