@@ -74,6 +74,7 @@ jobs:
         run: cargo build --release --manifest-path src-tauri/Cargo.toml
 
       - name: Verify build artifacts
+        shell: bash
         run: |
           echo "Build completed successfully on ${{ matrix.platform }}"
           echo "Build artifacts location: src-tauri/target/release/"
