@@ -1,19 +1,11 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 import { FilePlus, FolderPlus, Pencil, Trash2, Copy, Terminal, FolderSearch, Bot } from 'lucide-react'
 import { isMacOS } from '../../utils/platform'
 import { BUILTIN_PRESETS, dispatchAgentRunPreset } from '../../services/ai/agent/agentPresets'
 import { useUIStore } from '../../stores'
+import type { ContextMenuItem } from '../shared/ContextMenuBase'
 
-export interface ContextMenuItem {
-  id: string
-  label: string
-  icon?: ReactNode
-  shortcut?: string
-  disabled?: boolean
-  danger?: boolean
-  separator?: boolean
-  onClick?: () => void
-}
+export type { ContextMenuItem }
 
 export interface ExplorerContextMenuProps {
   items: ContextMenuItem[]
@@ -76,7 +68,7 @@ export function ExplorerContextMenu({ items, position, onClose }: ExplorerContex
 
         return (
           <button
-            key={item.id}
+            key={item.id ?? `item-${i}`}
             className="w-full text-left flex items-center gap-2 px-4 py-1.5 text-xs transition-colors"
             style={{
               color: item.danger
@@ -98,8 +90,8 @@ export function ExplorerContextMenu({ items, position, onClose }: ExplorerContex
               e.currentTarget.style.background = 'transparent'
             }}
             onClick={() => {
-              if (!item.disabled && item.onClick) {
-                item.onClick()
+              if (!item.disabled && item.action) {
+                item.action()
                 onClose()
               }
             }}
@@ -138,16 +130,16 @@ export function getFileContextMenuItems(options: {
   const { onNewFile, onNewFolder, onRename, onDelete, onCopyPath, onOpenTerminal, onRevealInFinder } = options
 
   return [
-    { id: 'new-file', label: '新建文件', icon: <FilePlus size={14} />, onClick: onNewFile },
-    { id: 'new-folder', label: '新建文件夹', icon: <FolderPlus size={14} />, onClick: onNewFolder },
-    { id: 'sep1', label: '', separator: true },
-    { id: 'rename', label: '重命名', icon: <Pencil size={14} />, onClick: onRename },
-    { id: 'sep2', label: '', separator: true },
-    { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, onClick: onCopyPath },
-    { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, onClick: onOpenTerminal },
-    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
-    { id: 'sep3', label: '', separator: true },
-    { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, onClick: onDelete },
+    { id: 'new-file', label: '新建文件', icon: <FilePlus size={14} />, action: onNewFile },
+    { id: 'sep1', separator: true },
+    { id: 'new-folder', label: '新建文件夹', icon: <FolderPlus size={14} />, action: onNewFolder },
+    { id: 'rename', label: '重命名', icon: <Pencil size={14} />, action: onRename },
+    { id: 'sep2', separator: true },
+    { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, action: onCopyPath },
+    { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, action: onOpenTerminal },
+    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, action: onRevealInFinder },
+    { id: 'sep3', separator: true },
+    { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, action: onDelete },
   ]
 }
 
@@ -177,25 +169,25 @@ export function getFolderContextMenuItems(options: {
     id: `agent-preset-${p.id}`,
     label: `Agent: ${p.label}`,
     icon: <Bot size={14} />,
-    onClick: () => triggerPreset(p.id),
+    action: () => triggerPreset(p.id),
   }))
 
   return [
-    { id: 'new-file', label: '新建文件', icon: <FilePlus size={14} />, onClick: onNewFile },
-    { id: 'new-folder', label: '新建文件夹', icon: <FolderPlus size={14} />, onClick: onNewFolder },
-    { id: 'sep1', label: '', separator: true },
-    { id: 'rename', label: '重命名', icon: <Pencil size={14} />, onClick: onRename },
-    { id: 'sep2', label: '', separator: true },
-    { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, onClick: onCopyPath },
-    { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, onClick: onOpenTerminal },
-    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, onClick: onRevealInFinder },
+    { id: 'new-file', label: '新建文件', icon: <FilePlus size={14} />, action: onNewFile },
+    { id: 'new-folder', label: '新建文件夹', icon: <FolderPlus size={14} />, action: onNewFolder },
+    { id: 'sep1', separator: true },
+    { id: 'rename', label: '重命名', icon: <Pencil size={14} />, action: onRename },
+    { id: 'sep2', separator: true },
+    { id: 'copy-path', label: '复制路径', icon: <Copy size={14} />, action: onCopyPath },
+    { id: 'open-terminal', label: '在终端中打开', icon: <Terminal size={14} />, action: onOpenTerminal },
+    { id: 'reveal-finder', label: isMacOS() ? '在 Finder 中显示' : '在资源管理器中显示', icon: <FolderSearch size={14} />, action: onRevealInFinder },
     ...(agentItems.length > 0
       ? [
-          { id: 'sep-agent', label: '', separator: true } as ContextMenuItem,
+          { id: 'sep-agent', separator: true } as ContextMenuItem,
           ...agentItems,
         ]
       : []),
-    { id: 'sep3', label: '', separator: true },
-    { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, onClick: onDelete },
+    { id: 'sep3', separator: true },
+    { id: 'delete', label: '删除', icon: <Trash2 size={14} />, danger: true, action: onDelete },
   ]
 }

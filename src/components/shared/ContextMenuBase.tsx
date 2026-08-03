@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 
 export interface ContextMenuItem {
+  id?: string
   label?: string
   icon?: ReactNode
   shortcut?: string
   action?: () => void
   separator?: boolean
   disabled?: boolean
+  danger?: boolean
 }
 
 interface ContextMenuBaseProps {
