@@ -4,6 +4,9 @@
  * 扩展事件：
  * - confirmation_required：confirm 工具等待用户决定
  * - compaction_done / compaction_failed：上下文压缩
+ *
+ * 设计：EventMapper 类持有 per-session 状态（lastMessageText），
+ * 避免多会话交错时增量 delta 计算串台。
  */
 
 import type { AgentEvent } from '@pi/agent'
@@ -56,70 +59,73 @@ function extractTextFromMessage(message: unknown): string {
   return ''
 }
 
-// ─── 上次消息文本（用于计算 delta）────────────────────────────────────
-
-let lastMessageText = ''
+// ─── EventMapper 类（per-session 状态隔离）──────────────────────────
 
 /**
- * 重置 mapper 内部状态（Agent 启动时调用）
+ * 事件映射器实例，持有 per-session 的 lastMessageText 状态
  */
-export function resetEventMapper(): void {
-  lastMessageText = ''
-}
+export class EventMapper {
+  private lastMessageText = ''
 
-/**
- * 将 Pi AgentEvent 映射为 MarkdownAgentEvent
- * 返回 null 表示该事件不需要被消费
- */
-export function mapPiEvent(event: AgentEvent): MarkdownAgentEvent | null {
-  switch (event.type) {
-    case 'agent_start':
-      lastMessageText = ''
-      return null
+  /** 重置内部状态（Agent 启动时调用） */
+  reset(): void {
+    this.lastMessageText = ''
+  }
 
-    case 'turn_start':
-      return { type: 'thinking', content: '' }
+  /**
+   * 将 Pi AgentEvent 映射为 MarkdownAgentEvent
+   * 返回 null 表示该事件不需要被消费
+   */
+  map(event: AgentEvent): MarkdownAgentEvent | null {
+    switch (event.type) {
+      case 'agent_start':
+        this.lastMessageText = ''
+        return null
 
-    case 'message_update': {
-      const fullText = extractTextFromMessage(event.message)
-      const delta = fullText.slice(lastMessageText.length)
-      lastMessageText = fullText
-      if (!delta) return null
-      return { type: 'message', content: fullText, delta }
-    }
+      case 'turn_start':
+        return { type: 'thinking', content: '' }
 
-    case 'message_end':
-      lastMessageText = ''
-      return null
-
-    case 'tool_execution_start':
-      return {
-        type: 'tool_call',
-        name: event.toolName,
-        args: event.args as Record<string, unknown>,
-        toolCallId: event.toolCallId,
+      case 'message_update': {
+        const fullText = extractTextFromMessage(event.message)
+        const delta = fullText.slice(this.lastMessageText.length)
+        this.lastMessageText = fullText
+        if (!delta) return null
+        return { type: 'message', content: fullText, delta }
       }
 
-    case 'tool_execution_end': {
-      if (isPatchResult(event.result)) {
+      case 'message_end':
+        this.lastMessageText = ''
+        return null
+
+      case 'tool_execution_start':
         return {
-          type: 'patch',
-          patch: (event.result as { details: MarkdownPatch }).details,
+          type: 'tool_call',
+          name: event.toolName,
+          args: event.args as Record<string, unknown>,
+          toolCallId: event.toolCallId,
+        }
+
+      case 'tool_execution_end': {
+        if (isPatchResult(event.result)) {
+          return {
+            type: 'patch',
+            patch: (event.result as { details: MarkdownPatch }).details,
+            toolCallId: event.toolCallId,
+          }
+        }
+        return {
+          type: 'tool_result',
+          name: event.toolName,
+          result: event.result,
           toolCallId: event.toolCallId,
         }
       }
-      return {
-        type: 'tool_result',
-        name: event.toolName,
-        result: event.result,
-        toolCallId: event.toolCallId,
-      }
+
+      case 'agent_end':
+        return { type: 'done' }
+
+      default:
+        return null
     }
-
-    case 'agent_end':
-      return { type: 'done' }
-
-    default:
-      return null
   }
 }

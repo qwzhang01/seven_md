@@ -92,16 +92,21 @@ const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   'deepseek-reasoner': 64_000,
 }
 
-const DEFAULT_THRESHOLD = 25_000
+const DEFAULT_CONTEXT_WINDOW = 128_000
+
+/**
+ * 获取指定模型的 context window 大小
+ */
+export function getContextWindowFor(modelId: string | undefined): number {
+  if (!modelId) return DEFAULT_CONTEXT_WINDOW
+  return MODEL_CONTEXT_WINDOWS[modelId] ?? DEFAULT_CONTEXT_WINDOW
+}
 
 /**
  * 获取指定模型的 token 阈值（context window × 0.8）
  */
 export function tokenThresholdFor(modelId: string | undefined): number {
-  if (!modelId) return DEFAULT_THRESHOLD
-  const cw = MODEL_CONTEXT_WINDOWS[modelId]
-  if (!cw) return DEFAULT_THRESHOLD
-  return Math.floor(cw * 0.8)
+  return Math.floor(getContextWindowFor(modelId) * 0.8)
 }
 
 // ─── Truncation Fallback ────────────────────────────────────────────

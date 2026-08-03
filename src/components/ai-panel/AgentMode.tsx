@@ -46,6 +46,7 @@ export function AgentMode() {
     startAgent,
     cancelAgent,
     clearHistory,
+    retryLastPrompt,
   } = useAgentStore()
 
   const selectedText = useAIStore((s) => s.selectedText)
@@ -272,8 +273,7 @@ export function AgentMode() {
             className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
             onClick={() => {
-              const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-              if (lastUser) startAgent(lastUser.content)
+              retryLastPrompt()
             }}
           >
             <RefreshCw size={12} />

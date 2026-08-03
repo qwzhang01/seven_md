@@ -5,9 +5,9 @@
  * - generate_toc（auto）— 生成目录
  * - format_markdown_table（auto）— 格式化 GFM 表格
  * - validate_markdown_links（auto）— 检查链接
- * - generate_mermaid（confirm）— 生成 mermaid 代码块
  *
  * 所有工具内部限制处理长度 100KB 以避免极长文档的性能问题。
+ * 注：generate_mermaid 已移除——LLM 可直接通过 insert_at_cursor 插入自己生成的 Mermaid 代码块。
  */
 
 import type { AgentTool, AgentToolResult } from '@pi/agent'
@@ -22,6 +22,32 @@ import type { MarkdownPatch } from '../patchProtocol'
 const MD_PROCESS_LIMIT = 100 * 1024 // 100KB
 
 // ─── Helpers ────────────────────────────────────────────────────────
+
+/**
+ * 基于当前文档路径解析相对链接路径
+ * 返回绝对路径，或 null 表示无法解析（如未保存的文档）
+ */
+function resolveLinkPath(linkUrl: string): string | null {
+  const activeTab = useFileStore.getState().getActiveTab()
+  if (!activeTab?.path) {
+    // 文档未保存到磁盘，无法解析相对路径
+    return null
+  }
+  // URL 编码的路径需要解码
+  const decoded = decodeURIComponent(linkUrl)
+  // 绝对路径直接使用
+  if (decoded.startsWith('/')) return decoded
+  // 相对路径：基于文档所在目录解析
+  const docDir = activeTab.path.substring(0, activeTab.path.lastIndexOf('/'))
+  const parts = decoded.split('/')
+  const resolvedParts: string[] = docDir.split('/').filter(Boolean)
+  for (const part of parts) {
+    if (part === '..') resolvedParts.pop()
+    else if (part === '.' || part === '') continue
+    else resolvedParts.push(part)
+  }
+  return '/' + resolvedParts.join('/')
+}
 
 function errorResult(message: string): AgentToolResult<{ error: string }> {
   return {
@@ -254,13 +280,19 @@ export const validateMarkdownLinksTool: AgentTool<typeof ValidateLinksSchema> = 
           // 锚点链接，跳过
           results.push({ url, line: i + 1, status: 'unchecked' })
         } else {
-          // 本地相对/绝对链接 — 尝试读取
-          let status: 'ok' | 'broken' = 'broken'
-          try {
-            await tauriReadFile(url)
-            status = 'ok'
-          } catch {
-            status = 'broken'
+          // 本地相对/绝对链接 — 基于文档目录解析后读取
+          let status: 'ok' | 'broken' | 'unchecked' = 'unchecked'
+          const resolvedPath = resolveLinkPath(url)
+          if (resolvedPath === null) {
+            // 文档未保存到磁盘，无法验证
+            status = 'unchecked'
+          } else {
+            try {
+              await tauriReadFile(resolvedPath)
+              status = 'ok'
+            } catch {
+              status = 'broken'
+            }
           }
           results.push({ url, line: i + 1, status })
         }
@@ -268,61 +300,5 @@ export const validateMarkdownLinksTool: AgentTool<typeof ValidateLinksSchema> = 
     }
 
     return textResult({ links: results, total: results.length })
-  },
-}
-
-// ─── generate_mermaid ───────────────────────────────────────────────
-
-const GenerateMermaidSchema = Type.Object({
-  description: Type.String({ description: '图表描述（自然语言或简化语法）' }),
-  type: Type.Optional(
-    Type.Union(
-      [
-        Type.Literal('flowchart'),
-        Type.Literal('sequence'),
-        Type.Literal('class'),
-      ],
-      { description: '图表类型，默认 flowchart' },
-    ),
-  ),
-})
-type GenerateMermaidParams = Static<typeof GenerateMermaidSchema>
-
-export const generateMermaidTool: AgentTool<typeof GenerateMermaidSchema, MarkdownPatch> = {
-  name: 'generate_mermaid',
-  label: '生成 Mermaid 图',
-  description: '根据描述生成 Mermaid 代码块插入到光标处（需确认）',
-  parameters: GenerateMermaidSchema,
-  async execute(_toolCallId, params: GenerateMermaidParams): Promise<AgentToolResult<MarkdownPatch>> {
-    const type = params.type ?? 'flowchart'
-    if (params.description.length > MD_PROCESS_LIMIT) {
-      return errorResult('描述过长') as unknown as AgentToolResult<MarkdownPatch>
-    }
-
-    let body = ''
-    switch (type) {
-      case 'flowchart':
-        body = `flowchart TD\n  A[${params.description}]`
-        break
-      case 'sequence':
-        body = `sequenceDiagram\n  participant A\n  participant B\n  A->>B: ${params.description}`
-        break
-      case 'class':
-        body = `classDiagram\n  class Item {\n    +${params.description}\n  }`
-        break
-    }
-
-    const block = '```mermaid\n' + body + '\n```\n'
-    const content = getActiveContent()
-    const { cursorPosition } = useEditorStore.getState()
-    const position = calculateCursorOffset(content, cursorPosition.line, cursorPosition.column)
-
-    const patch = createPatch({
-      type: 'insert_at_cursor',
-      position,
-      text: block,
-      description: `生成 ${type} mermaid 图表`,
-    })
-    return patchResult(patch)
   },
 }

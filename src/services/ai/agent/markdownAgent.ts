@@ -18,7 +18,7 @@ import { getAIConfig } from '../config'
 import './tools/index'
 import { getAllTools } from './toolRegistry'
 import { MARKDOWN_AGENT_SYSTEM_PROMPT } from './prompts'
-import { maybeCompact, type CompactionEventHandler } from './compaction'
+import { maybeCompact, getContextWindowFor, type CompactionEventHandler } from './compaction'
 
 let providerRegistered = false
 
@@ -40,6 +40,7 @@ function ensureProviderRegistered(): void {
  */
 function buildAgentModel(modelId: string): Model<Api> {
   const config = getAIConfig()
+  const contextWindow = getContextWindowFor(modelId)
   return {
     id: modelId,
     name: modelId,
@@ -49,8 +50,8 @@ function buildAgentModel(modelId: string): Model<Api> {
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 4096,
+    contextWindow,
+    maxTokens: Math.min(4096, Math.floor(contextWindow / 4)),
   }
 }
 
@@ -72,6 +73,8 @@ export interface MarkdownAgentMeta {
   modelId: string
   /** 触发 compaction 的回调，由 useAgentStore 注入 */
   onCompactionEvent?: CompactionEventHandler
+  /** compaction 开始前回调（用于设置 UI 压缩指示器） */
+  onCompactionBegin?: () => void
 }
 
 const META_KEY = '__markdownAgentMeta'
@@ -99,6 +102,8 @@ export interface CreateMarkdownAgentOptions {
   modelId?: string
   /** Compaction 事件回调（由 store 接管 UI 状态） */
   onCompactionEvent?: CompactionEventHandler
+  /** Compaction 开始前回调（由 store 接管 UI 状态） */
+  onCompactionBegin?: () => void
 }
 
 /**
@@ -134,7 +139,7 @@ export function createMarkdownAgent(options: CreateMarkdownAgentOptions = {}): A
       tools,
       thinkingLevel: 'off',
     },
-    getApiKey: () => config.apiKey,
+    getApiKey: (_provider: string) => getAIConfig().apiKey,
     toolExecution: 'sequential',
   }
 
@@ -144,6 +149,7 @@ export function createMarkdownAgent(options: CreateMarkdownAgentOptions = {}): A
   setAgentMeta(agent, {
     modelId: resolvedModelId,
     onCompactionEvent: options.onCompactionEvent,
+    onCompactionBegin: options.onCompactionBegin,
   })
 
   // 包装 prompt 方法以注入 compaction
@@ -152,6 +158,7 @@ export function createMarkdownAgent(options: CreateMarkdownAgentOptions = {}): A
     const meta = getAgentMeta(agent)
     await maybeCompact(agent, {
       modelId: meta?.modelId,
+      onBegin: () => meta?.onCompactionBegin?.(),
       onEvent: (e) => meta?.onCompactionEvent?.(e),
     })
     return originalPrompt(...args)

@@ -21,7 +21,7 @@ import {
   createMarkdownAgent,
   setActiveModelProvider,
 } from '../services/ai/agent/markdownAgent'
-import { mapPiEvent, resetEventMapper } from '../services/ai/agent/eventMapper'
+import { EventMapper } from '../services/ai/agent/eventMapper'
 import type { MarkdownAgentEvent } from '../services/ai/agent/eventMapper'
 import type { MarkdownPatch } from '../services/ai/agent/patchProtocol'
 import {
@@ -110,6 +110,9 @@ interface AgentState {
   // ─ 权限确认
   approveConfirmation: (id: string) => void
   rejectConfirmation: (id: string) => void
+
+  // ─ 重试
+  retryLastPrompt: () => void
 }
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -150,6 +153,7 @@ function createEmptySession(modelId: string, title = '对话 1'): AgentSession {
 interface SessionRuntime {
   agent: Agent | null
   unsubscribe: (() => void) | null
+  eventMapper: EventMapper
 }
 
 const runtimes = new Map<string, SessionRuntime>()
@@ -157,7 +161,7 @@ const runtimes = new Map<string, SessionRuntime>()
 function getRuntime(sessionId: string): SessionRuntime {
   let rt = runtimes.get(sessionId)
   if (!rt) {
-    rt = { agent: null, unsubscribe: null }
+    rt = { agent: null, unsubscribe: null, eventMapper: new EventMapper() }
     runtimes.set(sessionId, rt)
   }
   return rt
@@ -227,6 +231,9 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
       try {
         runtime.agent = createMarkdownAgent({
           modelId: session.modelId,
+          onCompactionBegin: () => {
+            updateSession(state.activeSessionId, (s) => ({ ...s, compactionInProgress: true }))
+          },
           onCompactionEvent: (e) => {
             if (e.type === 'compaction_done') {
               dispatchEvent({ type: 'compaction_done', removedMessages: e.removedMessages }, state.activeSessionId, '')
@@ -245,7 +252,7 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
       }
     }
 
-    resetEventMapper()
+    runtime.eventMapper.reset()
 
     // assistant 消息占位
     const assistantMsg: AgentStoreMessage = {
@@ -263,8 +270,9 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
     // 订阅事件
     if (runtime.unsubscribe) runtime.unsubscribe()
     const sessionId = state.activeSessionId
+    const mapper = runtime.eventMapper
     runtime.unsubscribe = runtime.agent.subscribe((event) => {
-      const mapped = mapPiEvent(event)
+      const mapped = mapper.map(event)
       if (!mapped) return
       dispatchEvent(mapped, sessionId, assistantMsgId)
     })
@@ -295,11 +303,18 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
     const session = state.sessions[state.activeSessionId]
     const patch = session?.pendingPatches.find((p) => p.id === patchId)
     if (!patch) return
-    executePatch(patch)
-    updateSession(state.activeSessionId, (s) => ({
-      ...s,
-      pendingPatches: s.pendingPatches.filter((p) => p.id !== patchId),
-    }))
+    try {
+      executePatch(patch)
+      updateSession(state.activeSessionId, (s) => ({
+        ...s,
+        pendingPatches: s.pendingPatches.filter((p) => p.id !== patchId),
+      }))
+    } catch (err) {
+      updateSession(state.activeSessionId, (s) => ({
+        ...s,
+        error: `补丁应用失败：${err instanceof Error ? err.message : String(err)}`,
+      }))
+    }
   },
 
   rejectPatch: (patchId: string) => {
@@ -316,8 +331,21 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
     const session = state.sessions[state.activeSessionId]
     if (!session) return
     const sorted = [...session.pendingPatches].sort((a, b) => a.createdAt - b.createdAt)
-    for (const patch of sorted) executePatch(patch)
-    updateSession(state.activeSessionId, (s) => ({ ...s, pendingPatches: [] }))
+    const appliedIds = new Set<string>()
+    const errors: string[] = []
+    for (const patch of sorted) {
+      try {
+        executePatch(patch)
+        appliedIds.add(patch.id)
+      } catch (err) {
+        errors.push(`${patch.id}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    updateSession(state.activeSessionId, (s) => ({
+      ...s,
+      pendingPatches: s.pendingPatches.filter((p) => !appliedIds.has(p.id)),
+      error: errors.length > 0 ? `部分补丁应用失败：\n${errors.join('\n')}` : s.error,
+    }))
   },
 
   rejectAllPatches: () => {
@@ -398,8 +426,19 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
   // ─── Model switch ────────────────────────────────────────────────
 
   setActiveModel: (modelId: string) => {
+    const state = get()
     set({ activeModelId: modelId })
     persistActiveModelId(modelId)
+
+    // 更新当前活跃会话的 modelId，并销毁旧 Agent 以便下次重建
+    const sessionId = state.activeSessionId
+    const runtime = runtimes.get(sessionId)
+    if (runtime) {
+      runtime.agent?.abort()
+      runtime.unsubscribe?.()
+      runtimes.delete(sessionId)
+    }
+    updateSession(sessionId, (s) => ({ ...s, modelId }))
   },
 
   // ─── Confirmation ────────────────────────────────────────────────
@@ -410,6 +449,67 @@ export const useAgentStore = create<AgentState>()((set, get) => ({
 
   rejectConfirmation: (id: string) => {
     resolveConfirmation(id, false)
+  },
+
+  retryLastPrompt: () => {
+    const state = get()
+    const session = state.sessions[state.activeSessionId]
+    if (!session || session.isRunning) return
+
+    // 找到最后一条用户消息
+    const lastUserMsg = [...session.messages].reverse().find((m) => m.role === 'user')
+    if (!lastUserMsg) return
+
+    // 移除最后的 assistant 消息和 error
+    updateSession(state.activeSessionId, (s) => {
+      const msgs = [...s.messages]
+      // 移除最后的 assistant 占位
+      if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+        msgs.pop()
+      }
+      return { ...s, messages: msgs, error: null }
+    })
+
+    // 重新启动 Agent（不添加新的用户消息）
+    const runtime = getRuntime(state.activeSessionId)
+    if (!runtime.agent) return
+
+    runtime.eventMapper.reset()
+
+    const assistantMsg: AgentStoreMessage = {
+      id: nextMessageId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    }
+    updateSession(state.activeSessionId, (s) => ({
+      ...s,
+      isRunning: true,
+      messages: [...s.messages, assistantMsg],
+    }))
+    const assistantMsgId = assistantMsg.id
+
+    const sessionId = state.activeSessionId
+    const mapper = runtime.eventMapper
+    if (runtime.unsubscribe) runtime.unsubscribe()
+    runtime.unsubscribe = runtime.agent.subscribe((event) => {
+      const mapped = mapper.map(event)
+      if (!mapped) return
+      dispatchEvent(mapped, sessionId, assistantMsgId)
+    })
+
+    runtime.agent
+      .prompt(lastUserMsg.content)
+      .then(() => {
+        updateSession(sessionId, (s) => ({ ...s, isRunning: false }))
+      })
+      .catch((err) => {
+        updateSession(sessionId, (s) => ({
+          ...s,
+          isRunning: false,
+          error: err instanceof Error ? err.message : 'Agent 运行出错',
+        }))
+      })
   },
 }))
 
@@ -518,6 +618,17 @@ function dispatchEvent(
 ): void {
   switch (event.type) {
     case 'thinking':
+      // 当 thinking 事件携带实际内容时（如 reasoning model 的思考过程），追加显示
+      if (event.content) {
+        updateSession(sessionId, (s) => ({
+          ...s,
+          messages: s.messages.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: m.content ? `${m.content}\n\n> ${event.content}` : `> ${event.content}` }
+              : m,
+          ),
+        }))
+      }
       break
 
     case 'message':

@@ -17,8 +17,10 @@ vi.mock('../../services/ai/agent/markdownAgent', () => ({
 }))
 
 vi.mock('../../services/ai/agent/eventMapper', () => ({
-  mapPiEvent: vi.fn(() => null),
-  resetEventMapper: vi.fn(),
+  EventMapper: vi.fn(() => ({
+    map: vi.fn(() => null),
+    reset: vi.fn(),
+  })),
 }))
 
 vi.mock('../../services/ai/agent/toolRegistry', () => ({

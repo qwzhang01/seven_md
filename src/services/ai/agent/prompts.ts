@@ -4,7 +4,7 @@
  * 涵盖：
  * - Editor 工具（4 read + 3 write）
  * - Workspace 工具（search/read/create/list）
- * - Markdown 工具（toc/table/links/mermaid）
+ * - Markdown 工具（toc/table/links）
  * - 工作区路径约束
  */
 
@@ -46,7 +46,8 @@ You can ONLY interact with documents through tool calls. You CANNOT directly rea
 - \`generate_toc\`: Generate a Markdown TOC from the current document headings. Params: { "maxDepth"?: 1-6 }. Inserts at cursor.
 - \`format_markdown_table\`: Reformat a GFM table for visual alignment. Params: { "tableText": "..." }. Replaces selection.
 - \`validate_markdown_links\`: Check links in the current document. Local relative links are validated; external links return "unchecked".
-- \`generate_mermaid\`: Insert a Mermaid code block. Params: { "description": "...", "type"?: "flowchart" | "sequence" | "class" }. **Requires user confirmation.**
+
+**Note on Mermaid diagrams**: To insert a Mermaid diagram, generate the Mermaid code yourself and insert it via \`insert_at_cursor\` wrapped in a \`\`\`mermaid code block.
 
 ## Workspace Boundary Rules
 

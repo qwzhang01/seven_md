@@ -22,11 +22,14 @@ export function AIPanel() {
     addNotification({ type: 'success', message: 'AI 配置已保存', autoClose: true, duration: 2000 })
   }, [settingsForm, addNotification])
 
+  // Ref to the panel root div for direct DOM manipulation during drag
+  const panelRef = useRef<HTMLDivElement>(null)
+
   const isResizing = useRef(false)
   const startX = useRef(0)
   const startWidth = useRef(0)
 
-  // 拖拽调整宽度
+  // 拖拽调整宽度 — 使用 ref 直接操作 DOM，避免每次 mousemove 触发 re-render
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isResizing.current = true
     startX.current = e.clientX
@@ -36,14 +39,15 @@ export function AIPanel() {
     document.documentElement.setAttribute('data-resizing', '')
 
     const handleMouseMove = (ev: MouseEvent) => {
-      if (!isResizing.current) return
+      if (!isResizing.current || !panelRef.current) return
       // 向左拖动增大宽度（与左侧边栏相反）
       const dx = startX.current - ev.clientX
       // 最大宽度 = 编辑区域（窗口宽度减去侧边栏宽度）的 3/4
       const editorAreaWidth = window.innerWidth - sidebarWidth
       const dynamicMax = Math.floor(editorAreaWidth * 0.75)
       const clampedWidth = Math.max(280, Math.min(dynamicMax, startWidth.current + dx))
-      setAIPanelWidth(clampedWidth)
+      // 直接操作 DOM，零 re-render，极致丝滑
+      panelRef.current.style.width = `${clampedWidth}px`
     }
 
     const handleMouseUp = () => {
@@ -51,6 +55,14 @@ export function AIPanel() {
       document.documentElement.removeAttribute('data-resizing')
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
+      // 拖拽结束后一次性提交到 store（持久化 + 同步 React 状态）
+      if (panelRef.current) {
+        const finalWidth = panelRef.current.style.width
+        const widthValue = parseInt(finalWidth, 10)
+        if (!isNaN(widthValue)) {
+          setAIPanelWidth(widthValue)
+        }
+      }
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
@@ -77,6 +89,7 @@ export function AIPanel() {
 
   return (
     <div
+      ref={panelRef}
       className="flex-shrink-0 flex flex-col h-full relative"
       style={{
         width: `${aiPanelWidth}px`,
@@ -87,7 +100,7 @@ export function AIPanel() {
     >
       {/* 左侧 Resize 手柄 */}
       <div
-        className="absolute left-0 top-0 bottom-0 cursor-col-resize transition-all"
+        className="absolute left-0 top-0 bottom-0 cursor-col-resize"
         style={{
           zIndex: 10,
           width: '4px',
@@ -96,14 +109,6 @@ export function AIPanel() {
         }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--accent)'
-          e.currentTarget.style.width = '6px'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent'
-          e.currentTarget.style.width = '4px'
-        }}
       />
 
       {/* Header */}

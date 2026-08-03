@@ -27,7 +27,6 @@ import {
   generateTocTool,
   formatMarkdownTableTool,
   validateMarkdownLinksTool,
-  generateMermaidTool,
 } from './markdownTools'
 
 // ── Editor: read（auto） ────────────────────────────────────────────
@@ -51,4 +50,3 @@ registerTool(listWorkspaceFilesTool, 'auto')
 registerTool(generateTocTool, 'auto')
 registerTool(formatMarkdownTableTool, 'auto')
 registerTool(validateMarkdownLinksTool, 'auto')
-registerTool(generateMermaidTool, 'confirm')
