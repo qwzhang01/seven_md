@@ -39,7 +39,7 @@ jobs:
             file \
             libssl-dev \
             libglib2.0-dev \
-            libgobject-introspection-dev
+            libgirepository1.0-dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
